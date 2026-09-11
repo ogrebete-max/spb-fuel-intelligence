@@ -1,4 +1,4 @@
-name: Refresh fuel data and deploy public map
+name: Refresh fuel data and build mobile map
 
 on:
   workflow_dispatch:
@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: "spb-fuel-refresh"
@@ -42,18 +40,10 @@ jobs:
       - name: Build static public map from the fresh snapshot
         run: python scripts/build_static_site.py --output site
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload public map artifact
-        uses: actions/upload-pages-artifact@v4
+      - name: Preserve deployable mobile map
+        uses: actions/upload-artifact@v4
         with:
+          name: spb-fuel-site
           path: site
-
-      - name: Deploy public map
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+          retention-days: 2
+          compression-level: 9
