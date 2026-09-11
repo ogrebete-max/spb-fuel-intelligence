@@ -68,7 +68,7 @@ class StationRepository:
             "stats": self.snapshot.get("stats"),
             "grades": GRADES,
             "history": self.history.get("stats", {"tracked_station_grades": 0, "transitions_this_update": 0}),
-            "notice": "Возраст каждого сигнала учитывается отдельно; UNKNOWN никогда не становится NO.",
+            "notice": "Для ответа «сейчас» применяются жёсткие TTL: прямой статус — 30 мин, пользовательский сигнал — 45 мин. UNKNOWN никогда не становится NO.",
         }
 
     def sources(self) -> dict[str, Any]:
@@ -135,7 +135,7 @@ class StationRepository:
             if radius_km is not None and distance is not None and distance > radius_km:
                 continue
             evaluated = evaluate_grade(station.get("evidence", []), grade, now=now)
-            temporal = timeline_for(self.history, station, grade, now=now)
+            temporal = timeline_for(self.history, station, grade, now=now, current_status=evaluated["status"])
             evaluated["timeline"] = temporal
             all_statuses[evaluated["status"]] += 1
             if temporal.get("appeared_recent"):
@@ -198,5 +198,5 @@ class StationRepository:
         now = self._as_of(as_of)
         result = evaluate_station(station, now=now)
         for grade, evaluated in result["grades"].items():
-            evaluated["timeline"] = timeline_for(self.history, station, grade, now=now)
+            evaluated["timeline"] = timeline_for(self.history, station, grade, now=now, current_status=evaluated["status"])
         return result

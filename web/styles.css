@@ -38,6 +38,8 @@ button { color: inherit; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px clamp(18px, 4vw, 48px);
 }
+.topbar-actions { display: flex; align-items: center; gap: 9px; }
+.install-button { border: 1px solid var(--brand); background: var(--brand); color: white; border-radius: 10px; padding: 9px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
 .brand { display: inline-flex; gap: 11px; align-items: center; color: inherit; text-decoration: none; }
 .brand strong, .brand small { display: block; }
 .brand strong { font-size: 15px; letter-spacing: -.02em; }
@@ -119,7 +121,7 @@ select { color: white; border: 1px solid rgba(255,255,255,.18); background: #173
 .chevron { color: #9aa59f; font-size: 24px; line-height: 1; }
 .empty-state, .loading-state { padding: 42px 22px; text-align: center; color: var(--muted); background: rgba(255,255,255,.5); border-radius: 16px; }
 .map-wrap { position: relative; min-height: 600px; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: #dce5dc; }
-#map { position: absolute; inset: 0; touch-action: none; cursor: grab; }
+#map { position: absolute; inset: 0; touch-action: none; cursor: grab; overscroll-behavior: contain; }
 #map:active { cursor: grabbing; }
 .map-area-button { position: absolute; z-index: 500; left: 50%; top: 14px; transform: translateX(-50%); border: 0; border-radius: 99px; background: var(--brand-dark); color: white; padding: 10px 16px; box-shadow: 0 6px 22px rgba(0,0,0,.22); cursor: pointer; display: none; }
 .map-fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 30px; text-align: center; color: var(--muted); }
@@ -181,6 +183,7 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 @media (min-width: 851px) { .view-switch { display: none; } }
 @media (max-width: 620px) {
   .topbar { padding-top: 15px; }
+  .install-button { padding: 8px 10px; }
   .hero { padding-bottom: 22px; }
   h1 { font-size: 45px; }
   .location-row, .grade-row, .search-row { align-items: stretch; }

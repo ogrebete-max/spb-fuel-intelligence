@@ -27,6 +27,10 @@ class EvidenceEngineTests(unittest.TestCase):
         result = evaluate_grade([row("NOT_AVAILABLE", age_minutes=1000)], "AI95", now=NOW)
         self.assertEqual(result["status"], "NO_FRESH_DATA")
 
+    def test_five_hour_old_report_is_not_a_current_answer(self):
+        result = evaluate_grade([row("AVAILABLE", age_minutes=5 * 60)], "AI95", now=NOW)
+        self.assertEqual(result["status"], "NO_FRESH_DATA")
+
     def test_official_stock_is_confirmation(self):
         result = evaluate_grade([row("AVAILABLE", kind="official_stock", cluster="official")], "AI95", now=NOW)
         self.assertEqual(result["status"], "CAN_REFUEL")

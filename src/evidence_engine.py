@@ -30,17 +30,19 @@ NON_STATUS_KINDS = {"price", "catalog_price", "catalog_fuel", "catalog_or_stale"
 # A TTL says for how long a signal may influence the current status.  Old rows
 # stay visible in the explanation but never silently become a negative signal.
 TTL_SECONDS = {
-    "official_stock": 2 * 60 * 60,
-    "realtime_status": 2 * 60 * 60,
-    "crowd_report": 6 * 60 * 60,
-    "crowd_status": 6 * 60 * 60,
-    "parsed_status": 4 * 60 * 60,
-    "aggregated_status": 3 * 60 * 60,
-    "imported_status": 3 * 60 * 60,
-    "payment_projection": 2 * 60 * 60,
-    "payment_prediction": 2 * 60 * 60,
-    "network_claim_aggregated": 2 * 60 * 60,
-    "stale_or_crowd_status": 3 * 60 * 60,
+    # This product answers “can I refuel now?”.  A five-hour-old report is
+    # useful history but not a current station-level answer.
+    "official_stock": 30 * 60,
+    "realtime_status": 30 * 60,
+    "crowd_report": 45 * 60,
+    "crowd_status": 45 * 60,
+    "parsed_status": 45 * 60,
+    "aggregated_status": 30 * 60,
+    "imported_status": 30 * 60,
+    "payment_projection": 30 * 60,
+    "payment_prediction": 30 * 60,
+    "network_claim_aggregated": 30 * 60,
+    "stale_or_crowd_status": 30 * 60,
     "undated_crowd_summary": 30 * 60,
 }
 

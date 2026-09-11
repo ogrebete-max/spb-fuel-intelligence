@@ -66,6 +66,14 @@ class HistoryTests(unittest.TestCase):
         self.assertFalse(view["appeared_recent"])
         self.assertEqual(view["last_transition"]["kind"], "BECAME_UNAVAILABLE")
 
+    def test_old_transition_is_not_recent_when_live_status_expired(self):
+        first, _ = snapshot("2026-09-11T05:00:00Z", "NOT_AVAILABLE")
+        second, station = snapshot("2026-09-11T05:20:00Z", "AVAILABLE")
+        history = update_history_data(update_history_data(None, first), second)
+        view = timeline_for(history, station, "AI95", now=datetime(2026, 9, 11, 10, 25, tzinfo=timezone.utc), current_status="NO_FRESH_DATA")
+        self.assertEqual(view["state"], "HISTORICAL_POSITIVE")
+        self.assertFalse(view["appeared_recent"])
+
 
 if __name__ == "__main__":
     unittest.main()

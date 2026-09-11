@@ -166,7 +166,10 @@ def update_history_data(history: dict[str, Any] | None, snapshot: dict[str, Any]
     return result
 
 
-def timeline_for(history: dict[str, Any], station: dict[str, Any], grade: str, *, now: datetime) -> dict[str, Any]:
+def timeline_for(
+    history: dict[str, Any], station: dict[str, Any], grade: str, *, now: datetime,
+    current_status: str | None = None,
+) -> dict[str, Any]:
     entry = (history.get("entries") or {}).get(f"{station_history_id(station)}|{grade}")
     if not entry:
         return {"state": "NO_HISTORY", "label": "История ещё не накоплена", "description": "Появится после следующих обновлений данных.", "recent": False, "appeared_recent": False}
@@ -183,12 +186,23 @@ def timeline_for(history: dict[str, Any], station: dict[str, Any], grade: str, *
         changed_at = parse_time(last.get("at"))
         transition_age = max(0, round((now - changed_at).total_seconds())) if changed_at else None
         if last.get("kind") in {"BECAME_AVAILABLE", "NEW_POSITIVE_SIGNAL"} and status_group == "positive":
-            recent = transition_age is not None and transition_age <= 6 * 3600
+            # A history transition is not a live signal by itself. Its bright
+            # “just appeared” presentation requires a current positive status
+            # and a transition inside the same 45-minute freshness window.
+            current_is_positive = current_status is None or availability_group(current_status) == "positive"
+            recent = current_is_positive and transition_age is not None and transition_age <= 45 * 60
             state = "JUST_APPEARED" if transition_age is not None and transition_age <= 30 * 60 else "RECENTLY_APPEARED" if recent else "AVAILABLE_CONTINUOUS"
-            if last.get("interpretation") == "possible_restock":
+            if not current_is_positive:
+                state, label = "HISTORICAL_POSITIVE", "Исторический сигнал наличия"
+                description = "Переход в наличие был зафиксирован ранее, но сейчас нет пригодного по времени сигнала. Это не рекомендация ехать на АЗС."
+                recent = False
+            elif not recent:
+                state, label = "AVAILABLE_CONTINUOUS", "Наличие наблюдалось ранее"
+                description = "Последний переход в наличие слишком старый для ответа «сейчас»."
+            elif last.get("interpretation") == "possible_restock":
                 label = "Возможно, свежее пополнение" if recent else "Наличие продолжается"
                 description = "После зафиксированного отсутствия появился положительный сигнал. Это косвенный признак пополнения, не замер остатка."
-            else:
+            elif current_is_positive:
                 label = "Новый сигнал наличия" if recent else "Наличие продолжается"
                 description = "Источник впервые после смены статуса показал наличие; факт поставки и объём не подтверждены."
         elif last.get("kind") == "BECAME_UNAVAILABLE" and status_group == "negative":

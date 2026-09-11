@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0d3328">
   <meta name="description" content="Evidence-first карта наличия топлива на АЗС Санкт-Петербурга">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/fuel-intelligence.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/fuel-intelligence.svg">
   <title>SPB Fuel Intelligence</title>
   <link rel="stylesheet" href="/vendor/leaflet.css">
   <link rel="stylesheet" href="/styles.css">
@@ -16,7 +19,10 @@
         <span class="brand-mark" aria-hidden="true"><span></span></span>
         <span><strong>Fuel Intelligence</strong><small>Санкт-Петербург</small></span>
       </a>
-      <button class="icon-button" id="aboutButton" aria-label="О данных">i</button>
+      <div class="topbar-actions">
+        <button class="install-button" id="installButton" type="button" hidden>Установить</button>
+        <button class="icon-button" id="aboutButton" aria-label="О данных">i</button>
+      </div>
     </header>
 
     <main>

@@ -96,3 +96,6 @@ if (-not $SkipBuild -and $SuccessCount -gt 0) {
 }
 
 if ($SuccessCount -eq 0) { exit 2 }
+# A single unavailable upstream must not discard successful fresh responses or
+# make the local API report that the whole update failed.
+exit 0

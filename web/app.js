@@ -34,6 +34,7 @@ const state = {
 };
 const staticCache = new Map();
 const STATUS_PRIORITY = { CAN_REFUEL: 0, LIMITED: 1, LIKELY_AVAILABLE: 2, CONFLICT: 3, LIKELY_NOT: 4, CONFIRMED_NO: 5, NO_FRESH_DATA: 6 };
+let installPrompt = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -59,9 +60,10 @@ function formatDuration(seconds) {
 
 function formatSnapshot(seconds, mode) {
   if (seconds == null) return ['Время снимка неизвестно', 'проверяйте evidence'];
-  const stale = seconds > 6 * 3600;
-  const title = stale ? 'Снимок устарел' : mode === 'live_http_snapshot' ? 'Свежий HTTP-снимок' : mode === 'static_github_pages' ? 'Публичный снимок' : 'Снимок Phase 0';
-  return [title, formatAge(seconds), stale];
+  const stale = seconds > 60 * 60;
+  const title = stale ? 'Снимок слишком старый для «сейчас»' : mode === 'live_http_snapshot' ? 'Свежий HTTP-снимок' : mode === 'static_github_pages' ? 'Публичный снимок' : 'Снимок Phase 0';
+  const subtitle = stale ? `${formatAge(seconds)} · статусы старше 45 мин не подтверждают наличие` : formatAge(seconds);
+  return [title, subtitle, stale];
 }
 
 async function api(path) {
@@ -129,8 +131,16 @@ async function staticApi(path) {
   const list = [];
   const statusCounts = {};
   let appeared = 0;
+  const snapshotAge = state.meta?.snapshot_at ? Date.now() - new Date(state.meta.snapshot_at).getTime() : 0;
+  const snapshotTooOld = snapshotAge > 45 * 60 * 1000;
   for (const original of bundle.stations) {
     const station = structuredClone(original);
+    if (snapshotTooOld) {
+      station.grade.status = 'NO_FRESH_DATA';
+      station.grade.label = STATUS.NO_FRESH_DATA.short.toUpperCase();
+      station.grade.fresh_provenance_count = 0;
+      station.grade.timeline = { ...(station.grade.timeline || {}), state: 'HISTORICAL_POSITIVE', label: 'Исторический сигнал', appeared_recent: false, recent: false };
+    }
     const location = station.location;
     if (!staticInArea(station, area)) continue;
     if (query && !`${station.network} ${station.address}`.toLocaleLowerCase().includes(query)) continue;
@@ -202,6 +212,22 @@ function renderMeta() {
 }
 
 function bindControls() {
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    $('#installButton').hidden = false;
+  });
+  window.addEventListener('appinstalled', () => { installPrompt = null; $('#installButton').hidden = true; });
+  $('#installButton').addEventListener('click', async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      installPrompt = null;
+      $('#installButton').hidden = true;
+      return;
+    }
+    alert('В Safari: «Поделиться» → «На экран Домой». В Chrome: меню браузера → «Установить приложение».');
+  });
   $('#gradePicker').addEventListener('click', (event) => {
     const button = event.target.closest('[data-grade]');
     if (!button) return;
@@ -231,7 +257,8 @@ function bindControls() {
     clearTimeout(searchTimer);
     state.search = event.target.value;
     if (state.searchScope) clearSearchScope({ keepText: true, reload: false });
-    searchTimer = setTimeout(loadStations, 250);
+    if (!looksLikePlaceSearch(state.search)) searchTimer = setTimeout(loadStations, 250);
+    renderSearchContext();
   });
   $('#searchInput').addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
@@ -259,6 +286,12 @@ function bindControls() {
   $('#sourcesButton').addEventListener('click', showSources);
   $('#refreshButton').addEventListener('click', refreshData);
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeDrawer(); });
+}
+
+function looksLikePlaceSearch(value) {
+  const text = String(value || '').trim().toLocaleLowerCase();
+  return /(?:^|\s)(ул\.?|улица|пр\.?|проспект|наб\.?|набережная|шоссе|площадь|пер\.?|переулок)\b/.test(text)
+    || /\d/.test(text) || text.split(/\s+/).length > 1;
 }
 
 async function refreshData() {
@@ -487,7 +520,13 @@ function renderStations() {
 function initMap() {
   if (!window.L) { $('#mapFallback').hidden = false; return; }
   // Required map-data credit is kept in the footer; it no longer obscures stations.
-  state.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([59.94, 30.32], 10);
+  state.map = L.map('map', {
+    zoomControl: false, attributionControl: false, dragging: true,
+    scrollWheelZoom: true, touchZoom: true, doubleClickZoom: true,
+  }).setView([59.94, 30.32], 10);
+  const mapElement = $('#map');
+  mapElement.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
+  mapElement.addEventListener('pointerdown', () => { state.map.dragging.enable(); });
   L.control.zoom({ position: 'bottomright' }).addTo(state.map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18
@@ -580,3 +619,6 @@ async function showSources() {
 }
 
 bootstrap();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
