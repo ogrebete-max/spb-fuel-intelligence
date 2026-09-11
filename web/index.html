@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d3328">
+  <meta name="description" content="Evidence-first карта наличия топлива на АЗС Санкт-Петербурга">
+  <title>SPB Fuel Intelligence</title>
+  <link rel="stylesheet" href="/vendor/leaflet.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="SPB Fuel Intelligence">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span><strong>Fuel Intelligence</strong><small>Санкт-Петербург</small></span>
+      </a>
+      <button class="icon-button" id="aboutButton" aria-label="О данных">i</button>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="heroTitle">
+        <div>
+          <p class="eyebrow">Не просто «есть или нет»</p>
+          <h1 id="heroTitle">Где можно заправиться <em>сейчас</em></h1>
+          <p class="hero-copy">Статус отдельно по каждой марке, момент появления, длительность наличия, ограничения и понятное объяснение источников.</p>
+        </div>
+        <div class="snapshot-stack">
+          <div class="snapshot-card" id="snapshotCard" aria-live="polite">
+            <span class="pulse"></span>
+            <span><strong>Загрузка данных…</strong><small>проверяем актуальность</small></span>
+          </div>
+          <button class="refresh-button" id="refreshButton" type="button">↻ Обновить данные</button>
+        </div>
+      </section>
+
+      <section class="control-panel" aria-label="Фильтры">
+        <div class="location-row">
+          <div class="segmented compact" role="group" aria-label="География">
+            <button class="active" data-area="all">СПб + область</button>
+            <button data-area="spb">Петербург</button>
+            <button data-area="lo">Область</button>
+          </div>
+          <button class="locate-button" id="locateButton"><span aria-hidden="true">⌖</span> Рядом со мной</button>
+        </div>
+
+        <div class="grade-row">
+          <span class="field-label">Топливо</span>
+          <div class="grade-picker" id="gradePicker" role="radiogroup" aria-label="Марка топлива">
+            <button data-grade="AI92" role="radio" aria-checked="false">92</button>
+            <button class="active" data-grade="AI95" role="radio" aria-checked="true">95</button>
+            <button data-grade="AI98" role="radio" aria-checked="false">98</button>
+            <button data-grade="AI100" role="radio" aria-checked="false">100</button>
+            <button data-grade="DT" role="radio" aria-checked="false">ДТ</button>
+            <button data-grade="LPG" role="radio" aria-checked="false">Газ</button>
+          </div>
+        </div>
+
+        <div class="search-row">
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="Адрес места или АЗС" autocomplete="off" enterkeyhint="search">
+          </label>
+          <button id="nearbySearchButton" class="nearby-search-button" type="button">⌖ Найти рядом</button>
+          <select id="sortSelect" aria-label="Сортировка">
+            <option value="status">Сначала доступные</option>
+            <option value="freshness">Самые свежие</option>
+            <option value="appeared">Недавно появилось</option>
+            <option value="price">По цене</option>
+            <option value="distance">По расстоянию</option>
+          </select>
+        </div>
+        <div class="search-context" id="searchContext" aria-live="polite">
+          <span>Введите адрес места и нажмите «Найти рядом» — покажем АЗС в радиусе 5 км.</span>
+        </div>
+      </section>
+
+      <section class="results-head">
+        <div>
+          <p class="eyebrow">Результаты</p>
+          <h2><span id="resultCount">—</span> карточек АЗС</h2>
+          <small class="identity-note" id="identityNote"></small>
+        </div>
+        <div class="segmented view-switch" role="group" aria-label="Вид результатов">
+          <button class="active" data-view="list">Список</button>
+          <button data-view="map">Карта</button>
+        </div>
+      </section>
+
+      <div class="status-strip" id="statusStrip" aria-label="Фильтр по статусу"></div>
+
+      <section class="content-grid" id="contentGrid">
+        <div class="station-list" id="stationList" aria-live="polite"></div>
+        <div class="map-wrap" id="mapWrap">
+          <div id="map" aria-label="Карта АЗС"></div>
+          <button id="mapAreaButton" class="map-area-button">Искать в этой области</button>
+          <div class="map-fallback" id="mapFallback" hidden>Карта не загрузилась. Список АЗС продолжает работать.</div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Данные помогают принять решение, но не гарантируют физический остаток к моменту приезда.</p>
+      <p class="map-credit">Картографические данные: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a></p>
+      <button id="sourcesButton">Источники и методика</button>
+    </footer>
+  </div>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="detailDrawer" aria-hidden="true" aria-label="Подробности об АЗС">
+    <button class="drawer-close" id="drawerClose" aria-label="Закрыть">×</button>
+    <div id="drawerContent"></div>
+  </aside>
+
+  <template id="stationTemplate">
+    <article class="station-card">
+      <button class="card-main">
+        <span class="status-dot"></span>
+        <span class="card-copy">
+          <span class="card-topline"><strong class="network"></strong><span class="distance"></span></span>
+          <span class="address"></span>
+          <span class="status-label"></span>
+          <span class="timeline-badge" hidden></span>
+          <span class="facts"></span>
+        </span>
+        <span class="chevron">›</span>
+      </button>
+    </article>
+  </template>
+
+  <script src="/vendor/leaflet.js"></script>
+  <script src="/app.js" defer></script>
+</body>
+</html>

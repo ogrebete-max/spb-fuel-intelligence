@@ -1,0 +1,50 @@
+{
+  "_fixture": {
+    "source": "tbank-fuel",
+    "classification": "RED_BLOCKED",
+    "request": {
+      "method": "GET",
+      "url": "https://www.tbank.ru/gorod/fuel/",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:48:28.748Z",
+    "source_raw_file": null,
+    "source_raw_sha256": null,
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Public page is marketing only; station selection is in the authenticated mobile app. Private user auth is RED for an automatic collector."
+    ]
+  },
+  "body": {
+    "probes": [
+      {
+        "source": "tbank-public",
+        "attempt": 1,
+        "curl_exit": 0,
+        "http_status_line": "HTTP/1.1 200 OK",
+        "bytes": 1539172,
+        "stderr": null,
+        "captured_at": "2026-09-11T01:17:41.4119143+03:00",
+        "url": "https://www.tbank.ru/gorod/fuel/"
+      },
+      {
+        "source": "tbank-public",
+        "attempt": 2,
+        "curl_exit": 0,
+        "http_status_line": "HTTP/1.1 200 OK",
+        "bytes": 1538852,
+        "stderr": null,
+        "captured_at": "2026-09-11T01:17:42.6360384+03:00",
+        "url": "https://www.tbank.ru/gorod/fuel/"
+      }
+    ],
+    "public_network_log": {
+      "events": 82,
+      "station_api_events": 0
+    }
+  }
+}

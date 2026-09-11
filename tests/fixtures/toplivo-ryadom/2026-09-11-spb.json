@@ -1,0 +1,107 @@
+{
+  "_fixture": {
+    "source": "toplivo-ryadom",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://tboo.ru/gpn/data.json (+ predict.json)",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:36:15.455Z",
+    "source_raw_file": "toplivo-data.json",
+    "source_raw_sha256": "3abdea809cd717f7fa30c395514ead9bf0e2c8e3cf53cb367c18f4f637feb18e",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Dependent aggregator: official/network claims plus Alpha, T-Bank, Sber, 2GIS and crowd signals; generic station payments are explicitly not grade proof."
+    ]
+  },
+  "body": {
+    "updated": "10.09.2026 19:15",
+    "pay_enriched": true,
+    "direct_station": {
+      "n": "АЗС №1",
+      "la": 59.83239,
+      "lo": 30.36994,
+      "b": "GPN",
+      "r": "139",
+      "c": "Санкт-Петербург",
+      "a": "Санкт-Петербург, Дунайский, 29",
+      "f": [
+        [
+          "G-95",
+          "72.52",
+          0
+        ],
+        [
+          "95",
+          "70.52",
+          0
+        ],
+        [
+          "92",
+          "65.61",
+          0
+        ],
+        [
+          "ДТл",
+          "79.95",
+          1
+        ]
+      ],
+      "pub": 1,
+      "pt": 1789053069,
+      "pay": 1789050436,
+      "mpay": {
+        "92": 1789041138,
+        "95": 1789050436,
+        "G-95": 1789050436,
+        "ДТл": 1789049518
+      },
+      "gs": {
+        "95": "f",
+        "G-95": "f",
+        "ДТл": "d"
+      },
+      "doubt": [
+        "ДТл"
+      ]
+    },
+    "prediction_station": {
+      "b": "ЛУКОЙЛ",
+      "la": 59.87705,
+      "lo": 29.85851,
+      "f": {
+        "92": {
+          "t": "N",
+          "src": {
+            "a": 1787205112
+          }
+        },
+        "95": {
+          "t": "N",
+          "src": {
+            "a": 1788173149
+          }
+        },
+        "100": {
+          "t": "N",
+          "src": {
+            "a": 1787736118
+          }
+        },
+        "ДТ": {
+          "t": "N",
+          "src": {
+            "a": 1789051517
+          }
+        }
+      },
+      "sp": 1789037809,
+      "a": "Санкт-Петербург, Первого Мая улица, 2"
+    }
+  }
+}

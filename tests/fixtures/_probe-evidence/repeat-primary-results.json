@@ -1,0 +1,302 @@
+[
+  {
+    "source": "sber",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 262736,
+    "sha256": "f2940a31d9065e05fc12a980dddd4ac85aa94f2b981193dbe332ac5b104d24cf",
+    "captured_at": "2026-09-11T01:09:55.0979180+03:00",
+    "url": "https://sberazs.ru/api/stations?bbox=30.20,59.85,30.45,60.05"
+  },
+  {
+    "source": "sber",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 262744,
+    "sha256": "1ad46a86221cb1799d7922bfba7c1cd12d04b126874db23714662a172a67c3d8",
+    "captured_at": "2026-09-11T01:09:56.0909498+03:00",
+    "url": "https://sberazs.ru/api/stations?bbox=30.20,59.85,30.45,60.05"
+  },
+  {
+    "source": "gpn",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1326,
+    "sha256": "7194495dd342777e5092e91df0cf241a7c9cc7c788bc2cea35a3b6a2a80db8d5",
+    "captured_at": "2026-09-11T01:09:57.0434630+03:00",
+    "url": "https://gpnbonus.ru/api/stations/1108"
+  },
+  {
+    "source": "gpn",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1326,
+    "sha256": "7194495dd342777e5092e91df0cf241a7c9cc7c788bc2cea35a3b6a2a80db8d5",
+    "captured_at": "2026-09-11T01:09:58.0641065+03:00",
+    "url": "https://gpnbonus.ru/api/stations/1108"
+  },
+  {
+    "source": "teboil",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 23540,
+    "sha256": "779199257793feffa47d04fd23ff65a41d56c0245ab373542103a021758d2c33",
+    "captured_at": "2026-09-11T01:09:59.2072352+03:00",
+    "url": "https://azs.teboil.ru/map/ajax/map.php"
+  },
+  {
+    "source": "teboil",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 23540,
+    "sha256": "779199257793feffa47d04fd23ff65a41d56c0245ab373542103a021758d2c33",
+    "captured_at": "2026-09-11T01:10:00.3868579+03:00",
+    "url": "https://azs.teboil.ru/map/ajax/map.php"
+  },
+  {
+    "source": "lukoil",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 4317,
+    "sha256": "77b49eaae0cc006ab5277820effb310be2ee3399aa22a4c4fbfdfc76fd3298a0",
+    "captured_at": "2026-09-11T01:10:01.3485917+03:00",
+    "url": "https://auto.lukoil.ru/api/cartography/GetObjects?ids=gasStation1883&lng=RU"
+  },
+  {
+    "source": "lukoil",
+    "attempt": 2,
+    "curl_exit": 28,
+    "http_status_line": null,
+    "bytes": 0,
+    "sha256": null,
+    "captured_at": "2026-09-11T01:10:23.1947185+03:00",
+    "url": "https://auto.lukoil.ru/api/cartography/GetObjects?ids=gasStation1883&lng=RU"
+  },
+  {
+    "source": "gdebenz",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 101540,
+    "sha256": "f17dc02752dc496e8b3586d51b91c492401be580ad035a5324177895a77ebe4c",
+    "captured_at": "2026-09-11T01:10:24.1184682+03:00",
+    "url": "https://gdebenz.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45"
+  },
+  {
+    "source": "gdebenz",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 101533,
+    "sha256": "b0020302a758be5d2dbc5c2b8cf2aa7396273311d100ab95a5cb67393e3db54d",
+    "captured_at": "2026-09-11T01:10:25.0636817+03:00",
+    "url": "https://gdebenz.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45"
+  },
+  {
+    "source": "benzas",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 40526,
+    "sha256": "89877c5d4bddacec9562cb663aad2c9a0a61335181c80dd47622659113b40e2f",
+    "captured_at": "2026-09-11T01:10:25.9818755+03:00",
+    "url": "https://benzas.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45"
+  },
+  {
+    "source": "benzas",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 40526,
+    "sha256": "89877c5d4bddacec9562cb663aad2c9a0a61335181c80dd47622659113b40e2f",
+    "captured_at": "2026-09-11T01:10:26.9064406+03:00",
+    "url": "https://benzas.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45"
+  },
+  {
+    "source": "benzinest",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 271567,
+    "sha256": "de0b7d92fe5f06f6bd9df9848d02d6cb35576fc4a908df4cf09847cae3d57390",
+    "captured_at": "2026-09-11T01:10:28.0689887+03:00",
+    "url": "https://benzinest.ru/api/stations?bbox=59.85,30.20,60.05,30.45"
+  },
+  {
+    "source": "benzinest",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 271567,
+    "sha256": "de0b7d92fe5f06f6bd9df9848d02d6cb35576fc4a908df4cf09847cae3d57390",
+    "captured_at": "2026-09-11T01:10:29.1475004+03:00",
+    "url": "https://benzinest.ru/api/stations?bbox=59.85,30.20,60.05,30.45"
+  },
+  {
+    "source": "tutbenz",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 350389,
+    "sha256": "557aba1a91483cc284af039e8bfe095ae1eef0fb7b2e732b79fcd42684b670ee",
+    "captured_at": "2026-09-11T01:10:30.2690241+03:00",
+    "url": "https://tutbenz.app/api/stations?bbox=30.20,59.85,30.45,60.05&prices=1"
+  },
+  {
+    "source": "tutbenz",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 350389,
+    "sha256": "557aba1a91483cc284af039e8bfe095ae1eef0fb7b2e732b79fcd42684b670ee",
+    "captured_at": "2026-09-11T01:10:31.3502649+03:00",
+    "url": "https://tutbenz.app/api/stations?bbox=30.20,59.85,30.45,60.05&prices=1"
+  },
+  {
+    "source": "gdebenzin",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 104299,
+    "sha256": "6513310b97f70074ecff6a4fcf76abf5066db2255c01f59fca355716f1c2d2c1",
+    "captured_at": "2026-09-11T01:10:32.3864540+03:00",
+    "url": "https://xn--90addebmh2bc.xn--p1ai/api/v1/map?bbox=59.85,30.20,60.05,30.45&zoom=12&price=1&confidence=1"
+  },
+  {
+    "source": "gdebenzin",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 104299,
+    "sha256": "6513310b97f70074ecff6a4fcf76abf5066db2255c01f59fca355716f1c2d2c1",
+    "captured_at": "2026-09-11T01:10:33.3236110+03:00",
+    "url": "https://xn--90addebmh2bc.xn--p1ai/api/v1/map?bbox=59.85,30.20,60.05,30.45&zoom=12&price=1&confidence=1"
+  },
+  {
+    "source": "benzonavt",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 131480,
+    "sha256": "6d5b545d537b330cf634b078060df59f6f99d41537395877c4d5721498e9e4ac",
+    "captured_at": "2026-09-11T01:10:34.3008313+03:00",
+    "url": "https://benzonavt.ru/api/v1/stations?bbox=59.8500,30.2000,60.0500,30.4500"
+  },
+  {
+    "source": "benzonavt",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 131480,
+    "sha256": "6d5b545d537b330cf634b078060df59f6f99d41537395877c4d5721498e9e4ac",
+    "captured_at": "2026-09-11T01:10:35.2054938+03:00",
+    "url": "https://benzonavt.ru/api/v1/stations?bbox=59.8500,30.2000,60.0500,30.4500"
+  },
+  {
+    "source": "benzinkarta",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 149083,
+    "sha256": "7845103bd6d6b4e9f1b4fa4fbbd35606339dadf2e63e61475c62cf2d6b17ea52",
+    "captured_at": "2026-09-11T01:10:36.1681963+03:00",
+    "url": "https://benzinkarta.ru/api/stations?bbox=30.20,59.85,30.45,60.05"
+  },
+  {
+    "source": "benzinkarta",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 149083,
+    "sha256": "7845103bd6d6b4e9f1b4fa4fbbd35606339dadf2e63e61475c62cf2d6b17ea52",
+    "captured_at": "2026-09-11T01:10:37.0672401+03:00",
+    "url": "https://benzinkarta.ru/api/stations?bbox=30.20,59.85,30.45,60.05"
+  },
+  {
+    "source": "benzinradar",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 515911,
+    "sha256": "e7668303b038c48525559cb81fced38e616dcf0b34b15e54ec2e2879949496f2",
+    "captured_at": "2026-09-11T01:10:38.2055656+03:00",
+    "url": "https://benzinradar.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45&limit=1000&offset=0"
+  },
+  {
+    "source": "benzinradar",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 515911,
+    "sha256": "e7668303b038c48525559cb81fced38e616dcf0b34b15e54ec2e2879949496f2",
+    "captured_at": "2026-09-11T01:10:39.2642057+03:00",
+    "url": "https://benzinradar.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45&limit=1000&offset=0"
+  },
+  {
+    "source": "rosneft",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1722356,
+    "sha256": "43ee0fa9442a8ba93e468820b06b2f5db36addcd066ee31227d51ecd24dd99db",
+    "captured_at": "2026-09-11T01:10:40.4173094+03:00",
+    "url": "https://rosneft-azs.ru/front-api/stations"
+  },
+  {
+    "source": "rosneft",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1722356,
+    "sha256": "43ee0fa9442a8ba93e468820b06b2f5db36addcd066ee31227d51ecd24dd99db",
+    "captured_at": "2026-09-11T01:10:41.5250457+03:00",
+    "url": "https://rosneft-azs.ru/front-api/stations"
+  },
+  {
+    "source": "tatneft",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1558914,
+    "sha256": "ddb7fedf5a9ee5ba6ae442d811484d453e71a38c686bb16506e06683ebbe6320",
+    "captured_at": "2026-09-11T01:10:42.7415153+03:00",
+    "url": "https://api2.gs.tatneft.ru/api/v2/azs/"
+  },
+  {
+    "source": "tatneft",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1558914,
+    "sha256": "ddb7fedf5a9ee5ba6ae442d811484d453e71a38c686bb16506e06683ebbe6320",
+    "captured_at": "2026-09-11T01:10:44.2289939+03:00",
+    "url": "https://api2.gs.tatneft.ru/api/v2/azs/"
+  },
+  {
+    "source": "toplivo",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 2474465,
+    "sha256": "b1259af1243fdb7d3715d6310502a47105ff2e0dbc0dcebfd95cd9dce1f45d8c",
+    "captured_at": "2026-09-11T01:10:45.3233679+03:00",
+    "url": "https://tboo.ru/gpn/data.json"
+  },
+  {
+    "source": "toplivo",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 2474465,
+    "sha256": "b1259af1243fdb7d3715d6310502a47105ff2e0dbc0dcebfd95cd9dce1f45d8c",
+    "captured_at": "2026-09-11T01:10:46.3734194+03:00",
+    "url": "https://tboo.ru/gpn/data.json"
+  }
+]

@@ -1,0 +1,74 @@
+{
+  "_fixture": {
+    "source": "gdebenzin",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://xn--90addebmh2bc.xn--p1ai/api/v1/map?bbox=59.85,30.20,60.05,30.45&zoom=12&price=1&confidence=1",
+      "geo": "southLat,westLon,northLat,eastLon",
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:22:00.799Z",
+    "source_raw_file": "gdebenzin-spb-api.json",
+    "source_raw_sha256": "145725f22c175dae27b0d95173886ab9831c2a29df4d079afc1694786fb50c7a",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "ID prefix identifies upstream cluster: tb, sber, 2gis, gdb, or ym."
+    ]
+  },
+  "body": {
+    "generated_at": "2026-09-10T16:21:59.740627Z",
+    "station": {
+      "id": "tb:01KX3GXVAE5Z0Z1VDB5GG2VDKN",
+      "network": "Лукойл",
+      "title": "Лукойл",
+      "address": "Санкт-Петербург, Северный проспект, 13",
+      "lat": 60.030851,
+      "lng": 30.342187,
+      "source_ts": "2026-09-10T15:48:59.780000Z",
+      "confirmed_at": "2026-09-10T16:19:28.585343Z",
+      "region_id": 2589684,
+      "region_name": "Санкт-Петербург",
+      "subject_code": "SPE",
+      "locality_id": 4865066,
+      "locality_name": "Санкт-Петербург",
+      "fuels": {
+        "a100": {
+          "free": true,
+          "talon": false,
+          "price_rub": 99.4,
+          "confirmed_at": "2026-09-10T16:13:39.281642Z"
+        },
+        "a92": {
+          "free": true,
+          "talon": false,
+          "price_rub": 66.26
+        },
+        "a95": {
+          "free": true,
+          "talon": false,
+          "confirmed_at": "2026-09-10T16:13:39.281642Z"
+        },
+        "diesel": {
+          "free": true,
+          "talon": false,
+          "price_rub": 82.49,
+          "confirmed_at": "2026-09-10T16:13:39.281642Z"
+        }
+      },
+      "reports": {},
+      "report_details": [],
+      "source_level": "payment",
+      "source_label": "💳 подтверждено покупкой",
+      "confidence": "medium",
+      "confidence_label": "●●○ средняя уверенность",
+      "confidence_text": "Похоже на правду, но свидетельство одно, косвенное или уже не самое свежее.",
+      "conflict_text": "",
+      "night_note": "",
+      "card_only": false
+    }
+  }
+}

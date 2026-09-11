@@ -1,0 +1,77 @@
+{
+  "_evidence": {
+    "source": "sber",
+    "raw_file": "playwright-sber.json",
+    "raw_sha256": "937425135a9b944ab44cf951267661c61c67d7e2cf237f50f90d11727cad3f26",
+    "captured_at": "2026-09-10T16:17:43.690Z",
+    "sanitization": [
+      "request/response headers, cookies and postData omitted",
+      "query parameters stripped except the public Sber bbox",
+      "anonymous analytics, device/session IDs and OAuth challenges omitted"
+    ]
+  },
+  "requestedUrl": "https://sberazs.ru/",
+  "finalUrl": "https://sberazs.ru/",
+  "startedAt": "2026-09-10T16:17:30.407Z",
+  "finishedAt": "2026-09-10T16:17:43.690Z",
+  "navigationError": null,
+  "title": "sberazs",
+  "totalNetworkEvents": 97,
+  "retainedFirstPartyEvents": 6,
+  "events": [
+    {
+      "at": "2026-09-10T16:17:31.180Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://sberazs.ru/",
+      "contentType": "text/html",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:17:31.365Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://sberazs.ru/version.json",
+      "contentType": "application/json",
+      "bodyBytes": 63
+    },
+    {
+      "at": "2026-09-10T16:17:31.458Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://sberazs.ru/api/promotions",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 90
+    },
+    {
+      "at": "2026-09-10T16:17:31.460Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://sberazs.ru/api/network-check",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 35
+    },
+    {
+      "at": "2026-09-10T16:17:31.572Z",
+      "method": "GET",
+      "resourceType": "xhr",
+      "status": 200,
+      "url": "https://sberazs.ru/assets/loader-BZQ_QdVq.json",
+      "contentType": "application/json",
+      "bodyBytes": 85474
+    },
+    {
+      "at": "2026-09-10T16:17:32.781Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://sberazs.ru/api/stations?bbox=36.73951671783586%2C55.401899538261354%2C38.49732928223502%2C56.09748775508337",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 1424390
+    }
+  ]
+}

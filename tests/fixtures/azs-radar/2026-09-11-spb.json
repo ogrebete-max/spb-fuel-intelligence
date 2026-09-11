@@ -1,0 +1,46 @@
+{
+  "_fixture": {
+    "source": "azs-radar",
+    "classification": "RED_BLOCKED",
+    "request": {
+      "method": "GET",
+      "url": "https://azs-radar.ru/",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": null,
+    "captured_at": "2026-09-10T22:48:28.748Z",
+    "source_raw_file": null,
+    "source_raw_sha256": null,
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Two trusted curl attempts failed with SEC_E_CERT_EXPIRED; TLS bypass was not attempted."
+    ]
+  },
+  "body": {
+    "probes": [
+      {
+        "source": "azs-radar-public",
+        "attempt": 1,
+        "curl_exit": 35,
+        "http_status_line": null,
+        "bytes": 0,
+        "stderr": "curl: (35) schannel: next InitializeSecurityContext failed: SEC_E_CERT_EXPIRED (0x80090328) - ������� ���������� � �������� ������ ��������.",
+        "captured_at": "2026-09-11T01:17:39.3195156+03:00",
+        "url": "https://azs-radar.ru/"
+      },
+      {
+        "source": "azs-radar-public",
+        "attempt": 2,
+        "curl_exit": 35,
+        "http_status_line": null,
+        "bytes": 0,
+        "stderr": "curl: (35) schannel: next InitializeSecurityContext failed: SEC_E_CERT_EXPIRED (0x80090328) - ������� ���������� � �������� ������ ��������.",
+        "captured_at": "2026-09-11T01:17:39.9965443+03:00",
+        "url": "https://azs-radar.ru/"
+      }
+    ]
+  }
+}

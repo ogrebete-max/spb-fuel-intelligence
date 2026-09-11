@@ -1,0 +1,52 @@
+{
+  "_fixture": {
+    "source": "benzovoz",
+    "classification": "YELLOW_NEEDS_MANUAL_HAR",
+    "request": {
+      "method": "GET",
+      "url": "https://apps.apple.com/ru/app/id6790108201",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:48:28.749Z",
+    "source_raw_file": null,
+    "source_raw_sha256": null,
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "No public web station endpoint was found. A normal, unauthenticated mobile HAR is required to verify the schema; no app protection was bypassed."
+    ]
+  },
+  "body": {
+    "probes": [
+      {
+        "source": "benzovoz-appstore",
+        "attempt": 1,
+        "curl_exit": 0,
+        "http_status_line": "HTTP/1.1 200 OK",
+        "bytes": 288172,
+        "stderr": null,
+        "captured_at": "2026-09-11T01:17:43.7092786+03:00",
+        "url": "https://apps.apple.com/ru/app/%D0%B1%D0%B5%D0%BD%D0%B7%D0%BE%D0%B2%D0%BE%D0%B7-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-%D0%B1%D0%B5%D0%BD%D0%B7%D0%B8%D0%BD%D0%B0/id6790108201"
+      },
+      {
+        "source": "benzovoz-appstore",
+        "attempt": 2,
+        "curl_exit": 0,
+        "http_status_line": "HTTP/1.1 200 OK",
+        "bytes": 288172,
+        "stderr": null,
+        "captured_at": "2026-09-11T01:17:44.5095056+03:00",
+        "url": "https://apps.apple.com/ru/app/%D0%B1%D0%B5%D0%BD%D0%B7%D0%BE%D0%B2%D0%BE%D0%B7-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-%D0%B1%D0%B5%D0%BD%D0%B7%D0%B8%D0%BD%D0%B0/id6790108201"
+      }
+    ],
+    "interface": "iOS app only",
+    "advertised_upstream": [
+      "three banks",
+      "GdeBenz crowd marks"
+    ],
+    "advertised_refresh_minutes": 7
+  }
+}

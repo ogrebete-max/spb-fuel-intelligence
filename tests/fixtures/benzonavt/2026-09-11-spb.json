@@ -1,0 +1,416 @@
+{
+  "_fixture": {
+    "source": "benzonavt",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://benzonavt.ru/api/v1/stations/7",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:22:39.379Z",
+    "source_raw_file": "benzonavt-station.json",
+    "source_raw_sha256": "c6cc0965d7e731ec9941f6017e08f36d558fb5145dfcc5af557a6fab49ad0a94",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Detail includes imported prices and reports whose origin may be bank; do not treat every field as independent."
+    ]
+  },
+  "body": {
+    "id": 7,
+    "source": "import",
+    "brand": "Газпромнефть",
+    "name": "Nord Point",
+    "address": "Санкт-Петербург, ул. Руставели, 54а",
+    "lat": 60.0318975,
+    "lon": 30.4317729,
+    "fuels": [
+      "92",
+      "95",
+      "98",
+      "100",
+      "dt"
+    ],
+    "amenities": [
+      "h24"
+    ],
+    "network_id": 4,
+    "st": {
+      "status": "yes",
+      "confidence": 0.97,
+      "confirmations": 2,
+      "reports": 4,
+      "fuels_now": [
+        "dt"
+      ],
+      "fuels_out": [
+        "92",
+        "95",
+        "98",
+        "100"
+      ],
+      "conflict": {
+        "status": "no",
+        "created_at": "2026-09-10T13:21:30+00:00"
+      },
+      "queue": null,
+      "updated_at": "2026-09-10T15:32:20+00:00",
+      "basis": "crowd",
+      "held": null
+    },
+    "ns": true,
+    "address_short": "ул. Руставели, 54а",
+    "address_city": "Санкт-Петербург, ул. Руставели, 54а",
+    "address_full": "Санкт-Петербург, ул. Руставели, 54а",
+    "address_locality": "Санкт-Петербург",
+    "address_region": "Санкт-Петербург",
+    "address_meta": "АЗС Газпромнефть, Санкт-Петербург, ул. Руставели, 54а",
+    "opening": {
+      "mode": "always",
+      "open": null,
+      "close": null
+    },
+    "network": {
+      "id": 4,
+      "name": "Газпромнефть",
+      "logo_url": "/uploads/82ce9e50d295949352766c8fdf203a11.png",
+      "website": "https://gpnbonus.ru",
+      "slug": "gazpromneft",
+      "suggest_price_edit": true
+    },
+    "city": {
+      "id": 39,
+      "name": "Санкт-Петербург",
+      "slug": "sankt-peterburg"
+    },
+    "prices": {
+      "92": {
+        "price": 64.88,
+        "source": "import",
+        "updated_at": "2026-09-10T07:23:11.927509+00:00"
+      },
+      "95": {
+        "price": 72.06,
+        "source": "import",
+        "updated_at": "2026-09-10T15:14:08.024486+00:00"
+      },
+      "98": {
+        "price": 71.19,
+        "source": "import",
+        "updated_at": "2026-09-10T07:23:11.927509+00:00"
+      },
+      "100": {
+        "price": 91.85,
+        "source": "import",
+        "updated_at": "2026-09-10T07:23:11.927509+00:00"
+      },
+      "dt": {
+        "price": 79.86,
+        "source": "import",
+        "updated_at": "2026-09-10T15:14:08.024486+00:00"
+      }
+    },
+    "limits": [
+      {
+        "grade": "92",
+        "liters": 30,
+        "since": "2026-09-09T07:14:21.878940+00:00",
+        "confirmations": 0,
+        "period": null
+      },
+      {
+        "grade": "95",
+        "liters": 40,
+        "since": "2026-09-10T07:27:19.198410+00:00",
+        "confirmations": 0,
+        "period": null
+      },
+      {
+        "grade": "dt",
+        "liters": 40,
+        "since": "2026-09-09T10:07:46.967420+00:00",
+        "confirmations": 0,
+        "period": null
+      }
+    ],
+    "payment": null,
+    "sale_modes": {},
+    "canister": null,
+    "fuel_classes": {},
+    "fuel_class_low_30d": 0,
+    "data": {
+      "is_user": false,
+      "imported_at": null
+    },
+    "recent": [
+      {
+        "id": 3830305,
+        "status": "yes",
+        "fuel_grades": [
+          "dt"
+        ],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": "ДТ",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T15:32:20+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3829007,
+        "status": "yes",
+        "fuel_grades": [
+          "dt"
+        ],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": "ДТ",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T15:19:51+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3824519,
+        "status": "no",
+        "fuel_grades": [],
+        "queue_size": "lt5",
+        "limit_liters": null,
+        "detail": "ДТ · Очередь до 5 машин",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T13:21:30+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": null,
+        "status": "yes",
+        "fuel_grades": [
+          "dt"
+        ],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": null,
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T12:33:04+00:00",
+        "origin": "bank",
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3823563,
+        "status": "yes",
+        "fuel_grades": [
+          "dt"
+        ],
+        "queue_size": "5_20",
+        "limit_liters": 40,
+        "detail": "ДТ · Очередь ≈5–20 машин · Лимит 40 л",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T11:44:08+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3810857,
+        "status": "yes",
+        "fuel_grades": [
+          "dt"
+        ],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": "ДТ",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T07:24:42+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3807810,
+        "status": "yes",
+        "fuel_grades": [
+          "dt"
+        ],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": "ДТ",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T05:48:21+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3803689,
+        "status": "yes",
+        "fuel_grades": [
+          "dt"
+        ],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": "ДТ",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T04:56:55+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3803143,
+        "status": "no",
+        "fuel_grades": [],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": null,
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T04:31:40.037358+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3801177,
+        "status": "no",
+        "fuel_grades": [],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": "Заправка не работает",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-10T02:44:35+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3798122,
+        "status": "no",
+        "fuel_grades": [],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": "Заправка не работает",
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-09T22:35:37+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      },
+      {
+        "id": 3791502,
+        "status": "yes",
+        "fuel_grades": [
+          "92",
+          "95",
+          "98",
+          "dt"
+        ],
+        "queue_size": null,
+        "limit_liters": null,
+        "detail": null,
+        "on_site": false,
+        "from_account": false,
+        "created_at": "2026-09-09T19:24:52.921544+00:00",
+        "origin": null,
+        "likes": 0,
+        "liked_by_me": false,
+        "author": null
+      }
+    ],
+    "reports_24h": 13,
+    "chat_count": 0,
+    "top_contributor": null,
+    "status_history": [
+      {
+        "day": "2026-09-09",
+        "status": "yes",
+        "confidence": 0.99,
+        "fuels_now": [
+          "92",
+          "95",
+          "98",
+          "dt"
+        ]
+      },
+      {
+        "day": "2026-09-08",
+        "status": "yes",
+        "confidence": 0.96,
+        "fuels_now": [
+          "92",
+          "95",
+          "98",
+          "dt"
+        ]
+      }
+    ],
+    "price_history": [
+      {
+        "day": "2026-09-10",
+        "prices": {
+          "92": 64.88,
+          "95": 72.06,
+          "98": 71.19,
+          "100": 91.85,
+          "dt": 79.86
+        }
+      },
+      {
+        "day": "2026-09-09",
+        "prices": {
+          "92": 63.84,
+          "95": 70.06,
+          "98": 70.46,
+          "100": 91.85,
+          "dt": 79.86
+        }
+      },
+      {
+        "day": "2026-09-08",
+        "prices": {
+          "92": 65.17,
+          "95": 70.06,
+          "98": 70.46,
+          "100": 91.85,
+          "dt": 79.86
+        }
+      }
+    ],
+    "price_ref": {
+      "price": 72.06,
+      "scope": "station",
+      "city_price": 70.9
+    },
+    "indexable": true,
+    "closed": false
+  }
+}

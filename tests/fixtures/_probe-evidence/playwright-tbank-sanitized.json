@@ -1,0 +1,464 @@
+{
+  "_evidence": {
+    "source": "tbank",
+    "raw_file": "playwright-tbank.json",
+    "raw_sha256": "6d9aa4eb85dee9d7bad8eab6b27d5a5a65257a67e033d18bc5421885a9743566",
+    "captured_at": "2026-09-10T16:19:09.947Z",
+    "sanitization": [
+      "request/response headers, cookies and postData omitted",
+      "query parameters stripped except the public Sber bbox",
+      "anonymous analytics, device/session IDs and OAuth challenges omitted"
+    ]
+  },
+  "requestedUrl": "https://www.tbank.ru/gorod/fuel/",
+  "finalUrl": "https://www.tbank.ru/gorod/fuel/",
+  "startedAt": "2026-09-10T16:18:55.846Z",
+  "finishedAt": "2026-09-10T16:19:09.947Z",
+  "navigationError": null,
+  "title": "Купить топливо с кэшбэком — Город в Т-Банке",
+  "totalNetworkEvents": 82,
+  "retainedFirstPartyEvents": 49,
+  "events": [
+    {
+      "at": "2026-09-10T16:18:56.812Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://www.tbank.ru/gorod/fuel/",
+      "contentType": "text/html",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:56.883Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/eventea-beer/event",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 15
+    },
+    {
+      "at": "2026-09-10T16:18:57.093Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://www.tbank.ru/cards/debit-cards/black/iframe/form/",
+      "contentType": "text/html",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.269Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 303,
+      "url": "https://www.tbank.ru/api/common/v1/session/context-application/authorize",
+      "contentType": "text/html; charset=UTF-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.290Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 204,
+      "url": "https://www.tbank.ru/api/statist/gateway/v1/event",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.371Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 303,
+      "url": "https://id.tbank.ru/auth/authorize",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.316Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/webuser",
+      "contentType": "application/json",
+      "bodyBytes": 99
+    },
+    {
+      "at": "2026-09-10T16:18:57.401Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/session/context-application/check_auth/",
+      "contentType": "text/html; charset=UTF-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.353Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/webuser",
+      "contentType": "application/json",
+      "bodyBytes": 99
+    },
+    {
+      "at": "2026-09-10T16:18:57.730Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 303,
+      "url": "https://www.tbank.ru/api/common/v1/session/context-application/authorize",
+      "contentType": "text/html; charset=UTF-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.771Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 303,
+      "url": "https://id.tbank.ru/auth/authorize",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.808Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/session/context-application/check_auth/",
+      "contentType": "text/html; charset=UTF-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.738Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 204,
+      "url": "https://www.tbank.ru/api/statist/gateway/v1/event",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.378Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/eventea-beer/event",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:57.355Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://hrc.tbank.ru/",
+      "contentType": "text/plain",
+      "bodyBytes": 2
+    },
+    {
+      "at": "2026-09-10T16:18:57.362Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://es.tbank.ru/",
+      "contentType": "text/plain; charset=UTF-8",
+      "bodyBytes": 2
+    },
+    {
+      "at": "2026-09-10T16:18:57.379Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://freessl.tbank.ru/",
+      "contentType": "text/plain; charset=UTF-8",
+      "bodyBytes": 2
+    },
+    {
+      "at": "2026-09-10T16:18:57.387Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:57.952Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/session",
+      "contentType": "application/json",
+      "bodyBytes": 124
+    },
+    {
+      "at": "2026-09-10T16:18:57.999Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/session_status",
+      "contentType": "application/json",
+      "bodyBytes": 119
+    },
+    {
+      "at": "2026-09-10T16:18:57.960Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.201Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://www.tbank.ru/cards/debit-cards/black/iframe/form/",
+      "contentType": "text/html",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.318Z",
+      "method": "POST",
+      "resourceType": "xhr",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.321Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/eventea-beer/event",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 15
+    },
+    {
+      "at": "2026-09-10T16:18:58.279Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/eventea-beer/event",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 15
+    },
+    {
+      "at": "2026-09-10T16:18:58.409Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 204,
+      "url": "https://www.tbank.ru/api/statist/gateway/v1/event",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.443Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 303,
+      "url": "https://www.tbank.ru/api/common/v1/session/context-application/authorize",
+      "contentType": "text/html; charset=UTF-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.482Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 303,
+      "url": "https://id.tbank.ru/auth/authorize",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.521Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/session/context-application/check_auth/",
+      "contentType": "text/html; charset=UTF-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.453Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.492Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.599Z",
+      "method": "GET",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/common/v1/session_status",
+      "contentType": "application/json",
+      "bodyBytes": 119
+    },
+    {
+      "at": "2026-09-10T16:18:58.763Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://cdn.tbank.ru/twa/ttm/_runtime/pixel-iframe/index.html",
+      "contentType": "text/html; charset=utf-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.670Z",
+      "method": "POST",
+      "resourceType": "xhr",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.787Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://cdn.tbank.ru/twa/ttm/_runtime/pixel-iframe/index.html",
+      "contentType": "text/html; charset=utf-8",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.797Z",
+      "method": "GET",
+      "resourceType": "document",
+      "status": 200,
+      "url": "https://cdn.tbank.ru/static/pages/files/7025edc0-d2f0-48ee-a813-c154c063b1ee.svg",
+      "contentType": "image/svg+xml",
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:18:58.600Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.600Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.671Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:18:58.671Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/pwaplatform/log/collect",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 34
+    },
+    {
+      "at": "2026-09-10T16:19:01.255Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 404,
+      "url": "https://id.tbank.ru/preidentity/api/v1/user-info",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:19:01.365Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://www.tbank.ru/api/front/eventea-beer/event",
+      "contentType": "application/json; charset=utf-8",
+      "bodyBytes": 15
+    },
+    {
+      "at": "2026-09-10T16:19:01.420Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 204,
+      "url": "https://id.tbank.ru/preidentity/api/v1/web-info",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:19:01.613Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://web2web.tbank.ru/web-fingerprint/api/v1/external/fingerprint",
+      "contentType": "application/json",
+      "bodyBytes": 93
+    },
+    {
+      "at": "2026-09-10T16:19:01.615Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://web2web.tbank.ru/web-fingerprint/api/v1/external/fingerprint",
+      "contentType": "application/json",
+      "bodyBytes": 161
+    },
+    {
+      "at": "2026-09-10T16:19:01.688Z",
+      "method": "POST",
+      "resourceType": "fetch",
+      "status": 200,
+      "url": "https://web2web.tbank.ru/web-fingerprint/api/v1/external/fingerprint",
+      "contentType": "application/json",
+      "bodyBytes": 161
+    },
+    {
+      "at": "2026-09-10T16:19:02.717Z",
+      "method": "POST",
+      "resourceType": "xhr",
+      "status": 204,
+      "url": "https://www.tbank.ru/api/statist/gateway/v1/events",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:19:03.938Z",
+      "method": "POST",
+      "resourceType": "xhr",
+      "status": 204,
+      "url": "https://www.tbank.ru/api/statist/gateway/v1/events",
+      "contentType": null,
+      "bodyBytes": null
+    },
+    {
+      "at": "2026-09-10T16:19:04.407Z",
+      "method": "POST",
+      "resourceType": "xhr",
+      "status": 204,
+      "url": "https://as.tbank.ru/gateway/v1/events",
+      "contentType": null,
+      "bodyBytes": null
+    }
+  ]
+}

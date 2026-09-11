@@ -1,0 +1,25 @@
+{
+  "_fixture": {
+    "source": "benzin-live-analogue",
+    "classification": "RED_BLOCKED",
+    "request": {
+      "method": "GET",
+      "url": "https://benzin.live/api/radar/stations?lat=59.94&lon=30.32&radius=0.12&fuel=ai95",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 500,
+    "captured_at": "2026-09-10T22:07:04.195Z",
+    "source_raw_file": "benzin-live-radar-spb.json",
+    "source_raw_sha256": "9450c02efed19dc4702ad71ceed9b1ee77930b91bd101179574df5c9b9132f6f",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Public endpoint returned HTTP 500: Cloudflare D1 daily row-read quota exceeded."
+    ]
+  },
+  "body": {
+    "error": "D1_ERROR: Your account has exceeded D1's free tier daily row read limit. Upgrade to a paid plan or wait until tomorrow (midnight UTC) to continue. See https://developers.cloudflare.com/d1/platform/limits/ for more details."
+  }
+}

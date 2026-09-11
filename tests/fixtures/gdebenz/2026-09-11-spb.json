@@ -1,0 +1,174 @@
+{
+  "_fixture": {
+    "source": "gdebenz",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://gdebenz.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45",
+      "geo": "lat1/lon1/lat2/lon2",
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:26:19.227Z",
+    "source_raw_file": "gdebenz-spb.json",
+    "source_raw_sha256": "44a9f908e23957875fddf68c007a65daef84062b72366b7b7a681ab7f517ded0",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Recent marks expose on_site/reliable flags; Moscow local timestamps omit TZ and must be interpreted as +03:00."
+    ]
+  },
+  "body": {
+    "station": {
+      "osm_id": "usr_S_fJptEOyCs",
+      "name": "Лукойл",
+      "brand": "Лукойл",
+      "lat": 59.86298195639259,
+      "lon": 30.41666042847601,
+      "addr": "ул Софийская, 59",
+      "status": "queue",
+      "fuels_now": "92,95,ДТ",
+      "dt_only": 0,
+      "conflict": null,
+      "prices_now": {
+        "92": {
+          "p": 66.26,
+          "n": 1,
+          "t": "2026-09-09 17:33:55"
+        },
+        "95": {
+          "p": 72.26,
+          "n": 1,
+          "t": "2026-09-10 14:20:30"
+        },
+        "ДТ": {
+          "p": 82.49,
+          "n": 2,
+          "t": "2026-09-10 02:37:07"
+        }
+      }
+    },
+    "recent": [
+      {
+        "status": "yes",
+        "detail": "92, 95, ДТ",
+        "created_at": "2026-09-10 15:20:21",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": false
+      },
+      {
+        "status": "yes",
+        "detail": "",
+        "created_at": "2026-09-10 14:56:06",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": true
+      },
+      {
+        "status": "queue",
+        "detail": "92, 95, ДТ · Очередь ≈20–50 машин",
+        "created_at": "2026-09-10 14:46:43",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": false
+      },
+      {
+        "status": "queue",
+        "detail": "92, 95, ДТ · Очередь ≈20–50 машин",
+        "created_at": "2026-09-10 14:28:21",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false
+      },
+      {
+        "status": "queue",
+        "detail": "92, 95, ДТ · Очередь 50–100 машин · Лимит 30 л",
+        "created_at": "2026-09-10 14:20:30",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": true
+      },
+      {
+        "status": "yes",
+        "detail": "92, 95, ДТ",
+        "created_at": "2026-09-10 14:18:48",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": false
+      },
+      {
+        "status": "yes",
+        "detail": "95 · Очередь ≈5–20 машин",
+        "created_at": "2026-09-10 14:01:48",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": false
+      },
+      {
+        "status": "no",
+        "detail": "",
+        "created_at": "2026-09-10 11:59:39",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": true
+      },
+      {
+        "status": "yes",
+        "detail": "ДТ",
+        "created_at": "2026-09-10 07:17:12",
+        "edited": false,
+        "author_reliable": true,
+        "author_tier": 2,
+        "acct_ok": true,
+        "on_site": true
+      },
+      {
+        "status": "no",
+        "detail": "",
+        "created_at": "2026-09-10 06:52:23",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": false
+      },
+      {
+        "status": "yes",
+        "detail": "ДТ",
+        "created_at": "2026-09-10 06:21:25",
+        "edited": false,
+        "author_reliable": false,
+        "author_tier": 0,
+        "acct_ok": false,
+        "on_site": true
+      },
+      {
+        "status": "yes",
+        "detail": "ДТ",
+        "created_at": "2026-09-10 05:41:24",
+        "edited": false,
+        "author_reliable": true,
+        "author_tier": 1,
+        "acct_ok": true,
+        "on_site": false
+      }
+    ]
+  }
+}

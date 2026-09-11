@@ -1,0 +1,1467 @@
+{
+  "_fixture": {
+    "source": "teboil",
+    "classification": "RED_NO_REALTIME_DATA",
+    "request": {
+      "method": "POST",
+      "url": "https://azs.teboil.ru/map/ajax/map.php",
+      "geo": "cityId[]=353 (Saint Petersburg)",
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:04:53.171Z",
+    "source_raw_file": "teboil-spb.json",
+    "source_raw_sha256": "779199257793feffa47d04fd23ff65a41d56c0245ab373542103a021758d2c33",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained",
+      "public station telephone fields removed"
+    ],
+    "notes": [
+      "Fuel list is assortment only; no status, timestamp, queue, limit, or price."
+    ]
+  },
+  "body": {
+    "success": true,
+    "message": "",
+    "data": [
+      {
+        "cityName": "",
+        "shops": [
+          {
+            "coordinates": [
+              "59.852463",
+              "30.305404"
+            ],
+            "adr": "Санкт-Петербург, ул. Краснопутиловская, 86",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1101 KONSTITUTSII"
+          },
+          {
+            "coordinates": [
+              "59.878682",
+              "30.370508"
+            ],
+            "adr": "Санкт-Петербург, ул. Фучика, 6к3",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1102 FUCHIKA"
+          },
+          {
+            "coordinates": [
+              "60.042989",
+              "30.372956"
+            ],
+            "adr": "Санкт-Петербург, пр. Культуры, 19А",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1103 KULTURY"
+          },
+          {
+            "coordinates": [
+              "59.832064",
+              "30.250695"
+            ],
+            "adr": "Санкт-Петербург, пр. Народного Ополчения, 147",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1104 ULYANKA"
+          },
+          {
+            "coordinates": [
+              "59.900145",
+              "30.401938"
+            ],
+            "adr": "Санкт-Петербург, ул. Седова, 11А",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1105 SEDOVA"
+          },
+          {
+            "coordinates": [
+              "59.851143",
+              "30.239522"
+            ],
+            "adr": "Санкт-Петербург, Кронштадтская площадь, 4",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1106 DACHNOYE"
+          },
+          {
+            "coordinates": [
+              "59.852546",
+              "30.224140"
+            ],
+            "adr": "Санкт-Петербург, пр. Ленинский, 102",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1107 ZHUKOVA"
+          },
+          {
+            "coordinates": [
+              "59.892238",
+              "30.448325"
+            ],
+            "adr": "Санкт-Петербург, Октябрьская наб., 46",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1108 OKTYABRSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.984228",
+              "30.244346"
+            ],
+            "adr": "Санкт-Петербург, ул. Стародеревенская, 1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1109 PRIMORSKAYA"
+          },
+          {
+            "coordinates": [
+              "60.074199",
+              "30.280943"
+            ],
+            "adr": "Санкт-Петербург, п. Парголово, Выборгское ш., 369Г",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1110 PARGOLOVO"
+          },
+          {
+            "coordinates": [
+              "59.879192",
+              "30.457763"
+            ],
+            "adr": "Санкт-Петербург, Октябрьская наб., 66к2",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1111 VOLODARSKAYA"
+          },
+          {
+            "coordinates": [
+              "60.020204",
+              "30.432115"
+            ],
+            "adr": "Санкт-Петербург, ул. Руставели, 42А",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1112 RUSTAVELI"
+          },
+          {
+            "coordinates": [
+              "59.873198",
+              "30.337000"
+            ],
+            "adr": "Санкт-Петербург, пр. Юрия Гагарина, 2к2",
+            "fuel": [
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1113 KUZNETSOVSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.985452",
+              "30.326552"
+            ],
+            "adr": "Санкт-Петербург, ул. Белоостровская, 8",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1114 BELOOSTROVSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.986981",
+              "30.359011"
+            ],
+            "adr": "Санкт-Петербург, пр. Маршала Блюхера, 2",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1115 BLYUKHERA"
+          },
+          {
+            "coordinates": [
+              "60.051580",
+              "30.312216"
+            ],
+            "adr": "Санкт-Петербург, ул. Хошимина, 2",
+            "fuel": [
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1116 KHOSHIMINA"
+          },
+          {
+            "coordinates": [
+              "59.955089",
+              "30.284231"
+            ],
+            "adr": "Санкт-Петербург, ул. Ждановская, 2А",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1117 ZHDANOVSKAYA"
+          },
+          {
+            "coordinates": [
+              "60.033873",
+              "29.981213"
+            ],
+            "adr": "Санкт-Петербург, п. Лисий Нос, Приморское ш., 144",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1118 LISIYNOS"
+          },
+          {
+            "coordinates": [
+              "59.936546",
+              "30.477838"
+            ],
+            "adr": "Санкт-Петербург, ул. Хасанская, 1к1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1120 KHASANSKAYA"
+          },
+          {
+            "coordinates": [
+              "60.026167",
+              "30.239039"
+            ],
+            "adr": "Санкт-Петербург, пр. Комендантский, 41",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1121 KOMENDANTSKIY"
+          },
+          {
+            "coordinates": [
+              "59.804556",
+              "30.325021"
+            ],
+            "adr": "Санкт-Петербург, Пулковское ш., 46к3",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1122 PULKOVSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.998547",
+              "30.094591"
+            ],
+            "adr": "Санкт-Петербург, Приморское ш., 47",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1133 OLGINO"
+          },
+          {
+            "coordinates": [
+              "59.755238",
+              "30.319696"
+            ],
+            "adr": "Санкт-Петербург, Пулковское ш., 81",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1145 TSVETY"
+          },
+          {
+            "coordinates": [
+              "60.051925",
+              "30.226598"
+            ],
+            "adr": "Санкт-Петербург, ул. Парашютная, 88",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1148 PARASHUTNAYA"
+          },
+          {
+            "coordinates": [
+              "60.008976",
+              "30.452974"
+            ],
+            "adr": "Санкт-Петербург, Пискаревский пр., 169к2",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1150 PISKAREVSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.806439",
+              "30.469685"
+            ],
+            "adr": "Санкт-Петербург, Колпинский район, п. Петро-Славянка, ул. Софийская, 135к1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1151 SOFIYSKAYA "
+          },
+          {
+            "coordinates": [
+              "59.792248",
+              "30.391354"
+            ],
+            "adr": "Санкт-Петербург, Пушкинский район, п. Шушары, пр. Витебский, 157",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1152 VITEBSKIY"
+          },
+          {
+            "coordinates": [
+              "59.991545",
+              "30.319888"
+            ],
+            "adr": "Санкт-Петербург, ул. Торжковская, 19",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1153 TORZHKOVSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.994009",
+              "30.354667"
+            ],
+            "adr": "Санкт-Петербург, ул. Новороссийская, 15",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1155 NOVOROSSIYSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.756133",
+              " 30.484644"
+            ],
+            "adr": "Санкт-Петербург, Пушкинский район, п. Шушары, Московское ш., 309",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1156 MOSKOVSKAYA"
+          },
+          {
+            "coordinates": [
+              "59.959727",
+              "30.464373"
+            ],
+            "adr": "Санкт-Петербург, пр. Индустриальный, 47к1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1157 INDUSTRIALNIY"
+          },
+          {
+            "coordinates": [
+              "59.915482",
+              "30.344070"
+            ],
+            "adr": "Санкт-Петербург, ул. Боровая, 43",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1161 BOROVAYA"
+          },
+          {
+            "coordinates": [
+              "59.812251",
+              "30.462132"
+            ],
+            "adr": "Санкт-Петербург, Колпинский район, п. Петро-Славянка, ул. Софийская, 112",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1162 SOFIYSKAYA-2"
+          },
+          {
+            "coordinates": [
+              "59.843969",
+              "30.371230"
+            ],
+            "adr": "Санкт-Петербург, ул. Белградская, 9",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1163 BELGRADSKAYA"
+          },
+          {
+            "coordinates": [
+              "60.039277",
+              "30.244124"
+            ],
+            "adr": "Санкт-Петербург, ул. Парашютная, 73к1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1166 PARASHUTNAYA-2"
+          },
+          {
+            "coordinates": [
+              "59.997638",
+              "30.274525"
+            ],
+            "adr": "Санкт-Петербург, пр. Богатырский, 12к2",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1168 BOGATYRSKIY"
+          },
+          {
+            "coordinates": [
+              "59.772739",
+              "30.125418"
+            ],
+            "adr": "Санкт-Петербург, территория Горелово, Красносельское ш., 2к1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1172 KRASNOSELSKOE"
+          },
+          {
+            "coordinates": [
+              "59.813407",
+              "30.349800"
+            ],
+            "adr": "Санкт-Петербург, Московский район, муниципальный округ Звездное",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1179 KAD 4"
+          },
+          {
+            "coordinates": [
+              "60.020397",
+              "30.454297"
+            ],
+            "adr": "Санкт-Петербург, КАД, 34-й километр",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1180 KAD 2"
+          },
+          {
+            "coordinates": [
+              "59.912791",
+              "30.375701"
+            ],
+            "adr": "Санкт-Петербург, Глухоозерское ш., 2соор1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1181 OBVODNIY"
+          },
+          {
+            "coordinates": [
+              "59.845305",
+              "30.418037"
+            ],
+            "adr": "Санкт-Петербург, пр. Дунайский, 62",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1182 DUNAYSKIY"
+          },
+          {
+            "coordinates": [
+              "59.852240",
+              "30.364179"
+            ],
+            "adr": "Санкт-Петербург, Витебский пр., 47Б",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1188 VITEBSKIY-2"
+          },
+          {
+            "coordinates": [
+              "59.815999",
+              "30.354416"
+            ],
+            "adr": "Санкт-Петербург, КАД, 67-й километр, 1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1189 KAD 5"
+          },
+          {
+            "coordinates": [
+              "59.817585",
+              "30.367213"
+            ],
+            "adr": "Санкт-Петербург, Московское ш. 37, лит. А",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1194 Московская-2"
+          },
+          {
+            "coordinates": [
+              "59.975626",
+              "30.406832"
+            ],
+            "adr": "Санкт-Петербург, Маршала Блюхера 39, лит. А ",
+            "fuel": [
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1196 Блюхера-2"
+          },
+          {
+            "coordinates": [
+              "59.834768",
+              "30.121030"
+            ],
+            "adr": "Санкт-Петербург, проспект Ветеранов, строение 188/1",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1197 Ветеранов"
+          },
+          {
+            "coordinates": [
+              "60.084906",
+              "30.218836"
+            ],
+            "adr": "Санкт-Петербург, поселок Левашово, территория Кольцевая автомобильная дорога, участок 258",
+            "fuel": [
+              {
+                "name": "100+",
+                "fuelId": "100plus"
+              },
+              {
+                "name": "92",
+                "fuelId": "92"
+              },
+              {
+                "name": "95",
+                "fuelId": "95"
+              },
+              {
+                "name": "95+",
+                "fuelId": "95plus"
+              },
+              {
+                "name": "ДТ",
+                "fuelId": "DT"
+              }
+            ],
+            "typeShop": null,
+            "externalCode": "1190 LEVASHOVO"
+          }
+        ]
+      }
+    ]
+  }
+}

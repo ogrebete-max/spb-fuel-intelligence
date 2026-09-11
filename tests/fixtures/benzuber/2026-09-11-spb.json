@@ -1,0 +1,34 @@
+{
+  "_fixture": {
+    "source": "benzuber",
+    "classification": "YELLOW_NEEDS_KEY",
+    "request": {
+      "method": "GET",
+      "url": "https://dev.benzuber.ru/partner-app/api-benzuber/",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:04:59.998Z",
+    "source_raw_file": "benzuber-api-docs.json",
+    "source_raw_sha256": "25a5f0ad3834b714b486517e0fae9d27b625df8af4e5658e321bca9fe8a893d4",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "No API key or assigned URL_BZ was available; no fabricated request was made. Pump/nozzle active and product configured are not stock evidence."
+    ]
+  },
+  "body": {
+    "docs_http_status": 200,
+    "documented_endpoints": [
+      "/v1/stations",
+      "/v1/stations/{StationId}/columns",
+      "/v1/price",
+      "/v1/ping",
+      "/v1/status"
+    ],
+    "authentication": "unique apikey; URL_BZ is supplied during partner integration",
+    "test_station_id": 10000
+  }
+}

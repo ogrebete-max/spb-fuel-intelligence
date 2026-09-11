@@ -1,0 +1,50 @@
+{
+  "_fixture": {
+    "source": "alfa-fuel",
+    "classification": "RED_BLOCKED",
+    "request": {
+      "method": "GET",
+      "url": "https://alfabank.ru/retail/azs/",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": null,
+    "captured_at": "2026-09-10T22:48:28.747Z",
+    "source_raw_file": null,
+    "source_raw_sha256": null,
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Two curl probes failed trusted TLS; standard Chrome also rejected the certificate. Service is documented inside the authenticated bank app."
+    ]
+  },
+  "body": {
+    "probes": [
+      {
+        "source": "alfa-public",
+        "attempt": 1,
+        "curl_exit": 60,
+        "http_status_line": null,
+        "bytes": 0,
+        "stderr": "curl: (60) schannel: SEC_E_UNTRUSTED_ROOT (0x80090325) - ������� ������������ �������� ������� ������������, �� ������� �������.\r\nMore details here: https://curl.se/docs/sslcerts.html\r\n\r\ncurl failed to verify the legitimacy of the server and therefore could not\r\nestablish a secure connection to it. To learn more about this situation and\r\nhow to fix it, please visit the webpage mentioned above.",
+        "captured_at": "2026-09-11T01:17:37.8287773+03:00",
+        "url": "https://alfabank.ru/retail/azs/"
+      },
+      {
+        "source": "alfa-public",
+        "attempt": 2,
+        "curl_exit": 60,
+        "http_status_line": null,
+        "bytes": 0,
+        "stderr": "curl: (60) schannel: SEC_E_UNTRUSTED_ROOT (0x80090325) - ������� ������������ �������� ������� ������������, �� ������� �������.\r\nMore details here: https://curl.se/docs/sslcerts.html\r\n\r\ncurl failed to verify the legitimacy of the server and therefore could not\r\nestablish a secure connection to it. To learn more about this situation and\r\nhow to fix it, please visit the webpage mentioned above.",
+        "captured_at": "2026-09-11T01:17:38.5309684+03:00",
+        "url": "https://alfabank.ru/retail/azs/"
+      }
+    ],
+    "playwright": {
+      "final_url": "chrome-error://chromewebdata/",
+      "error": "NET::ERR_CERT_AUTHORITY_INVALID"
+    }
+  }
+}

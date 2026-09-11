@@ -1,0 +1,22 @@
+{
+  "_evidence": {
+    "source": "alfa",
+    "raw_file": "playwright-alfa.json",
+    "raw_sha256": "fb4ff6bedaacb1f700106e8014a07b81b5eb01af4b8d6d1ca6ef2ff4befb0ee1",
+    "captured_at": "2026-09-10T16:18:19.751Z",
+    "sanitization": [
+      "request/response headers, cookies and postData omitted",
+      "query parameters stripped except the public Sber bbox",
+      "anonymous analytics, device/session IDs and OAuth challenges omitted"
+    ]
+  },
+  "requestedUrl": "https://alfabank.ru/retail/azs/",
+  "finalUrl": "null/",
+  "startedAt": "2026-09-10T16:18:18.797Z",
+  "finishedAt": "2026-09-10T16:18:19.751Z",
+  "navigationError": "Error: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://alfabank.ru/retail/azs/\nCall log:\n\u001b[2m  - navigating to \"https://alfabank.ru/retail/azs/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+  "title": "Ошибка нарушения конфиденциальности",
+  "totalNetworkEvents": 0,
+  "retainedFirstPartyEvents": 0,
+  "events": []
+}

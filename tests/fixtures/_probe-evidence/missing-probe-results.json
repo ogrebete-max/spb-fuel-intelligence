@@ -1,0 +1,191 @@
+[
+  {
+    "name": "sber-small",
+    "method": "GET",
+    "url": "https://sberazs.ru/api/stations?bbox=30.20,59.85,30.45,60.05",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 262736,
+    "captured_at": "2026-09-11T01:04:51.5663640+03:00"
+  },
+  {
+    "name": "sber-adjacent",
+    "method": "GET",
+    "url": "https://sberazs.ru/api/stations?bbox=30.45,59.85,30.70,60.05",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 122713,
+    "captured_at": "2026-09-11T01:04:51.8282824+03:00"
+  },
+  {
+    "name": "sber-full-aoi",
+    "method": "GET",
+    "url": "https://sberazs.ru/api/stations?bbox=29.50,59.60,31.10,60.35",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 814994,
+    "captured_at": "2026-09-11T01:04:52.0896404+03:00"
+  },
+  {
+    "name": "sber-meta",
+    "method": "GET",
+    "url": "https://sberazs.ru/api/stations/meta",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 596,
+    "captured_at": "2026-09-11T01:04:52.3119109+03:00"
+  },
+  {
+    "name": "sber-station",
+    "method": "GET",
+    "url": "https://sberazs.ru/api/stations/70000001051057670",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1381,
+    "captured_at": "2026-09-11T01:04:52.5119393+03:00"
+  },
+  {
+    "name": "gpn-station-1108",
+    "method": "POST",
+    "url": "https://gpnbonus.ru/api/stations/1108",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 403 Forbidden",
+    "bytes": 7398,
+    "captured_at": "2026-09-11T01:04:52.7454591+03:00"
+  },
+  {
+    "name": "teboil-spb",
+    "method": "POST",
+    "url": "https://azs.teboil.ru/map/ajax/map.php",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 23540,
+    "captured_at": "2026-09-11T01:04:53.2015614+03:00"
+  },
+  {
+    "name": "teboil-lo",
+    "method": "POST",
+    "url": "https://azs.teboil.ru/map/ajax/map.php",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 18574,
+    "captured_at": "2026-09-11T01:04:53.6028372+03:00"
+  },
+  {
+    "name": "lukoil-station-1883",
+    "method": "GET",
+    "url": "https://auto.lukoil.ru/api/cartography/GetObjects?ids=gasStation1883&lng=RU",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 4317,
+    "captured_at": "2026-09-11T01:04:53.8783069+03:00"
+  },
+  {
+    "name": "lukoil-fuel-classes",
+    "method": "GET",
+    "url": "https://auto.lukoil.ru/api/cartography/GetFuelClasses?country=RU&lng=RU",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 4119,
+    "captured_at": "2026-09-11T01:04:54.0467649+03:00"
+  },
+  {
+    "name": "gdebenz-adjacent",
+    "method": "GET",
+    "url": "https://gdebenz.ru/api/stations?lat1=59.85&lon1=30.45&lat2=60.05&lon2=30.70",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 41059,
+    "captured_at": "2026-09-11T01:04:54.2299524+03:00"
+  },
+  {
+    "name": "benzas-adjacent",
+    "method": "GET",
+    "url": "https://benzas.ru/api/stations?lat1=59.85&lon1=30.45&lat2=60.05&lon2=30.70",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 17804,
+    "captured_at": "2026-09-11T01:04:54.4484034+03:00"
+  },
+  {
+    "name": "benzinest-adjacent",
+    "method": "GET",
+    "url": "https://benzinest.ru/api/stations?bbox=59.85,30.45,60.05,30.70",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 94142,
+    "captured_at": "2026-09-11T01:04:54.8595780+03:00"
+  },
+  {
+    "name": "tutbenz-adjacent",
+    "method": "GET",
+    "url": "https://tutbenz.app/api/stations?bbox=30.45,59.85,30.70,60.05&prices=1",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 149893,
+    "captured_at": "2026-09-11T01:04:55.2339230+03:00"
+  },
+  {
+    "name": "gdebenzin-adjacent",
+    "method": "GET",
+    "url": "https://xn--90addebmh2bc.xn--p1ai/api/v1/map?bbox=59.85,30.45,60.05,30.70&zoom=12&price=1&confidence=1",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 52347,
+    "captured_at": "2026-09-11T01:04:55.5357019+03:00"
+  },
+  {
+    "name": "benzonavt-adjacent",
+    "method": "GET",
+    "url": "https://benzonavt.ru/api/v1/stations?bbox=59.8500,30.4500,60.0500,30.7000",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 403 Forbidden",
+    "bytes": 146,
+    "captured_at": "2026-09-11T01:04:55.7877771+03:00"
+  },
+  {
+    "name": "benzinkarta-station-free",
+    "method": "GET",
+    "url": "https://benzinkarta.ru/api/station/w170262011",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 4968,
+    "captured_at": "2026-09-11T01:04:56.0404211+03:00"
+  },
+  {
+    "name": "toplivo-tbank-near",
+    "method": "GET",
+    "url": "https://tboo.ru/gpn/api/tbank/near?la=59.83239&lo=30.36994",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 16,
+    "captured_at": "2026-09-11T01:04:58.4497488+03:00"
+  },
+  {
+    "name": "benzinradar-spb",
+    "method": "GET",
+    "url": "https://benzinradar.ru/api/stations?lat1=59.85&lon1=30.20&lat2=60.05&lon2=30.45&limit=1000&offset=0",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 515911,
+    "captured_at": "2026-09-11T01:04:58.8765054+03:00"
+  },
+  {
+    "name": "benzin-live-radar-map",
+    "method": "GET",
+    "url": "https://benzin.live/js/radar-map.js?v=main10",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 64998,
+    "captured_at": "2026-09-11T01:04:59.3170595+03:00"
+  },
+  {
+    "name": "benzuber-api-docs",
+    "method": "GET",
+    "url": "https://dev.benzuber.ru/partner-app/api-benzuber/",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 73615,
+    "captured_at": "2026-09-11T01:05:00.0456455+03:00"
+  }
+]

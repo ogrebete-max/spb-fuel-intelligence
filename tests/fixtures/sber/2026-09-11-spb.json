@@ -1,0 +1,81 @@
+{
+  "_fixture": {
+    "source": "sber",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://sberazs.ru/api/stations/70000001051057670",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:04:52.473Z",
+    "source_raw_file": "sber-station.json",
+    "source_raw_sha256": "98048ba7fded56e96c7550a13c0a3b372342ef4207d4a4896e7174704277fec3",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Station catalog ID equals externalIds.twoGisBranchId; grade status is not a price feed."
+    ]
+  },
+  "body": {
+    "apiVersion": 1,
+    "dataVersion": "data:8b8b5f5868d3da103520b1a49af438aa27f0a1d217107739c92712fed37010c6",
+    "snapshotVersion": "88fc361e0bf2da25812364f7901acb75d59e1eb8dc309c58af4e924f498c5beb",
+    "version": "data:8b8b5f5868d3da103520b1a49af438aa27f0a1d217107739c92712fed37010c6",
+    "station": {
+      "id": "70000001051057670",
+      "branchId": "70000001051057670",
+      "name": "Газпромнефть, АЗС",
+      "address": "Санкт-Петербург, Санкт-Петербург, Школьная улица, 100",
+      "postcode": "197374",
+      "location": {
+        "lat": 59.990815,
+        "lon": 30.221422,
+        "address": "Санкт-Петербург, Санкт-Петербург, Школьная улица, 100"
+      },
+      "availabilityStatus": "available",
+      "lastPaymentAt": "2026-09-10T14:11:42+03:00",
+      "updatedAt": "2026-09-10T11:26:44.975Z",
+      "operationsCount": 3,
+      "fuels": [
+        {
+          "type": "ai92",
+          "available": true,
+          "availabilityStatus": "available",
+          "limitLiters": 40
+        },
+        {
+          "type": "ai95",
+          "available": false,
+          "availabilityStatus": "stale",
+          "limitLiters": 40,
+          "lastFuelingAt": "2026-09-10T10:16:02.549Z"
+        },
+        {
+          "type": "diesel",
+          "available": true,
+          "availabilityStatus": "available",
+          "limitLiters": 40
+        },
+        {
+          "type": "propane",
+          "availabilityStatus": "unknown"
+        }
+      ],
+      "externalIds": {
+        "twoGisBranchId": "70000001051057670"
+      },
+      "crowdState": {
+        "stationId": "70000001051057670",
+        "status": "insufficient_data",
+        "confidence": 0,
+        "positiveVotes": 0,
+        "negativeVotes": 0,
+        "effectivePositiveWeight": 0,
+        "effectiveNegativeWeight": 0
+      }
+    }
+  }
+}

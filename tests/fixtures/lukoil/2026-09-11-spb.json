@@ -1,0 +1,241 @@
+{
+  "_fixture": {
+    "source": "lukoil",
+    "classification": "RED_NO_REALTIME_DATA",
+    "request": {
+      "method": "GET",
+      "url": "https://auto.lukoil.ru/api/cartography/GetObjects?ids=gasStation1883&lng=RU",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:04:53.844Z",
+    "source_raw_file": "lukoil-station-1883.json",
+    "source_raw_sha256": "77b49eaae0cc006ab5277820effb310be2ee3399aa22a4c4fbfdfc76fd3298a0",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained",
+      "public business contact fields removed"
+    ],
+    "notes": [
+      "Fuels are catalog entries; Price is null and there is no per-grade current stock field."
+    ]
+  },
+  "body": [
+    {
+      "GasStation": {
+        "GasStationId": 1883,
+        "Latitude": 59.990538,
+        "Longitude": 30.376595,
+        "StationNumber": "78008",
+        "RegionId": 1417,
+        "FederalLineId": null,
+        "ManagerFullName": null,
+        "CompanyId": 982,
+        "GasStationStatus": 1,
+        "Company": {
+          "CompanyId": 982,
+          "Name": "\"ЛУКОЙЛ-Северо-Западнефтепродукт\"",
+          "Address": null,
+          "DatabaseHomePageUrl": "http://www.sznp.lukoil.com",
+          "HomePageUrl": "http://lukoil.ru/lukoil-sznp"
+        },
+        "Name": "АЗС № 78008",
+        "Address": "Россия, 195220, г. Санкт-Петербург, г. Санкт-Петербург, Калининский р-н, дор. Кушелевская, 9 лит.А",
+        "Street": "дор. Кушелевская",
+        "PostCode": "195220",
+        "City": "г. Санкт-Петербург",
+        "TwentyFourHour": false,
+        "HasStore": false,
+        "IconUrl": null,
+        "StationBusinessHours": {
+          "Days": [
+            {
+              "StartTime": "00:00:00",
+              "EndTime": "1.00:00:00"
+            },
+            {
+              "StartTime": "00:00:00",
+              "EndTime": "1.00:00:00"
+            },
+            {
+              "StartTime": "00:00:00",
+              "EndTime": "1.00:00:00"
+            },
+            {
+              "StartTime": "00:00:00",
+              "EndTime": "1.00:00:00"
+            },
+            {
+              "StartTime": "00:00:00",
+              "EndTime": "1.00:00:00"
+            },
+            {
+              "StartTime": "00:00:00",
+              "EndTime": "1.00:00:00"
+            },
+            {
+              "StartTime": "00:00:00",
+              "EndTime": "1.00:00:00"
+            }
+          ]
+        },
+        "StoreBusinessHours": null,
+        "StationPhotoUrl": null,
+        "BusinessHoursForClient": {
+          "BusinessHoursOwner": null,
+          "BusinessHours": null
+        },
+        "Advertisements": [],
+        "DisplayName": "АЗС №78008",
+        "DisplayNameOnly": "№78008",
+        "SellsOil": false,
+        "Services": [
+          {
+            "ServiceId": 149664,
+            "Name": "Подкачка шин",
+            "ServiceGroupId": 0,
+            "IconFileNameBase": "tyre.png",
+            "IconFileBaseUrl": "/Content/icons/{0}/tyre.png"
+          },
+          {
+            "ServiceId": 1629096,
+            "Name": "AdBlue",
+            "ServiceGroupId": 0,
+            "IconFileNameBase": "ad-blue.png",
+            "IconFileBaseUrl": "/Content/icons/{0}/ad-blue.png"
+          },
+          {
+            "ServiceId": 3287120,
+            "Name": "Выдача наличных",
+            "ServiceGroupId": 0,
+            "IconFileNameBase": null,
+            "IconFileBaseUrl": null
+          }
+        ],
+        "PaymentTypes": [
+          {
+            "PaymentTypeId": 7,
+            "Name": "Банковские карты",
+            "IconFileNameBase": "VISAMasterCard.png",
+            "IconFileBaseUrl": "/Content/icons/{0}/VISAMasterCard.png"
+          },
+          {
+            "PaymentTypeId": 1001,
+            "Name": "Топливные карты ЛУКОЙЛ",
+            "IconFileNameBase": "Lukoil.png",
+            "IconFileBaseUrl": "/Content/icons/{0}/Lukoil.png"
+          },
+          {
+            "PaymentTypeId": 1601,
+            "Name": "Карты \"Халва\"",
+            "IconFileNameBase": null,
+            "IconFileBaseUrl": null
+          },
+          {
+            "PaymentTypeId": 1602,
+            "Name": "СБП",
+            "IconFileNameBase": null,
+            "IconFileBaseUrl": null
+          },
+          {
+            "PaymentTypeId": 1603,
+            "Name": "Оплата баллами ЛУКОЙЛ",
+            "IconFileNameBase": null,
+            "IconFileBaseUrl": null
+          }
+        ],
+        "Features": [
+          {
+            "FeatureId": 5,
+            "Name": "спальный район"
+          }
+        ],
+        "Properties": [
+          {
+            "PropertyId": 4,
+            "Name": "Кафе",
+            "IconFileNameBase": "cafe.png",
+            "IconFileBaseUrl": "/Content/icons/{0}/cafe.png"
+          },
+          {
+            "PropertyId": 8,
+            "Name": "Скоростная ТРК",
+            "IconFileNameBase": "speed-trk.png",
+            "IconFileBaseUrl": "/Content/icons/{0}/speed-trk.png"
+          },
+          {
+            "PropertyId": 37,
+            "Name": "Горячий кофе",
+            "IconFileNameBase": null,
+            "IconFileBaseUrl": null
+          },
+          {
+            "PropertyId": 39,
+            "Name": "Парковка",
+            "IconFileNameBase": null,
+            "IconFileBaseUrl": null
+          }
+        ]
+      },
+      "Fuels": [
+        {
+          "GasStationId": 1883,
+          "FuelId": 17537,
+          "Price": null,
+          "CompanyPrice": null,
+          "CompanyPriceType": null,
+          "CurrencyIsoCode": null,
+          "Name": "АИ 92 ЭКТО",
+          "DisplayPrice": null,
+          "CurrencyDisplayName": null,
+          "IconFileBaseUrl": "/Content/icons/{0}/92-ecto.png",
+          "IconFileNameBase": "92-ecto.png",
+          "VolumeDisplayName": ""
+        },
+        {
+          "GasStationId": 1883,
+          "FuelId": 18316,
+          "Price": null,
+          "CompanyPrice": null,
+          "CompanyPriceType": null,
+          "CurrencyIsoCode": null,
+          "Name": "АИ 95 ЕВРО",
+          "DisplayPrice": null,
+          "CurrencyDisplayName": null,
+          "IconFileBaseUrl": "/Content/icons/{0}/95-euro.png",
+          "IconFileNameBase": "95-euro.png",
+          "VolumeDisplayName": ""
+        },
+        {
+          "GasStationId": 1883,
+          "FuelId": 196919,
+          "Price": null,
+          "CompanyPrice": null,
+          "CompanyPriceType": null,
+          "CurrencyIsoCode": null,
+          "Name": "ДИЗЕЛЬ ЭКТО",
+          "DisplayPrice": null,
+          "CurrencyDisplayName": null,
+          "IconFileBaseUrl": "/Content/icons/{0}/dt-ecto.png",
+          "IconFileNameBase": "dt-ecto.png",
+          "VolumeDisplayName": ""
+        },
+        {
+          "GasStationId": 1883,
+          "FuelId": 1776324,
+          "Price": null,
+          "CompanyPrice": null,
+          "CompanyPriceType": null,
+          "CurrencyIsoCode": null,
+          "Name": "АИ 100 ЭКТО",
+          "DisplayPrice": null,
+          "CurrencyDisplayName": null,
+          "IconFileBaseUrl": "/Content/icons/{0}/100-ecto.png",
+          "IconFileNameBase": "100-ecto.png",
+          "VolumeDisplayName": ""
+        }
+      ],
+      "GasStationId": 1883
+    }
+  ]
+}

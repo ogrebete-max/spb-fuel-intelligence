@@ -1,0 +1,159 @@
+{
+  "_fixture": {
+    "source": "gazpromneft",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "POST",
+      "url": "https://gpnbonus.ru/api/stations/1108",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:06:32.329Z",
+    "source_raw_file": "gpn-station-1108-browserlike.json",
+    "source_raw_sha256": "7194495dd342777e5092e91df0cf241a7c9cc7c788bc2cea35a3b6a2a80db8d5",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "POST body was {}. The list endpoint returned all Russia and was filtered locally to the AOI."
+    ]
+  },
+  "body": {
+    "station": {
+      "GPNAZSID": 1108,
+      "PNPONumber": "1",
+      "brand_id": 31,
+      "region_id": 2612828,
+      "AZSTypeID": 2,
+      "id": 2742,
+      "name": "АЗС №1",
+      "city": "Санкт-Петербург",
+      "address": "Дунайский, 29",
+      "latitude": "59.83239",
+      "longitude": "30.36994",
+      "promotions": [],
+      "promotionsInclude": [],
+      "promotionsExclude": [],
+      "oils": {
+        "12": false,
+        "62": false,
+        "372": true,
+        "421": false
+      },
+      "workModeMessages": null,
+      "ChargingElectricVehicles": 0,
+      "workMode": "круглосуточно",
+      "rate": null,
+      "rateCount": 0,
+      "wash": false,
+      "services": {
+        "station": [],
+        "car": {
+          "europistol": "Европистолет",
+          "pumping": "Подкачка шин",
+          "water": "Вода"
+        },
+        "person": {
+          "shop": "Магазин",
+          "toilet": "Туалет",
+          "cafe": "Кафе"
+        },
+        "payment": {
+          "paycash": "Оплата наличными",
+          "paycardmps": "Оплата банковской картой",
+          "paymobile": "Оплата через мобильное приложение",
+          "paycardgpn": "Прием топливных карт ГПН",
+          "paycardnmp": "Прием карт \"Нам по пути\"",
+          "paysbp": "Система быстрых платежей",
+          "postpay": "Пост-оплата"
+        }
+      },
+      "open": true
+    },
+    "fuel_detail": {
+      "data": [
+        {
+          "id": 12,
+          "product": {
+            "emisId": 12,
+            "color": "red",
+            "shortTitle": "95",
+            "title": "Бензин АИ-95",
+            "type": "gazoline"
+          },
+          "price": {
+            "currency": "RUB",
+            "price": 70.52,
+            "since": "2026-09-10T14:17:18.000000Z"
+          },
+          "rest": {
+            "avail": false,
+            "since": "01:02",
+            "delivery": "no"
+          }
+        },
+        {
+          "id": 62,
+          "product": {
+            "emisId": 62,
+            "color": "yellow",
+            "shortTitle": "92",
+            "title": "Бензин АИ-92",
+            "type": "gazoline"
+          },
+          "price": {
+            "currency": "RUB",
+            "price": 65.61,
+            "since": "2026-09-10T21:00:04.000000Z"
+          },
+          "rest": {
+            "avail": false,
+            "since": "01:02",
+            "delivery": "no"
+          }
+        },
+        {
+          "id": 372,
+          "product": {
+            "emisId": 372,
+            "color": "grey",
+            "shortTitle": "ДТл",
+            "title": "Дизельное топливо летнее",
+            "type": "dizel"
+          },
+          "price": {
+            "currency": "RUB",
+            "price": 79.95,
+            "since": "2026-09-10T21:00:04.000000Z"
+          },
+          "rest": {
+            "avail": true,
+            "since": "01:02",
+            "delivery": "no"
+          }
+        },
+        {
+          "id": 421,
+          "product": {
+            "emisId": 421,
+            "color": "orange",
+            "shortTitle": "G-95",
+            "title": "Бензин АИ-95 брендированный",
+            "type": "gazoline"
+          },
+          "price": {
+            "currency": "RUB",
+            "price": 72.52,
+            "since": "2026-09-10T21:00:04.000000Z"
+          },
+          "rest": {
+            "avail": false,
+            "since": "01:02",
+            "delivery": "no"
+          }
+        }
+      ]
+    }
+  }
+}

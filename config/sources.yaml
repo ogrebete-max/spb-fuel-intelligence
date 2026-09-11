@@ -1,0 +1,492 @@
+schema_version: 1
+captured_at: "2026-09-11T01:04:00+03:00"
+area_of_interest:
+  name: "Санкт-Петербург и ближайшая Ленинградская область"
+  bbox_wsen: [29.50, 59.60, 31.10, 60.35]
+status_enum:
+  - GREEN_VERIFIED_HTTP
+  - GREEN_VERIFIED_BROWSER
+  - YELLOW_NEEDS_KEY
+  - YELLOW_NEEDS_MANUAL_HAR
+  - CONTROL_ONLY
+  - RED_BLOCKED
+  - RED_NO_REALTIME_DATA
+
+sources:
+  - id: benzuber
+    priority: 1
+    status: YELLOW_NEEDS_KEY
+    public_url: "https://dev.benzuber.ru/partner-app/api-benzuber/"
+    access: "documented REST API; unique apikey and partner URL are issued after onboarding"
+    endpoints:
+      - "GET {URL_BZ}/v1/stations?apikey=...&stationId=..."
+      - "GET {URL_BZ}/v1/stations/{stationId}/columns?apikey=..."
+      - "GET {URL_BZ}/v1/stations/{stationId}/price?apikey=..."
+      - "GET {URL_BZ}/v1/stations/{stationId}/status?apikey=..."
+      - "GET {URL_BZ}/v1/stations/{stationId}/ping?apikey=..."
+    auth: "partner apikey required; not available anonymously"
+    geo_query: "stationId only in public documentation; no verified bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "checkout equipment/status, not proven physical stock"
+    fields: [station_id, products, prices, columns, nozzles, station_status, ping]
+    upstream: "Benzuber partner platform"
+    independence: "direct if contracted"
+    polling: "disabled until contract/key; then follow partner limits"
+    collector_ready: false
+    reason: "API contract is documented, but no live station response can be obtained without an issued key. Pump active and product configured are not stock evidence."
+
+  - id: alfa_fuel
+    priority: 2
+    status: RED_BLOCKED
+    public_url: "https://alfabank.ru/retail/azs/"
+    access: "public landing page plus authenticated bank app"
+    endpoints: []
+    auth: "station selection is in private mobile banking context"
+    geo_query: "not verified"
+    station_level: false
+    grade_specific: false
+    realtime_kind: "not verified"
+    fields: []
+    upstream: "Alfa-Bank payment/refuelling product"
+    independence: "unknown"
+    polling: "disabled"
+    collector_ready: false
+    reason: "Public host failed certificate validation in both curl and a normal Chrome session; no anonymous station endpoint was exposed. Private user authentication is disqualifying for an automatic collector."
+
+  - id: tbank_fuel
+    priority: 3
+    status: RED_BLOCKED
+    public_url: "https://www.tbank.ru/gorod/fuel/"
+    access: "public marketing page; operational flow is inside the authenticated app"
+    endpoints: []
+    auth: "private bank session required for station flow"
+    geo_query: "not exposed anonymously"
+    station_level: false
+    grade_specific: false
+    realtime_kind: "not verified anonymously"
+    fields: []
+    upstream: "T-Bank payment transactions"
+    independence: "transaction evidence may be independent, but access is private"
+    polling: "disabled"
+    collector_ready: false
+    reason: "A browser network capture of the public page found no station-list/detail API; a private authenticated user endpoint is RED by the Phase 0 rule."
+
+  - id: sber_fuel_map
+    priority: 4
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://sberazs.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://sberazs.ru/api/stations?bbox={west},{south},{east},{north}"
+      - "GET https://sberazs.ru/api/stations/{stationId}"
+      - "GET https://sberazs.ru/api/stations/meta"
+    auth: "none"
+    geo_query: "bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "per-grade availability inference plus timestamps and limits"
+    fields: [station_id, coordinates, address, network, grade, available, status, limit, last_fueling_at, station_updated_at, crowd_state]
+    upstream: "2GIS station catalog IDs; Sber/FuelUp-derived activity; exact grade inference logic not disclosed"
+    independence: "mixed; catalog and dynamic layer must be tracked separately"
+    polling: "5 minutes with ETag/hash/backoff; retain source timestamps"
+    collector_ready: true
+    reason: "Repeated anonymous bbox and detail requests returned station-level, grade-specific dynamic fields for the AOI."
+
+  - id: lukoil
+    priority: 5
+    status: RED_NO_REALTIME_DATA
+    public_url: "https://auto.lukoil.ru/ru/ProductsAndServices/PetrolStations"
+    access: "anonymous JSON cartography API"
+    endpoints:
+      - "GET https://auto.lukoil.ru/api/cartography/GetSearchObjects?form=gasStation"
+      - "GET https://auto.lukoil.ru/api/cartography/GetObjects?ids=gasStation{stationId}&lng=RU"
+      - "GET https://auto.lukoil.ru/api/cartography/GetFuelClasses"
+    auth: "none"
+    geo_query: "client-side filtering after national list; no verified bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "CATALOG_FUEL only"
+    fields: [station_id, coordinates, address, network, hours, station_operational_status, configured_fuels]
+    upstream: "LUKOIL official catalog"
+    independence: "direct official catalog"
+    polling: "12-24 hours for catalog only"
+    collector_ready: false
+    reason: "Live API works, but fuel rows have no current stock timestamp/status and prices were null. Station operational status is not grade availability."
+
+  - id: gazpromneft
+    priority: 6
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://gpnbonus.ru/fuel/refuel-map"
+    access: "anonymous JSON REST with ordinary browser headers"
+    endpoints:
+      - "POST https://gpnbonus.ru/api/stations/list"
+      - "POST https://gpnbonus.ru/api/stations/{stationId}"
+    auth: "none; WAF expects a normal User-Agent and Referer"
+    geo_query: "list call ignored attempted geo body; filter returned national list locally"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "official per-grade rest.avail/rest.since/rest.delivery"
+    fields: [station_id, coordinates, address, network, grade, price, price_timestamp, available, unavailable_since, delivery]
+    upstream: "Gazpromneft official station system"
+    independence: "direct official"
+    polling: "5 minutes for selected AOI station IDs; back off on WAF/429"
+    collector_ready: true
+    reason: "Repeated direct detail requests returned explicit current stock for each fuel and prices."
+
+  - id: teboil
+    priority: 7
+    status: RED_NO_REALTIME_DATA
+    public_url: "https://azs.teboil.ru/map/"
+    access: "anonymous form POST returning JSON"
+    endpoints:
+      - "POST https://azs.teboil.ru/map/ajax/map.php (cityId[]=353)"
+      - "POST https://azs.teboil.ru/map/ajax/map.php (cityId[]=354)"
+    auth: "none"
+    geo_query: "city/region IDs for SPb and Leningrad Oblast"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "CATALOG_FUEL only"
+    fields: [external_station_code, coordinates, address, configured_fuels]
+    upstream: "Teboil official catalog"
+    independence: "direct official catalog"
+    polling: "12-24 hours for catalog only"
+    collector_ready: false
+    reason: "Live regional endpoint works, but exposes no stock status, price timestamp, queue or limit."
+
+  - id: gdebenz
+    priority: 8
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://gdebenz.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://gdebenz.ru/api/stations?lat1={south}&lon1={west}&lat2={north}&lon2={east}"
+      - "GET https://gdebenz.ru/api/comments/{stationId}/recent?limit=12"
+    auth: "none"
+    geo_query: "bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "crowd YES/NO/QUEUE; detail comments carry timestamps and semantics"
+    fields: [station_id, coordinates, address, network, fuels, crowd_status, comment_timestamp, confirmations, queue, limit, price, on_site]
+    upstream: "OSM/user station catalog plus own crowd; some price provenance is unspecified"
+    independence: "independent crowd observations; price layer may not be"
+    polling: "2-5 minutes for bbox; station detail only on change/on demand"
+    collector_ready: true
+    reason: "Repeated bbox and detail calls returned concrete stations, named fuels, queues, limits and timestamped reports."
+
+  - id: benzas
+    priority: 9
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://benzas.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://benzas.ru/api/stations"
+      - "GET https://benzas.ru/api/station/{stationId}/fuels"
+      - "GET https://benzas.ru/api/station/{stationId}/recent"
+      - "GET https://benzas.ru/api/station/{stationId}/insight"
+      - "GET https://benzas.ru/api/summary"
+    auth: "none"
+    geo_query: "national list; filter AOI locally"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "crowd/current status with timestamps; price provenance separate"
+    fields: [station_id, coordinates, address, network, grade, status, timestamp, queue, price, price_source]
+    upstream: "own crowd; sample price source explicitly benzuber"
+    independence: "crowd independent; imported price not independent"
+    polling: "2-5 minutes for summary/list; detail on change/on demand"
+    collector_ready: true
+    reason: "Repeated public requests returned fresh station and grade statuses; fixture demonstrates that Benzuber price is not mistaken for crowd availability."
+
+  - id: benzinest
+    priority: 10
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://benzinest.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://benzinest.ru/api/stations?bbox={south},{west},{north},{east}"
+      - "GET https://benzinest.ru/api/stations/{stationId}"
+    auth: "none"
+    geo_query: "bbox in south,west,north,east order"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "aggregated AVAILABLE/OUT_OF_STOCK/UNKNOWN with confidence and report ages"
+    fields: [station_id, coordinates, address, network, grade, status, confidence, price, limit, updated_at, report_count, source]
+    upstream: "imported, GdeBenz, Toplivo Ryadom, SberAZS, MultiGO"
+    independence: "dependent aggregator"
+    polling: "5 minutes; deduplicate by upstream and timestamp"
+    collector_ready: true
+    reason: "Live bbox/detail calls work and return rich per-grade evidence, but results must stay in their upstream provenance clusters."
+
+  - id: tutbenz
+    priority: 11
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://tutbenz.app/"
+    access: "anonymous JSON REST and event stream"
+    endpoints:
+      - "GET https://tutbenz.app/api/stations?bbox={west},{south},{east},{north}&prices=1"
+      - "GET https://tutbenz.app/api/stations/{stationUuid}"
+      - "GET https://tutbenz.app/api/stream"
+    auth: "none"
+    geo_query: "bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "parser/crowd states plus payment-derived hints"
+    fields: [station_uuid, coordinates, address, network, grade, status, price, queue, timestamp, tbank_transaction_at, source_kind]
+    upstream: "own/parser layer plus T-Bank transaction hints"
+    independence: "mixed; bank-derived rows are dependent hints"
+    polling: "use stream when stable; otherwise 2-5 minutes with reconnect backoff"
+    collector_ready: true
+    reason: "Repeated bbox/detail calls returned current station/grade state. A generic payment timestamp is normalized to LIKELY only, never specific-grade proof."
+
+  - id: gdebenzin_rf
+    priority: 12
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://xn--90addebmh2bc.xn--p1ai/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://xn--90addebmh2bc.xn--p1ai/api/v1/map?bbox={south},{west},{north},{east}&zoom=11&price=1&confidence=1"
+      - "GET https://xn--90addebmh2bc.xn--p1ai/api/v1/stations/{stationId}"
+    auth: "none"
+    geo_query: "bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "aggregated grade state, queue, price and confidence"
+    fields: [station_id, coordinates, address, network, grade, status, timestamp, queue, card_only, price, confidence]
+    upstream: "ID prefixes observed: T-Bank, 2GIS, Sber, Yandex Maps, GdeBenz"
+    independence: "dependent aggregator"
+    polling: "5 minutes; keep upstream prefix and evidence timestamp"
+    collector_ready: true
+    reason: "Live AOI requests returned station and per-grade data, but payment-derived records are only indirect evidence and clusters must not be double-counted."
+
+  - id: azs_radar
+    priority: 13
+    status: RED_BLOCKED
+    public_url: "https://azs-radar.ru/"
+    access: "public host unavailable with valid TLS"
+    endpoints: []
+    auth: "unknown"
+    geo_query: "not verified"
+    station_level: false
+    grade_specific: false
+    realtime_kind: "not verified"
+    fields: []
+    upstream: "unknown"
+    independence: "unknown"
+    polling: "disabled"
+    collector_ready: false
+    reason: "Two direct attempts failed with an expired certificate; TLS was not bypassed, so no live data contract could be proven."
+
+  - id: benzonavt
+    priority: 14
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://benzonavt.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://benzonavt.ru/api/v1/stations?bbox={south},{west},{north},{east}"
+      - "GET https://benzonavt.ru/api/v1/stations/{stationId}"
+      - "GET https://benzonavt.ru/api/v1/nearest"
+      - "GET https://benzonavt.ru/api/v1/networks"
+    auth: "none"
+    geo_query: "bbox/radius via nearest"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "crowd/data evidence with conflicts, prices, queues and limits"
+    fields: [station_id, coordinates, address, network, grade, status, confidence, timestamp, queue, conflicts, limits, price, report_origin]
+    upstream: "partly own crowd; imported/data and bank origins present but not fully disclosed"
+    independence: "mixed/dependent until each report origin is classified"
+    polling: "5 minutes; preserve individual report origins"
+    collector_ready: true
+    reason: "Repeated bbox/detail calls returned rich current per-grade evidence; source ambiguity is explicitly retained instead of treating it as independent."
+
+  - id: benzovoz
+    priority: 15
+    status: YELLOW_NEEDS_MANUAL_HAR
+    public_url: "https://apps.apple.com/ru/app/id6790108201"
+    access: "iOS application; no public web station endpoint found"
+    endpoints: []
+    auth: "app advertises no registration; transport contract still unverified"
+    geo_query: "not verified"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "advertised, not independently verified"
+    fields: [advertised_all_grades, advertised_three_banks, advertised_gdebenz, advertised_refresh_7_minutes]
+    upstream: "three bank feeds plus GdeBenz according to App Store description"
+    independence: "dependent aggregator"
+    polling: "disabled pending owner-authorized device HAR"
+    collector_ready: false
+    reason: "Product claims are visible, but GREEN requires a captured and replayed live station response. Manual app HAR is the remaining non-invasive step."
+
+  - id: benzinkarta
+    priority: 16
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://benzinkarta.ru/"
+    access: "anonymous JSON; full detail is quota-gated by browser fingerprint"
+    endpoints:
+      - "GET https://benzinkarta.ru/api/stations?bbox={west},{south},{east},{north}"
+      - "GET https://benzinkarta.ru/api/station/{stationId} with public frontend X-FP format"
+    auth: "no login for one free reveal; one station/day/device, then paywall"
+    geo_query: "bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "full revealed detail includes per-grade state, age, queue and confidence"
+    fields: [station_id, coordinates, address, network, grade, status, price, age, queue, confidence, nearby_statistics, quota]
+    upstream: "not disclosed"
+    independence: "unknown/dependent until provenance is disclosed"
+    polling: "disabled for automated collection without commercial agreement"
+    collector_ready: false
+    reason: "A live full station reveal was verified, but the anonymous allowance is one station per day/device and cannot support AOI collection."
+
+  - id: rosneft_ptk
+    priority: 17
+    status: RED_NO_REALTIME_DATA
+    public_url: "https://rosneft-azs.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://rosneft-azs.ru/front-api/stations"
+    auth: "none"
+    geo_query: "national list; filter locally"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "official catalog/prices only"
+    fields: [station_id, coordinates, address, brand, configured_fuels, price, price_date]
+    upstream: "Rosneft official catalog; PTK is not a distinct brand in the AOI response"
+    independence: "direct official catalog"
+    polling: "12-24 hours for catalog/price only"
+    collector_ready: false
+    reason: "Live station prices and assortment are available, but no current stock field exists."
+
+  - id: tatneft
+    priority: 18
+    status: RED_NO_REALTIME_DATA
+    public_url: "https://azs.tatneft.ru/locator"
+    access: "anonymous official JSON API"
+    endpoints:
+      - "GET https://api2.gs.tatneft.ru/api/v2/azs/"
+      - "GET https://api2.gs.tatneft.ru/api/v2/features/"
+      - "GET https://api2.gs.tatneft.ru/api/v2/fuel_types/"
+    auth: "none"
+    geo_query: "national list; filter locally"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "official catalog/prices only"
+    fields: [station_id, coordinates, address, configured_fuels, price, price_timestamp]
+    upstream: "Tatneft official catalog"
+    independence: "direct official catalog"
+    polling: "12-24 hours for catalog/price only"
+    collector_ready: false
+    reason: "Live API exposes stations, fuels and prices but not current physical availability."
+
+  - id: kirishiavtoservis
+    priority: 19
+    status: RED_NO_REALTIME_DATA
+    public_url: "https://kirishiavtoservis.ru/stations/"
+    access: "public HTML with embedded data-markers JSON"
+    endpoints:
+      - "GET https://kirishiavtoservis.ru/stations/"
+    auth: "none"
+    geo_query: "full embedded list; filter locally"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "official catalog/prices only"
+    fields: [station_id, coordinates, address, hours, configured_fuels, prices]
+    upstream: "Kirishiavtoservis official site"
+    independence: "direct official catalog"
+    polling: "12-24 hours for catalog/price only"
+    collector_ready: false
+    reason: "Embedded station records are real and parseable, but contain no current stock semantics."
+
+  - id: toplivo_ryadom
+    priority: 20
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://tboo.ru/gpn/"
+    access: "anonymous static JSON and JSON API"
+    endpoints:
+      - "GET https://tboo.ru/gpn/data.json"
+      - "GET https://tboo.ru/gpn/predict.json"
+      - "GET https://tboo.ru/gpn/api/tbank/near"
+    auth: "none"
+    geo_query: "national files; filter locally; near endpoint supports point lookup"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "network-labelled rest layer plus bank/aggregator prediction tiers"
+    fields: [station_id, coordinates, network, grade, price, rest, timestamp, prediction_tier, payment_timestamps]
+    upstream: "claimed direct GPN/LUKOIL/Teboil plus Alfa/T-Bank/Sber/2GIS predictions"
+    independence: "dependent aggregator; only GPN sample was cross-checked against official detail"
+    polling: "5 minutes with conditional GET/hash; deduplicate all named upstreams"
+    collector_ready: true
+    reason: "Live repeated files expose extensive per-grade rows, but Alfa is grade-timestamped while generic T-Bank/Sber station activity is only indirect."
+
+  - id: yandex_control
+    priority: 21
+    status: CONTROL_ONLY
+    public_url: "https://yandex.ru/maps/2/saint-petersburg/search/%D0%90%D0%97%D0%A1/"
+    access: "public map UI"
+    endpoints: []
+    auth: "public UI; no anonymous reusable station stock API verified"
+    geo_query: "map viewport in UI"
+    station_level: true
+    grade_specific: false
+    realtime_kind: "catalog/control only"
+    fields: [place_identity, address, coordinates, network]
+    upstream: "Yandex Maps"
+    independence: "identity/control, not stock evidence"
+    polling: "none"
+    collector_ready: false
+    reason: "Retained only as an identity and manual cross-check control."
+
+  - id: 2gis_control
+    priority: 22
+    status: CONTROL_ONLY
+    public_url: "https://2gis.ru/spb/search/%D0%90%D0%97%D0%A1"
+    access: "public map UI"
+    endpoints: []
+    auth: "public UI; no anonymous reusable stock API verified"
+    geo_query: "map viewport in UI"
+    station_level: true
+    grade_specific: false
+    realtime_kind: "catalog/control only"
+    fields: [branch_id, place_identity, address, coordinates, network]
+    upstream: "2GIS; same branch IDs appear in Sber feed"
+    independence: "identity/control, not independent stock evidence"
+    polling: "none"
+    collector_ready: false
+    reason: "Useful for station identity and denominator, not proof of current fuel availability."
+
+  - id: benzinradar_analogue
+    priority: 23
+    status: RED_NO_REALTIME_DATA
+    public_url: "https://benzinradar.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://benzinradar.ru/api/stations?lat1={south}&lon1={west}&lat2={north}&lon2={east}"
+    auth: "none"
+    geo_query: "bbox"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "schema exists but no fresh non-UNKNOWN evidence in AOI"
+    fields: [station_id, coordinates, grade, status, timestamp]
+    upstream: "not disclosed"
+    independence: "unknown"
+    polling: "disabled until fresh data reappears"
+    collector_ready: false
+    reason: "983 AOI records were returned, but zero stations had non-UNKNOWN grade evidence within 24 hours; the only two non-UNKNOWN rows were stale."
+
+  - id: benzin_live_analogue
+    priority: 24
+    status: RED_BLOCKED
+    public_url: "https://benzin.live/"
+    access: "public frontend and JSON routes"
+    endpoints:
+      - "GET https://benzin.live/api/radar/stations?lat=59.94&lon=30.32&radius=.12&fuel=ai95"
+      - "GET https://benzin.live/api/stations"
+    auth: "none observed"
+    geo_query: "radius"
+    station_level: false
+    grade_specific: false
+    realtime_kind: "unavailable during capture"
+    fields: []
+    upstream: "frontend describes bank/crowd aggregation"
+    independence: "dependent aggregator"
+    polling: "disabled"
+    collector_ready: false
+    reason: "Both live endpoints returned HTTP 500 because the public Cloudflare D1 daily read quota was exhausted."

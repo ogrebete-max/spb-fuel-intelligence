@@ -1,0 +1,325 @@
+{
+  "_fixture": {
+    "source": "benzinkarta",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://benzinkarta.ru/api/station/w170262011",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:04:56.006Z",
+    "source_raw_file": "benzinkarta-station-free.json",
+    "source_raw_sha256": "c50cb6979e90b9b3b45122f5cadc3e977a41124154fac2a347bb75541d6413e4",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Unlocked using the public frontend X-FP format and reread twice with HTTP 200; see _probe-evidence/benzinkarta-detail-repeat-results.json. Free quota is one new station/day/device, then paywall. No quota bypass was attempted."
+    ]
+  },
+  "body": {
+    "card": {
+      "available_fuels": [
+        "dt",
+        "ai95",
+        "ai92"
+      ],
+      "confidence": 84,
+      "confidence_level": "высокая",
+      "fresh_age": 2268,
+      "has_fuel": true,
+      "last_mark_age": 2268,
+      "marks_in_window": 74,
+      "overall": "yes",
+      "prices": [
+        {
+          "age": 542411,
+          "fuel": "ai92",
+          "label": "АИ-92",
+          "n": 1,
+          "price": 65.37
+        },
+        {
+          "age": 17814,
+          "fuel": "ai95",
+          "label": "АИ-95",
+          "n": 9,
+          "price": 70.71
+        },
+        {
+          "age": 23822,
+          "fuel": "ai98",
+          "label": "АИ-98",
+          "n": 1,
+          "price": 72.71
+        },
+        {
+          "age": 17814,
+          "fuel": "dt",
+          "label": "ДТ",
+          "n": 7,
+          "price": 80.37
+        }
+      ],
+      "recent": [
+        {
+          "age": 2268,
+          "comment": "",
+          "fuel": "dt",
+          "status": "yes"
+        },
+        {
+          "age": 2268,
+          "comment": "",
+          "fuel": "ai95",
+          "status": "yes"
+        },
+        {
+          "age": 2268,
+          "comment": "",
+          "fuel": "ai92",
+          "status": "yes"
+        },
+        {
+          "age": 3565,
+          "comment": "",
+          "fuel": "dt",
+          "status": "queue"
+        },
+        {
+          "age": 3565,
+          "comment": "",
+          "fuel": "ai95",
+          "status": "queue"
+        },
+        {
+          "age": 4341,
+          "comment": "",
+          "fuel": "ai95",
+          "status": "queue"
+        },
+        {
+          "age": 4643,
+          "comment": "",
+          "fuel": "dt",
+          "status": "yes"
+        },
+        {
+          "age": 4643,
+          "comment": "",
+          "fuel": "ai95",
+          "status": "yes"
+        },
+        {
+          "age": 4643,
+          "comment": "",
+          "fuel": "ai92",
+          "status": "yes"
+        },
+        {
+          "age": 5324,
+          "comment": "",
+          "fuel": "ai95",
+          "status": "queue"
+        },
+        {
+          "age": 5743,
+          "comment": "",
+          "fuel": "dt",
+          "status": "queue"
+        },
+        {
+          "age": 5743,
+          "comment": "",
+          "fuel": "ai95",
+          "status": "queue"
+        }
+      ],
+      "recent_rich": [
+        {
+          "age": 2268,
+          "fuels_txt": "92, 95, ДТ",
+          "ours": false,
+          "reliable": false,
+          "status": "yes",
+          "tags": []
+        },
+        {
+          "age": 3565,
+          "fuels_txt": "95, ДТ",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 4341,
+          "fuels_txt": "95",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 4643,
+          "fuels_txt": "92, 95, ДТ",
+          "ours": false,
+          "reliable": false,
+          "status": "yes",
+          "tags": []
+        },
+        {
+          "age": 5324,
+          "fuels_txt": "95",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 5743,
+          "fuels_txt": "95, ДТ",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 6288,
+          "fuels_txt": "95, ДТ",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 6351,
+          "fuels_txt": "92, 95, 98, ДТ",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 6942,
+          "fuels_txt": "95, ДТ",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 7670,
+          "fuels_txt": "92, 95, 98, 100, ДТ, Газ",
+          "ours": false,
+          "reliable": false,
+          "status": "no",
+          "tags": []
+        },
+        {
+          "age": 8245,
+          "fuels_txt": "95, 98",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        },
+        {
+          "age": 8640,
+          "fuels_txt": "95, 98",
+          "ours": false,
+          "reliable": false,
+          "status": "queue",
+          "tags": []
+        }
+      ],
+      "user_recent": [],
+      "window_hours": 8
+    },
+    "comments": [],
+    "free_reveal": {
+      "enabled": true,
+      "just_revealed": true,
+      "left": 0,
+      "quota": 1,
+      "station_id": "w170262011",
+      "stations": [
+        "w170262011"
+      ],
+      "used": 1
+    },
+    "fuel_labels": {
+      "ai100": "АИ-100",
+      "ai92": "АИ-92",
+      "ai95": "АИ-95",
+      "ai98": "АИ-98",
+      "dt": "ДТ",
+      "gas": "Газ"
+    },
+    "hours_txt": "24 часа",
+    "mode": "none",
+    "nearby": {
+      "fresh30": 4,
+      "fresher": 60,
+      "fuel": null,
+      "nearest_km": 1.6,
+      "no_queue": 21,
+      "radius_km": 10,
+      "stations_in_radius": 245,
+      "with_fuel": 67
+    },
+    "nearby_fresh_text": "Из них 4 обновлены меньше 30 минут назад",
+    "nearby_fresher_text": "Рядом есть 60 АЗС, где данные свежее",
+    "nearby_text": "В радиусе 10 км — 21 АЗС, где сейчас есть бензин и нет очереди. Ближайшая — в 1,6 км",
+    "paid": false,
+    "price": 99,
+    "station": {
+      "addr": "Кубинская улица, 75 к3",
+      "brand": "gazpromneft",
+      "brand_name": "Газпромнефть",
+      "city": null,
+      "created_at": 1783668786,
+      "fuels": "[\"ai92\", \"ai95\", \"dt\"]",
+      "lat": 59.84013378,
+      "lon": 30.298281993333333,
+      "name": "Газпромнефть",
+      "osm_id": "w170262011",
+      "region": "Санкт-Петербург",
+      "source": "osm",
+      "updated_at": 1783668786,
+      "verified": 0
+    },
+    "status": {
+      "ai92": {
+        "age": 2268,
+        "src": 1,
+        "status": "yes",
+        "ts": 1789075626
+      },
+      "ai95": {
+        "age": 2268,
+        "src": 1,
+        "status": "yes",
+        "ts": 1789075626
+      },
+      "dt": {
+        "age": 2268,
+        "src": 1,
+        "status": "yes",
+        "ts": 1789075626
+      }
+    },
+    "status_labels": {
+      "limit": "Мало",
+      "low": "Мало",
+      "no": "Нет топлива",
+      "queue": "Есть, очередь",
+      "unknown": "Нет данных",
+      "yes": "Есть топливо"
+    },
+    "thanks": 0,
+    "views": 9318
+  }
+}

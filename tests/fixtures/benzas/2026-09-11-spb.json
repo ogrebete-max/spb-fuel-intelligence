@@ -1,0 +1,126 @@
+{
+  "_fixture": {
+    "source": "benzas",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://benzas.ru/api/station/10605980726/insight",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:25:15.191Z",
+    "source_raw_file": "benzas-insight.json",
+    "source_raw_sha256": "d12b434a2270a61d0f73ce7dad271a81290b5398dc7a022c9f4af12e2634ea58",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Crowd status and price have different provenance; insight explicitly labels price source benzuber."
+    ]
+  },
+  "body": {
+    "station": {
+      "osm_id": "10605980726",
+      "name": "Газпромнефть",
+      "brand": "Газпромнефть",
+      "lat": 59.9898447,
+      "lon": 30.325743,
+      "addr": "Земледельческая улица, 5А"
+    },
+    "recent": [
+      {
+        "status": "queue",
+        "fuels_now": "92,95,98,ДТ",
+        "detail": "АИ-92, АИ-95, АИ-98, ДТ",
+        "created_at": "2026-09-10T14:05:45.229770Z"
+      },
+      {
+        "status": "no",
+        "fuels_now": "",
+        "detail": "",
+        "created_at": "2026-09-09T14:07:08Z"
+      }
+    ],
+    "fuels": {
+      "92": {
+        "status": "yes",
+        "at": "2026-08-14T04:52:51Z",
+        "price": 65.43
+      },
+      "95": {
+        "status": "yes",
+        "at": "2026-08-14T04:52:51Z",
+        "price": 70.52
+      },
+      "98": {
+        "status": "yes",
+        "at": "2026-09-10T14:05:45.229770Z"
+      },
+      "95+": {
+        "status": "yes",
+        "at": "2026-08-14T04:52:51Z",
+        "price": 72.62
+      },
+      "ДТ": {
+        "status": "yes",
+        "at": "2026-08-14T04:52:51Z",
+        "price": 80
+      }
+    },
+    "insight": {
+      "confidence": {
+        "pct": 48,
+        "level": "средняя",
+        "status": "queue",
+        "at": "2026-09-10T14:05:45.229770Z",
+        "n24": 1,
+        "agree": 1,
+        "basis": "одна отметка за сутки, 2 часа назад"
+      },
+      "region": {
+        "slug": "sankt-peterburg",
+        "name": "Санкт-Петербург"
+      },
+      "prices": {
+        "92": {
+          "price": 65.43,
+          "at": "2026-08-14T04:52:51Z",
+          "reporters": 1,
+          "source": "benzuber",
+          "region_avg": 65.54,
+          "diff": -0.11,
+          "tank40": -4
+        },
+        "95": {
+          "price": 70.52,
+          "at": "2026-08-14T04:52:51Z",
+          "reporters": 1,
+          "source": "benzuber",
+          "region_avg": 70.9,
+          "diff": -0.38,
+          "tank40": -15
+        },
+        "95+": {
+          "price": 72.62,
+          "at": "2026-08-14T04:52:51Z",
+          "reporters": 1,
+          "source": "benzuber",
+          "region_avg": 72.54,
+          "diff": 0.08,
+          "tank40": 3
+        },
+        "ДТ": {
+          "price": 80,
+          "at": "2026-08-14T04:52:51Z",
+          "reporters": 1,
+          "source": "benzuber",
+          "region_avg": 80.4,
+          "diff": -0.4,
+          "tank40": -16
+        }
+      },
+      "cheaper": {}
+    }
+  }
+}

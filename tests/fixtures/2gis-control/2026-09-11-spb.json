@@ -1,0 +1,47 @@
+{
+  "_fixture": {
+    "source": "2gis-control",
+    "classification": "CONTROL_ONLY",
+    "request": {
+      "method": "GET",
+      "url": "https://2gis.ru/spb/search/АЗС",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:48:28.750Z",
+    "source_raw_file": null,
+    "source_raw_sha256": null,
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Sber station IDs demonstrate 2GIS catalog provenance; not accepted as an independent realtime source."
+    ]
+  },
+  "body": {
+    "probes": [
+      {
+        "source": "2gis-control",
+        "attempt": 1,
+        "curl_exit": 0,
+        "http_status_line": "HTTP/1.1 200 OK",
+        "bytes": 833446,
+        "stderr": null,
+        "captured_at": "2026-09-11T01:17:48.0308775+03:00",
+        "url": "https://2gis.ru/spb/search/%D0%90%D0%97%D0%A1"
+      },
+      {
+        "source": "2gis-control",
+        "attempt": 2,
+        "curl_exit": 0,
+        "http_status_line": "HTTP/1.1 200 OK",
+        "bytes": 851536,
+        "stderr": null,
+        "captured_at": "2026-09-11T01:17:49.1547501+03:00",
+        "url": "https://2gis.ru/spb/search/%D0%90%D0%97%D0%A1"
+      }
+    ],
+    "station_api": "requires a 2GIS key for direct use"
+  }
+}

@@ -1,0 +1,122 @@
+[
+  {
+    "source": "alfa-public",
+    "attempt": 1,
+    "curl_exit": 60,
+    "http_status_line": null,
+    "bytes": 0,
+    "stderr": "curl: (60) schannel: SEC_E_UNTRUSTED_ROOT (0x80090325) - ������� ������������ �������� ������� ������������, �� ������� �������.\r\nMore details here: https://curl.se/docs/sslcerts.html\r\n\r\ncurl failed to verify the legitimacy of the server and therefore could not\r\nestablish a secure connection to it. To learn more about this situation and\r\nhow to fix it, please visit the webpage mentioned above.",
+    "captured_at": "2026-09-11T01:17:37.8287773+03:00",
+    "url": "https://alfabank.ru/retail/azs/"
+  },
+  {
+    "source": "alfa-public",
+    "attempt": 2,
+    "curl_exit": 60,
+    "http_status_line": null,
+    "bytes": 0,
+    "stderr": "curl: (60) schannel: SEC_E_UNTRUSTED_ROOT (0x80090325) - ������� ������������ �������� ������� ������������, �� ������� �������.\r\nMore details here: https://curl.se/docs/sslcerts.html\r\n\r\ncurl failed to verify the legitimacy of the server and therefore could not\r\nestablish a secure connection to it. To learn more about this situation and\r\nhow to fix it, please visit the webpage mentioned above.",
+    "captured_at": "2026-09-11T01:17:38.5309684+03:00",
+    "url": "https://alfabank.ru/retail/azs/"
+  },
+  {
+    "source": "azs-radar-public",
+    "attempt": 1,
+    "curl_exit": 35,
+    "http_status_line": null,
+    "bytes": 0,
+    "stderr": "curl: (35) schannel: next InitializeSecurityContext failed: SEC_E_CERT_EXPIRED (0x80090328) - ������� ���������� � �������� ������ ��������.",
+    "captured_at": "2026-09-11T01:17:39.3195156+03:00",
+    "url": "https://azs-radar.ru/"
+  },
+  {
+    "source": "azs-radar-public",
+    "attempt": 2,
+    "curl_exit": 35,
+    "http_status_line": null,
+    "bytes": 0,
+    "stderr": "curl: (35) schannel: next InitializeSecurityContext failed: SEC_E_CERT_EXPIRED (0x80090328) - ������� ���������� � �������� ������ ��������.",
+    "captured_at": "2026-09-11T01:17:39.9965443+03:00",
+    "url": "https://azs-radar.ru/"
+  },
+  {
+    "source": "tbank-public",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1539172,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:41.4119143+03:00",
+    "url": "https://www.tbank.ru/gorod/fuel/"
+  },
+  {
+    "source": "tbank-public",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1538852,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:42.6360384+03:00",
+    "url": "https://www.tbank.ru/gorod/fuel/"
+  },
+  {
+    "source": "benzovoz-appstore",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 288172,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:43.7092786+03:00",
+    "url": "https://apps.apple.com/ru/app/%D0%B1%D0%B5%D0%BD%D0%B7%D0%BE%D0%B2%D0%BE%D0%B7-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-%D0%B1%D0%B5%D0%BD%D0%B7%D0%B8%D0%BD%D0%B0/id6790108201"
+  },
+  {
+    "source": "benzovoz-appstore",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 288172,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:44.5095056+03:00",
+    "url": "https://apps.apple.com/ru/app/%D0%B1%D0%B5%D0%BD%D0%B7%D0%BE%D0%B2%D0%BE%D0%B7-%D0%BA%D0%B0%D1%80%D1%82%D0%B0-%D0%B1%D0%B5%D0%BD%D0%B7%D0%B8%D0%BD%D0%B0/id6790108201"
+  },
+  {
+    "source": "yandex-maps-control",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 418610,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:45.7731220+03:00",
+    "url": "https://yandex.ru/maps/?ll=30.3351%2C59.9343&z=11&text=%D0%90%D0%97%D0%A1"
+  },
+  {
+    "source": "yandex-maps-control",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 417486,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:46.7767656+03:00",
+    "url": "https://yandex.ru/maps/?ll=30.3351%2C59.9343&z=11&text=%D0%90%D0%97%D0%A1"
+  },
+  {
+    "source": "2gis-control",
+    "attempt": 1,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 833446,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:48.0308775+03:00",
+    "url": "https://2gis.ru/spb/search/%D0%90%D0%97%D0%A1"
+  },
+  {
+    "source": "2gis-control",
+    "attempt": 2,
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 851536,
+    "stderr": null,
+    "captured_at": "2026-09-11T01:17:49.1547501+03:00",
+    "url": "https://2gis.ru/spb/search/%D0%90%D0%97%D0%A1"
+  }
+]

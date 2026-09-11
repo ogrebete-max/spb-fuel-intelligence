@@ -1,0 +1,211 @@
+{
+  "_fixture": {
+    "source": "tatneft",
+    "classification": "RED_NO_REALTIME_DATA",
+    "request": {
+      "method": "GET",
+      "url": "https://api2.gs.tatneft.ru/api/v2/azs/",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:32:38.702Z",
+    "source_raw_file": "tatneft-stations.json",
+    "source_raw_sha256": "97106d31b6f7d5199785c748d17815a6deb8bd2176ab04aab5d09b97d07b1594",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "National endpoint has no bbox; actualization_date and fuel.updated are price/catalog freshness, not stock."
+    ]
+  },
+  "body": {
+    "station": {
+      "id": 341,
+      "lat": 59.848769,
+      "lon": 30.226234,
+      "region": "Санкт-Петербург",
+      "number": 218,
+      "address": "г. Санкт-Петербург, проспект Стачек, д. 115 а",
+      "currency_code": "rub",
+      "actualization_date": 1789057504,
+      "fuel": [
+        {
+          "fuel_type_id": 40,
+          "price": 99.9,
+          "discount_price": null,
+          "updated": 1789057756.781973,
+          "currency_code": "rub"
+        },
+        {
+          "fuel_type_id": 30,
+          "price": 80.3,
+          "discount_price": null,
+          "updated": 1789057756.781973,
+          "currency_code": "rub"
+        },
+        {
+          "fuel_type_id": 36,
+          "price": 65.5,
+          "discount_price": null,
+          "updated": 1789057756.781973,
+          "currency_code": "rub"
+        },
+        {
+          "fuel_type_id": 34,
+          "price": 70.9,
+          "discount_price": null,
+          "updated": 1789057756.781973,
+          "currency_code": "rub"
+        }
+      ],
+      "connector": [],
+      "features": [
+        18,
+        14,
+        23,
+        11,
+        10,
+        8,
+        4,
+        3,
+        2
+      ],
+      "photos": [
+        "https://gis-media.cloud.tatneftm.ru/media/gis_photo/azs/f929995b-154e-4b19-a8c4-19f8b06572b9/dc11d299ae7909de1f1c1412bc51a0a7.jpg",
+        "https://gis-media.cloud.tatneftm.ru/media/gis_photo/azs/f929995b-154e-4b19-a8c4-19f8b06572b9/b01c17ff11890320ac7765cc6db9320f.jpg",
+        "https://gis-media.cloud.tatneftm.ru/media/gis_photo/azs/f929995b-154e-4b19-a8c4-19f8b06572b9/b7a32c5b71f70d5f902ce27d4f183696.jpg",
+        "https://gis-media.cloud.tatneftm.ru/media/gis_photo/azs/f929995b-154e-4b19-a8c4-19f8b06572b9/250d89563ef0337dedcce8d81cd7990e.jpg",
+        "https://gis-media.cloud.tatneftm.ru/media/gis_photo/azs/f929995b-154e-4b19-a8c4-19f8b06572b9/e37d25524827e134f32fd1dfa2f95ee3.jpg"
+      ],
+      "owner": "tatneft",
+      "is_automatic": false
+    },
+    "fuel_types": {
+      "status": "success",
+      "data": {
+        "items": [
+          {
+            "id": 34,
+            "title": "АИ-95",
+            "color": "#dc4c4d",
+            "is_taneco": false,
+            "filter_group_title": "АИ 95",
+            "filter_group_ordinal": 100,
+            "ordinal": 100
+          },
+          {
+            "id": 30,
+            "title": "ДТ",
+            "color": "#131d2f",
+            "is_taneco": false,
+            "filter_group_title": "ДТ",
+            "filter_group_ordinal": 200,
+            "ordinal": 200
+          },
+          {
+            "id": 46,
+            "title": "ДТ ",
+            "color": "#131d2f",
+            "is_taneco": true,
+            "filter_group_title": "ДТ Танеко",
+            "filter_group_ordinal": 300,
+            "ordinal": 300
+          },
+          {
+            "id": 36,
+            "title": "АИ-92",
+            "color": "#00b473",
+            "is_taneco": false,
+            "filter_group_title": "АИ 92",
+            "filter_group_ordinal": 400,
+            "ordinal": 400
+          },
+          {
+            "id": 37,
+            "title": "Газ",
+            "color": "#00aeef",
+            "is_taneco": false,
+            "filter_group_title": "Газ",
+            "filter_group_ordinal": 401,
+            "ordinal": 401
+          },
+          {
+            "id": 40,
+            "title": "АИ-98",
+            "color": "#e3b505",
+            "is_taneco": false,
+            "filter_group_title": "АИ 98",
+            "filter_group_ordinal": 501,
+            "ordinal": 501
+          },
+          {
+            "id": 82,
+            "title": "АИ-100",
+            "color": "#f2ca3c",
+            "is_taneco": false,
+            "filter_group_title": "АИ 100",
+            "filter_group_ordinal": 700,
+            "ordinal": 700
+          },
+          {
+            "id": 33,
+            "title": "Метан",
+            "color": "#00a6d6",
+            "is_taneco": false,
+            "filter_group_title": "КПГ",
+            "filter_group_ordinal": 800,
+            "ordinal": 800
+          },
+          {
+            "id": 87,
+            "title": "СПГ",
+            "color": "#00a6d6",
+            "is_taneco": false,
+            "filter_group_title": "СПГ",
+            "filter_group_ordinal": 810,
+            "ordinal": 810
+          },
+          {
+            "id": 83,
+            "title": "ДТ Арктика ",
+            "color": "#131d2f",
+            "is_taneco": true,
+            "filter_group_title": "ДТ Арктика",
+            "filter_group_ordinal": 900,
+            "ordinal": 900
+          },
+          {
+            "id": 29,
+            "title": "АИ-92 ",
+            "color": "#00b473",
+            "is_taneco": true,
+            "filter_group_title": "АИ 92 Танеко",
+            "filter_group_ordinal": 901,
+            "ordinal": 901
+          },
+          {
+            "id": 74,
+            "title": "АИ-95 ",
+            "color": "#00b473",
+            "is_taneco": true,
+            "filter_group_title": "АИ 95 Танеко",
+            "filter_group_ordinal": 902,
+            "ordinal": 902
+          },
+          {
+            "id": 35,
+            "title": "AdBlue",
+            "color": "#989898",
+            "is_taneco": false,
+            "filter_group_title": "AdBlue",
+            "filter_group_ordinal": 2000,
+            "ordinal": 2000
+          }
+        ],
+        "updated": 1789057803.073542
+      },
+      "message": null
+    }
+  }
+}

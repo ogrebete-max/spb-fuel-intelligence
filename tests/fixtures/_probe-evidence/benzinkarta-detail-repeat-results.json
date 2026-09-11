@@ -1,0 +1,34 @@
+{
+  "source": "benzinkarta",
+  "captured_at": "2026-09-11T01:45:02+03:00",
+  "request": {
+    "method": "GET",
+    "url": "https://benzinkarta.ru/api/station/w170262011",
+    "headers": {
+      "X-FP": "deterministic non-secret Phase 0 research fingerprint",
+      "Accept": "application/json"
+    }
+  },
+  "attempts": [
+    {
+      "http_status": 200,
+      "bytes": 4910,
+      "sha256": "060A9A225F9B907915E6850B8B8321B2A10EC408E3723ADB65D5DF1C09022353"
+    },
+    {
+      "http_status": 200,
+      "bytes": 4910,
+      "sha256": "060A9A225F9B907915E6850B8B8321B2A10EC408E3723ADB65D5DF1C09022353"
+    }
+  ],
+  "quota": {
+    "quota": 1,
+    "used": 1,
+    "left": 0,
+    "unlocked_station_ids": ["w170262011"]
+  },
+  "notes": [
+    "The same already-unlocked station can be reread; attempting to unlock a second station was not performed.",
+    "The live status changed since the original fixture, as expected for a dynamic feed; the two immediate repeats were identical."
+  ]
+}

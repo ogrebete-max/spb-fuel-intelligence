@@ -1,0 +1,244 @@
+{
+  "_fixture": {
+    "source": "benzinradar-analogue",
+    "classification": "RED_NO_REALTIME_DATA",
+    "request": {
+      "method": "GET",
+      "url": "https://benzinradar.ru/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10&limit=2000&offset=0",
+      "geo": "lat1/lon1/lat2/lon2",
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T22:08:50.390Z",
+    "source_raw_file": "benzinradar-full-aoi.json",
+    "source_raw_sha256": "8fcdfe34899bcc92f1be5b4e32f73948c4b97cfca8f66a64f3708256925bbf67",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Distinct from azs-radar.ru. AOI had 983 records but zero non-unknown grade records fresher than 24h."
+    ]
+  },
+  "body": [
+    {
+      "id": "osm-cb62d63d0c8a4acc",
+      "osm_id": "osm-cb62d63d0c8a4acc",
+      "brand": "АЗС",
+      "name": "Сургутнефтегаз",
+      "address": "Санкт-Петербург",
+      "addr": "Санкт-Петербург",
+      "coords": [
+        59.9704424,
+        30.2848287
+      ],
+      "lat": 59.9704424,
+      "lon": 30.2848287,
+      "fuels": {
+        "92": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "95": {
+          "status": "available",
+          "price": null,
+          "updatedMinutes": 91622,
+          "confirmations": 2,
+          "queue": "unknown",
+          "limit": "unknown",
+          "updatedAt": "2026-07-09T07:05:51Z",
+          "comment": "Топливо есть"
+        },
+        "98": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "100": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "diesel": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "gas": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        }
+      },
+      "fuel": "95",
+      "status": "available",
+      "fuels_now": [
+        "95"
+      ],
+      "confirmations": 2,
+      "updated": "2026-07-09T07:05:51Z",
+      "pending": false
+    },
+    {
+      "id": "osm-274a30ef85e5cfd6",
+      "osm_id": "osm-274a30ef85e5cfd6",
+      "brand": "Лукойл",
+      "name": "Лукойл",
+      "address": "Красное Село, Кингисеппское шоссе, 24",
+      "addr": "Красное Село, Кингисеппское шоссе, 24",
+      "coords": [
+        59.7197284,
+        30.0644481
+      ],
+      "lat": 59.7197284,
+      "lon": 30.0644481,
+      "fuels": {
+        "92": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "95": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "98": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "100": {
+          "status": "empty",
+          "price": null,
+          "updatedMinutes": 89915,
+          "confirmations": 2,
+          "queue": "unknown",
+          "limit": "unknown",
+          "updatedAt": "2026-07-10T11:33:28Z",
+          "comment": "Топлива нет"
+        },
+        "diesel": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "gas": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        }
+      },
+      "fuel": "100",
+      "status": "empty",
+      "fuels_now": [],
+      "confirmations": 2,
+      "updated": "2026-07-10T11:33:28Z",
+      "pending": false
+    },
+    {
+      "id": "osm-3ea2e869311e791c",
+      "osm_id": "osm-3ea2e869311e791c",
+      "brand": "АЗС",
+      "name": "Сургутнефтегаз",
+      "address": "Санкт-Петербург",
+      "addr": "Санкт-Петербург",
+      "coords": [
+        59.970461,
+        30.2851762
+      ],
+      "lat": 59.970461,
+      "lon": 30.2851762,
+      "fuels": {
+        "92": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown",
+          "sourceSupported": true
+        },
+        "95": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown",
+          "sourceSupported": true
+        },
+        "98": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown",
+          "sourceSupported": true
+        },
+        "100": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        },
+        "diesel": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown",
+          "sourceSupported": true
+        },
+        "gas": {
+          "status": "unknown",
+          "price": null,
+          "updatedMinutes": null,
+          "confirmations": 0,
+          "queue": "unknown",
+          "limit": "unknown"
+        }
+      },
+      "fuel": "92",
+      "status": "unknown",
+      "fuels_now": [],
+      "confirmations": 0,
+      "updated": null,
+      "pending": false
+    }
+  ]
+}

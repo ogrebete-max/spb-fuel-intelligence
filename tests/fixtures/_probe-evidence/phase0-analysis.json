@@ -1,0 +1,425 @@
+{
+  "generated_at": "2026-09-10T22:22:48.005Z",
+  "aoi": {
+    "south": 59.6,
+    "west": 29.5,
+    "north": 60.35,
+    "east": 31.1
+  },
+  "methodology": {
+    "catalog_denominator": "SberAZS public response backed by 2GIS branch identifiers; 913 records in AOI",
+    "coordinate_match": "nearest point <=75m, rejecting conflicts when both brand families are known",
+    "warning": "Coverage is an estimate, not a canonical-registry result; provenance-dependent sources are not independent confirmations."
+  },
+  "sources": {
+    "sber": {
+      "stations": 913,
+      "station_statuses": {
+        "unknown": 468,
+        "stale": 238,
+        "available": 207
+      },
+      "grade_statuses": {
+        "unknown": 2171,
+        "available": 267,
+        "missing": 135,
+        "stale": 14
+      },
+      "current_grade_records": 267,
+      "current_grade_stations": 124,
+      "current_by_grade": {
+        "ai95": 95,
+        "ai92": 89,
+        "diesel": 54,
+        "ai100": 27,
+        "ai98": 2
+      },
+      "stale_negative_records": 14,
+      "limits": 359,
+      "matched_to_denominator": 913,
+      "dynamic_matched": 124
+    },
+    "gdebenz": {
+      "stations": 741,
+      "station_statuses": {
+        "no": 336,
+        "yes": 227,
+        "queue": 106,
+        "null": 72
+      },
+      "stations_with_grade_positive_or_queue": 216,
+      "stations_with_prices": 672,
+      "queues": 106,
+      "matched_to_denominator": 697,
+      "dynamic_matched": 208,
+      "dynamic_by_grade": {
+        "DT": 200,
+        "AI95": 96,
+        "AI92": 76,
+        "AI100": 15,
+        "AI98": 13
+      },
+      "dynamic_stations_by_grade": {
+        "DT": 200,
+        "AI95": 96,
+        "AI92": 76,
+        "AI100": 15,
+        "AI98": 13
+      },
+      "timestamp_note": "list response has price timestamps but no mark timestamp; detail/recent is needed per station"
+    },
+    "benzas": {
+      "stations": 729,
+      "current_rows": 717,
+      "statuses": {
+        "no": 344,
+        "yes": 280,
+        "queue": 92,
+        "none": 1
+      },
+      "rows_fresh_24h": 645,
+      "stations_with_fresh_grade_positive_or_queue": 287,
+      "queues": 92,
+      "matched_to_denominator": 673,
+      "dynamic_matched": 284,
+      "dynamic_by_grade_24h": {
+        "DT": 276,
+        "AI95": 103,
+        "AI92": 96,
+        "AI98": 26,
+        "AI100": 25,
+        "LPG": 18
+      },
+      "dynamic_stations_by_grade_24h": {
+        "DT": 276,
+        "AI95": 103,
+        "AI92": 96,
+        "AI98": 26,
+        "AI100": 25,
+        "LPG": 18
+      }
+    },
+    "benzinest": {
+      "stations": 676,
+      "stations_reported_24h": 571,
+      "dynamic_grade_stations_24h": 570,
+      "grade_statuses": {
+        "OUT_OF_STOCK": 2378,
+        "AVAILABLE": 588,
+        "UNKNOWN": 458
+      },
+      "reports_24h_sum": 9847,
+      "stations_with_limit_tag": 24,
+      "matched_to_denominator": 643,
+      "dynamic_matched": 563,
+      "dynamic_by_grade_24h": {
+        "AI95": 948,
+        "AI98": 531,
+        "AI92": 529,
+        "DT": 529,
+        "AI100": 209
+      },
+      "dynamic_stations_by_grade_24h": {
+        "AI95": 559,
+        "AI98": 531,
+        "AI92": 529,
+        "DT": 529,
+        "AI100": 209
+      }
+    },
+    "tutbenz": {
+      "stations": 769,
+      "dynamic_grade_stations_24h": 363,
+      "state_statuses": {
+        "unknown:stale": 1511,
+        "empty": 537,
+        "has": 342,
+        "unknown": 39,
+        "queue": 11
+      },
+      "source_kinds": {
+        "parser": 2011,
+        "payment": 390,
+        "missing": 39
+      },
+      "prices": 2252,
+      "matched_to_denominator": 707,
+      "dynamic_matched": 356,
+      "dynamic_by_grade_24h": {
+        "AI95": 281,
+        "AI92": 271,
+        "DT": 238,
+        "AI98": 58,
+        "AI100": 38
+      },
+      "dynamic_stations_by_grade_24h": {
+        "AI95": 281,
+        "AI92": 271,
+        "DT": 238,
+        "AI98": 58,
+        "AI100": 38
+      }
+    },
+    "gdebenzin": {
+      "stations": 879,
+      "id_prefixes": {
+        "tb": 505,
+        "2gis": 259,
+        "sber": 102,
+        "ym": 10,
+        "gdb": 3
+      },
+      "dynamic_grade_stations_24h": 517,
+      "queues": {
+        "none": 787,
+        "small": 71,
+        "medium": 17,
+        "large": 4
+      },
+      "card_only": 0,
+      "grade_records": 1941,
+      "matched_to_denominator": 835,
+      "dynamic_matched": 509,
+      "dynamic_by_grade_24h": {
+        "DT": 494,
+        "AI95": 484,
+        "AI100": 474,
+        "AI92": 473,
+        "AI98": 15,
+        "LPG": 1
+      },
+      "dynamic_stations_by_grade_24h": {
+        "DT": 494,
+        "AI95": 484,
+        "AI100": 474,
+        "AI92": 473,
+        "AI98": 15,
+        "LPG": 1
+      }
+    },
+    "benzonavt": {
+      "stations": 782,
+      "station_statuses": {
+        "no": 380,
+        "yes": 372,
+        "missing": 30
+      },
+      "evidence_basis": {
+        "crowd": 722,
+        "data": 30,
+        "missing": 30
+      },
+      "dynamic_grade_stations_24h": 693,
+      "queues": 121,
+      "conflicts": 187,
+      "matched_to_denominator": 732,
+      "dynamic_matched": 658,
+      "dynamic_by_grade_24h": {
+        "AI95": 685,
+        "AI92": 677,
+        "DT": 671,
+        "AI100": 483,
+        "AI98": 475
+      },
+      "dynamic_stations_by_grade_24h": {
+        "AI95": 685,
+        "AI92": 677,
+        "DT": 671,
+        "AI100": 483,
+        "AI98": 475
+      }
+    },
+    "benzinkarta": {
+      "stations": 806,
+      "locked": true,
+      "paid": false,
+      "marker_statuses": {
+        "locked": 806
+      },
+      "fresh_categories": {
+        "warm": 320,
+        "missing": 209,
+        "hot": 150,
+        "cold": 127
+      },
+      "full_detail_reveals_verified": 1,
+      "free_quota": {
+        "enabled": true,
+        "just_revealed": true,
+        "left": 0,
+        "quota": 1,
+        "station_id": "w170262011",
+        "stations": [
+          "w170262011"
+        ],
+        "used": 1
+      },
+      "matched_to_denominator": 713,
+      "dynamic_matched": 1
+    },
+    "benzinradar": {
+      "stations": 983,
+      "overall_statuses": {
+        "unknown": 981,
+        "available": 1,
+        "empty": 1
+      },
+      "grade_statuses": {
+        "unknown": 5896,
+        "available": 1,
+        "empty": 1
+      },
+      "dynamic_grade_stations_24h": 0,
+      "matched_to_denominator": 631,
+      "dynamic_matched": 0,
+      "dynamic_by_grade_24h": {}
+    },
+    "gazpromneft": {
+      "stations_in_aoi": 105,
+      "list_total": 1899,
+      "detail_station_id": 1108,
+      "detail_grade_records": 4,
+      "detail_available": 1,
+      "detail_unavailable": 3,
+      "detail_prices": 4
+    },
+    "teboil": {
+      "spb_stations": 47,
+      "leningrad_oblast_stations": 26,
+      "realtime_fields": 0
+    },
+    "lukoil": {
+      "stations_in_aoi": 122,
+      "national_records": 4674,
+      "realtime_fields": 0
+    },
+    "rosneft_ptk": {
+      "stations_in_aoi": 132,
+      "brands_in_aoi": {
+        "rosneft": 132
+      },
+      "price_date": "09.09.2026",
+      "stations_with_prices": 132,
+      "realtime_fields": 0
+    },
+    "tatneft": {
+      "stations_in_aoi": 81,
+      "national_records": 872,
+      "stations_with_prices": 81,
+      "realtime_fields": 0
+    },
+    "kirishiavtoservis": {
+      "stations_in_aoi": 30,
+      "embedded_records": 68,
+      "stations_with_prices": 30,
+      "realtime_fields": 0
+    },
+    "toplivo_ryadom": {
+      "direct_layer_stations_in_aoi": 357,
+      "direct_layer_brands": {
+        "LUKOIL": 104,
+        "GPN": 103,
+        "TATNEFT": 81,
+        "TEBOIL": 67,
+        "OPTI": 2
+      },
+      "direct_layer_grade_records": 1614,
+      "direct_layer_grade_available": 714,
+      "prediction_stations_in_aoi": 835,
+      "prediction_dynamic_grade_stations_24h": 487,
+      "prediction_tiers": {
+        "N": 1580,
+        "u": 618,
+        "M": 310,
+        "F": 188,
+        "A": 55,
+        "H": 33,
+        "X": 6
+      },
+      "prediction_dynamic_by_grade_24h": {
+        "DT": 451,
+        "AI95": 310,
+        "AI92": 285,
+        "AI100": 48
+      },
+      "prediction_dynamic_stations_by_grade_24h": {
+        "DT": 451,
+        "AI95": 310,
+        "AI92": 285,
+        "AI100": 48
+      },
+      "prediction_sources": {
+        "alpha_grade_timestamps": 1910,
+        "tbank_grade_or_station_timestamps": 687,
+        "sber_station_timestamps": 531
+      }
+    }
+  },
+  "coverage": {
+    "denominator_stations": 913,
+    "auditable_known_provenance_location_union": 502,
+    "auditable_known_provenance_pct": 55,
+    "including_dependent_aggregators_union": 709,
+    "including_dependent_aggregators_pct": 77.7,
+    "sets": {
+      "sber": 124,
+      "gdebenz": 208,
+      "benzas": 284,
+      "tutbenz": 356,
+      "benzonavt": 658,
+      "benzinest": 563,
+      "gdebenzin": 509,
+      "benzinradar": 0,
+      "benzinkarta_free": 1,
+      "toplivo_prediction": 482
+    },
+    "caveat": "Location coverage only. It does not guarantee freshness for every requested grade and does not convert dependent feeds into independent corroboration."
+  },
+  "grade_coverage": {
+    "AI92": {
+      "catalog_stations": 633,
+      "strict_fresh_known_provenance": 164,
+      "strict_fresh_known_provenance_pct": 25.9,
+      "known_provenance_current_view": 179,
+      "known_provenance_current_view_pct": 28.3,
+      "including_dependent_aggregators": 591,
+      "including_dependent_aggregators_pct": 93.4
+    },
+    "AI95": {
+      "catalog_stations": 704,
+      "strict_fresh_known_provenance": 171,
+      "strict_fresh_known_provenance_pct": 24.3,
+      "known_provenance_current_view": 192,
+      "known_provenance_current_view_pct": 27.3,
+      "including_dependent_aggregators": 637,
+      "including_dependent_aggregators_pct": 90.5
+    },
+    "AI98": {
+      "catalog_stations": 137,
+      "strict_fresh_known_provenance": 10,
+      "strict_fresh_known_provenance_pct": 7.3,
+      "known_provenance_current_view": 11,
+      "known_provenance_current_view_pct": 8,
+      "including_dependent_aggregators": 136,
+      "including_dependent_aggregators_pct": 99.3
+    },
+    "AI100": {
+      "catalog_stations": 282,
+      "strict_fresh_known_provenance": 43,
+      "strict_fresh_known_provenance_pct": 15.2,
+      "known_provenance_current_view": 46,
+      "known_provenance_current_view_pct": 16.3,
+      "including_dependent_aggregators": 272,
+      "including_dependent_aggregators_pct": 96.5
+    },
+    "DT": {
+      "catalog_stations": 623,
+      "strict_fresh_known_provenance": 289,
+      "strict_fresh_known_provenance_pct": 46.4,
+      "known_provenance_current_view": 327,
+      "known_provenance_current_view_pct": 52.5,
+      "including_dependent_aggregators": 580,
+      "including_dependent_aggregators_pct": 93.1
+    }
+  }
+}

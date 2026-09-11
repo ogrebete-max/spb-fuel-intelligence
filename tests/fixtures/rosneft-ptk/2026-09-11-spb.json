@@ -1,0 +1,69 @@
+{
+  "_fixture": {
+    "source": "rosneft-ptk",
+    "classification": "RED_NO_REALTIME_DATA",
+    "request": {
+      "method": "GET",
+      "url": "https://rosneft-azs.ru/front-api/stations",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:28:41.648Z",
+    "source_raw_file": "rosneft-stations.json",
+    "source_raw_sha256": "bade56bc090bc5bf8e9be278d75f99a294719ed35b52497ce57f3eae6e5886c0",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "National endpoint has no bbox; locally filtered. Prices and catalog fuels are present, current stock is absent."
+    ]
+  },
+  "body": {
+    "prices_update_date": "09.09.2026",
+    "station": {
+      "id": 55320,
+      "name": "АЗК 001 \"Королева\"",
+      "number": "АЗС 1",
+      "region": 78,
+      "organization": "ООО \"РН-Северо-Запад\"",
+      "brand": "rosneft",
+      "type": "gas_station",
+      "lc_not_accepted": false,
+      "charger_power": "",
+      "currency": "RUB",
+      "address": "Российская Федерация, г. Санкт-Петербург, пр-кт Королёва, д. 40, литера А",
+      "coordinate": {
+        "lat": 60.01816,
+        "lng": 30.256651
+      },
+      "services": [
+        "shop",
+        "cafe",
+        "tires",
+        "yagas",
+        "cash",
+        "atm",
+        "fueling"
+      ],
+      "fuels": [
+        {
+          "code": "ai92",
+          "price": 65.15
+        },
+        {
+          "code": "ai95_pulsar",
+          "price": 73.4
+        },
+        {
+          "code": "ai95",
+          "price": 70.4
+        },
+        {
+          "code": "diesel",
+          "price": 80.85
+        }
+      ]
+    }
+  }
+}

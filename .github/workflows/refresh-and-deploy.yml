@@ -1,0 +1,55 @@
+name: Refresh fuel data and deploy public map
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 15 minutes is intentionally conservative for public third-party sources.
+    - cron: "7,22,37,52 * * * *"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "spb-fuel-pages"
+  cancel-in-progress: false
+
+jobs:
+  refresh-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch public station-level sources and update history
+        run: python scripts/refresh_live.py
+
+      - name: Persist only temporal history
+        run: |
+          git config user.name "spb-fuel-bot"
+          git config user.email "spb-fuel-bot@users.noreply.github.com"
+          git add data/history.json
+          git diff --cached --quiet || git commit -m "Update fuel-status history"
+          git push
+
+      - name: Build static public site
+        run: python scripts/build_static_site.py --output site
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

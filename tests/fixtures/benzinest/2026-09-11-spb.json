@@ -1,0 +1,2163 @@
+{
+  "_fixture": {
+    "source": "benzinest",
+    "classification": "GREEN_VERIFIED_HTTP",
+    "request": {
+      "method": "GET",
+      "url": "https://benzinest.ru/api/stations/100306471",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:24:27.288Z",
+    "source_raw_file": "benzinest-detail.json",
+    "source_raw_sha256": "aad9a20a8543f2baa7755b30023a1b7e062e0ec505b2ea4c590f9a66fc1bc3f2",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained"
+    ],
+    "notes": [
+      "Report source in the sample is imported; this is not an independent corroboration."
+    ]
+  },
+  "body": {
+    "station": {
+      "id": "100306471",
+      "name": "Роснефть",
+      "address": "Северная площадь, 2",
+      "lat": 60.0234715,
+      "lng": 30.4070432,
+      "fuels": [
+        {
+          "type": "AI-92",
+          "status": "OUT_OF_STOCK",
+          "confidence": "high",
+          "reportsInWindow": 3,
+          "availProb": 10,
+          "price": 65.15,
+          "priceUpdatedAt": "2026-07-21T17:24:34.000Z"
+        },
+        {
+          "type": "AI-95",
+          "status": "OUT_OF_STOCK",
+          "confidence": "high",
+          "reportsInWindow": 3,
+          "availProb": 15,
+          "price": 70.3,
+          "priceUpdatedAt": "2026-07-21T17:24:34.000Z"
+        },
+        {
+          "type": "AI-95+",
+          "status": "OUT_OF_STOCK",
+          "confidence": "medium",
+          "reportsInWindow": 1,
+          "availProb": 50,
+          "price": 72.8,
+          "priceUpdatedAt": "2026-07-21T17:24:34.000Z"
+        },
+        {
+          "type": "AI-98",
+          "status": "OUT_OF_STOCK",
+          "confidence": "low_recent",
+          "reportsInWindow": 1,
+          "availProb": 50
+        },
+        {
+          "type": "AI-100",
+          "status": "OUT_OF_STOCK",
+          "confidence": "medium",
+          "reportsInWindow": 2,
+          "availProb": 15,
+          "price": 99.8,
+          "priceUpdatedAt": "2026-07-21T17:24:34.000Z"
+        },
+        {
+          "type": "Diesel",
+          "status": "OUT_OF_STOCK",
+          "confidence": "medium",
+          "reportsInWindow": 3,
+          "availProb": 10,
+          "price": 80.7,
+          "priceUpdatedAt": "2026-07-21T17:24:34.000Z"
+        }
+      ],
+      "status": "WORKS",
+      "tags": [
+        {
+          "tag": "limit",
+          "value": "30",
+          "updatedAt": "2026-09-06T17:38:18.000Z"
+        }
+      ],
+      "comments": [
+        {
+          "id": "c_c58b2b329213a41498",
+          "text": "Лимит 30 л",
+          "author": "Аноним",
+          "createdAt": "2026-07-28T09:45:44.000Z",
+          "distanceM": 4317,
+          "parentId": null
+        }
+      ],
+      "lastUpdated": "2026-09-10T16:24:18.000Z",
+      "reports24h": 13,
+      "lastReportAt": "2026-09-10T15:39:57.000Z"
+    },
+    "reports": {
+      "items": [
+        {
+          "id": 27668896,
+          "created_at": 1789054797,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27653476,
+          "created_at": 1789036707,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27637843,
+          "created_at": 1789032810,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27589354,
+          "created_at": 1789028388,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27574201,
+          "created_at": 1789007141,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27566744,
+          "created_at": 1789003067,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27558972,
+          "created_at": 1788999236,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27528214,
+          "created_at": 1788995500,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27520771,
+          "created_at": 1788986587,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27441759,
+          "created_at": 1788982894,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27514793,
+          "created_at": 1788982805,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27478363,
+          "created_at": 1788973569,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27475056,
+          "created_at": 1788971768,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27445844,
+          "created_at": 1788964612,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27426473,
+          "created_at": 1788958062,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27410658,
+          "created_at": 1788953664,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27395135,
+          "created_at": 1788949187,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27383492,
+          "created_at": 1788947252,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27382335,
+          "created_at": 1788945269,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27379536,
+          "created_at": 1788944685,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27365150,
+          "created_at": 1788939850,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27343205,
+          "created_at": 1788935474,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27327659,
+          "created_at": 1788927403,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27293726,
+          "created_at": 1788909601,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27298301,
+          "created_at": 1788908706,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27296021,
+          "created_at": 1788906612,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27282159,
+          "created_at": 1788901033,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27255636,
+          "created_at": 1788896674,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27244288,
+          "created_at": 1788889780,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27211790,
+          "created_at": 1788888872,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27214737,
+          "created_at": 1788881474,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27199055,
+          "created_at": 1788875929,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27180666,
+          "created_at": 1788875328,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27183612,
+          "created_at": 1788871819,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27165021,
+          "created_at": 1788865890,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27153839,
+          "created_at": 1788864071,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27135069,
+          "created_at": 1788861930,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27123748,
+          "created_at": 1788854668,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27099202,
+          "created_at": 1788853911,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27111718,
+          "created_at": 1788851059,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27092817,
+          "created_at": 1788843047,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27051502,
+          "created_at": 1788841065,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27086439,
+          "created_at": 1788839513,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27064285,
+          "created_at": 1788827935,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27062522,
+          "created_at": 1788825909,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27003184,
+          "created_at": 1788817487,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27031594,
+          "created_at": 1788814751,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27027329,
+          "created_at": 1788812919,
+          "status": "WORKS",
+          "queue": "HIGH",
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 27013503,
+          "created_at": 1788808992,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        },
+        {
+          "id": 26999100,
+          "created_at": 1788805313,
+          "status": "WORKS",
+          "queue": null,
+          "fuels": [
+            {
+              "type": "AI-92",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-95+",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "AI-98",
+              "status": "AVAILABLE"
+            },
+            {
+              "type": "AI-100",
+              "status": "OUT_OF_STOCK"
+            },
+            {
+              "type": "Diesel",
+              "status": "AVAILABLE"
+            }
+          ],
+          "tags": [],
+          "price": null,
+          "authorTier": null,
+          "anon": true,
+          "distance_m": null,
+          "source": "imported",
+          "ipCity": null,
+          "ipNear": false,
+          "votes": {
+            "up": 0,
+            "down": 0,
+            "my": 0
+          },
+          "mine": false,
+          "editable": false
+        }
+      ],
+      "total": 50,
+      "since": "7d",
+      "importedVisibility": "expanded"
+    }
+  }
+}

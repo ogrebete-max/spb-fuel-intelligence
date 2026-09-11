@@ -1,0 +1,67 @@
+{
+  "_fixture": {
+    "source": "kirishiavtoservis",
+    "classification": "RED_NO_REALTIME_DATA",
+    "request": {
+      "method": "GET",
+      "url": "https://kirishiavtoservis.ru/stations/",
+      "geo": null,
+      "authentication": "none unless noted"
+    },
+    "http_status": 200,
+    "captured_at": "2026-09-10T16:29:39.411Z",
+    "source_raw_file": "kirishi-stations.html",
+    "source_raw_sha256": "10cf79053a7d7136ed9486d741e05891c4ecb9e414a060aad4709e8ff616b119",
+    "sanitization": [
+      "no credentials, cookies, IP addresses, or personal identifiers retained",
+      "public station phone removed"
+    ],
+    "notes": [
+      "Data is embedded in data-markers HTML, not XHR. Upstream fields named lng/lat are reversed."
+    ]
+  },
+  "body": {
+    "id": 1876,
+    "lng": "59.940859",
+    "lat": "30.503966",
+    "name": "АЗК-1",
+    "address": "г. Санкт-Петербург, улица Коммуны, дом 14, литера А",
+    "note": "Указанные цены не являются офертой",
+    "servicesMain": [
+      {
+        "code": "shop",
+        "name": "Магазин"
+      },
+      {
+        "code": "cafe",
+        "name": "Кафе"
+      },
+      {
+        "code": "wash",
+        "name": "Автомойка"
+      }
+    ],
+    "servicesOtherTitle": "",
+    "servicesOther": [],
+    "prices": [
+      {
+        "name": "АИ-98",
+        "cost": "99,90  ₽"
+      },
+      {
+        "name": "АИ-95",
+        "cost": "70,97  ₽"
+      },
+      {
+        "name": "АИ-92",
+        "cost": "65,54  ₽"
+      },
+      {
+        "name": "ДТ",
+        "cost": "80,95  ₽"
+      }
+    ],
+    "photo": null,
+    "work": "круглосуточно; технологический перерыв: 9.00-9.30; 21.00-21.30"
+  }
+}

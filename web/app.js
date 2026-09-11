@@ -1,0 +1,582 @@
+const STATUS = {
+  CAN_REFUEL: { short: 'Можно заправиться', color: '#158257' },
+  LIKELY_AVAILABLE: { short: 'Скорее есть', color: '#77a827' },
+  CONFLICT: { short: 'Данные расходятся', color: '#7856c7' },
+  LIMITED: { short: 'Есть ограничения', color: '#d58a13' },
+  LIKELY_NOT: { short: 'Скорее нет', color: '#d5653f' },
+  CONFIRMED_NO: { short: 'Подтверждено нет', color: '#b8333a' },
+  NO_FRESH_DATA: { short: 'Нет свежих данных', color: '#8a9691' },
+};
+const GRADE_LABELS = { AI92: 'АИ-92', AI95: 'АИ-95', AI98: 'АИ-98', AI100: 'АИ-100', DT: 'ДТ', LPG: 'Газ' };
+const QUEUE_LABELS = {
+  lt5: 'до 5 авто', less_than_5: 'до 5 авто',
+  '5_20': '5–20 авто', from_5_to_20: '5–20 авто',
+  '20_50': '20–50 авто', from_20_to_50: '20–50 авто',
+  gt50: 'более 50 авто', more_than_50: 'более 50 авто',
+  high: 'большая', reported: 'есть', unknown: 'неизвестна',
+};
+const AVAILABILITY_LABELS = {
+  AVAILABLE: 'Есть', LIKELY: 'Скорее есть', NOT_AVAILABLE: 'Нет', LIKELY_NOT: 'Скорее нет',
+  LIMITED: 'Ограничение', QUEUE: 'Очередь', UNKNOWN: 'Неизвестно',
+};
+const KIND_LABELS = {
+  official_stock: 'официальный остаток', realtime_status: 'текущий статус', crowd_report: 'сообщение водителя',
+  crowd_status: 'сообщения водителей', parsed_status: 'распознанный статус', aggregated_status: 'агрегированный статус',
+  imported_status: 'импортированный статус', payment_projection: 'прогноз по платежам', payment_prediction: 'прогноз по активности',
+  network_claim_aggregated: 'сводный сигнал сети', undated_crowd_summary: 'недатированный сигнал', price: 'цена',
+  catalog_price: 'каталожная цена', catalog_fuel: 'ассортимент', catalog_or_stale: 'каталог/устаревшее',
+};
+
+const state = {
+  grade: 'AI95', area: 'all', view: 'list', search: '', sort: 'status',
+  status: null, timeline: null, location: null, bbox: null, meta: null, stations: [], map: null,
+  markers: null, request: 0, staticMode: false, searchScope: null, radiusKm: 5, searchLabel: null,
+};
+const staticCache = new Map();
+const STATUS_PRIORITY = { CAN_REFUEL: 0, LIMITED: 1, LIKELY_AVAILABLE: 2, CONFLICT: 3, LIKELY_NOT: 4, CONFIRMED_NO: 5, NO_FRESH_DATA: 6 };
+
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
+function formatAge(seconds) {
+  if (seconds == null) return 'время неизвестно';
+  if (seconds < 90) return 'только что';
+  if (seconds < 3600) return `${Math.round(seconds / 60)} мин назад`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)} ч назад`;
+  return `${Math.round(seconds / 86400)} дн. назад`;
+}
+
+function formatDuration(seconds) {
+  if (seconds == null) return 'длительность неизвестна';
+  if (seconds < 3600) return `${Math.max(1, Math.round(seconds / 60))} мин`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)} ч`;
+  return `${Math.round(seconds / 86400)} дн.`;
+}
+
+function formatSnapshot(seconds, mode) {
+  if (seconds == null) return ['Время снимка неизвестно', 'проверяйте evidence'];
+  const stale = seconds > 6 * 3600;
+  const title = stale ? 'Снимок устарел' : mode === 'live_http_snapshot' ? 'Свежий HTTP-снимок' : mode === 'static_github_pages' ? 'Публичный снимок' : 'Снимок Phase 0';
+  return [title, formatAge(seconds), stale];
+}
+
+async function api(path) {
+  try {
+    const response = await fetch(path, { headers: { Accept: 'application/json' } });
+    if (response.ok) return response.json();
+    if (!path.startsWith('/api/')) throw new Error(`HTTP ${response.status}`);
+  } catch (error) {
+    if (!path.startsWith('/api/')) throw error;
+  }
+  return staticApi(path);
+}
+
+async function staticJson(relativePath) {
+  if (!staticCache.has(relativePath)) {
+    staticCache.set(relativePath, fetch(relativePath, { headers: { Accept: 'application/json' } }).then(async (response) => {
+      if (!response.ok) throw new Error(`Не найден статический файл ${relativePath}`);
+      return response.json();
+    }));
+  }
+  return staticCache.get(relativePath);
+}
+
+function haversineKm(a, b) {
+  const radians = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * radians;
+  const dLon = (b.lon - a.lon) * radians;
+  const v = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * radians) * Math.cos(b.lat * radians) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(v), Math.sqrt(1 - v));
+}
+
+function staticInArea(station, area) {
+  if (!area || area === 'all') return true;
+  const address = String(station.address || '').toLowerCase();
+  if (area === 'spb') return !['ленинградск', 'всеволож', 'гатчин'].some((token) => address.includes(token));
+  if (area === 'lo') return ['ленинградск', 'всеволож', 'гатчин', 'тоснен', 'кировск', 'выборг'].some((token) => address.includes(token));
+  return true;
+}
+
+async function staticApi(path) {
+  state.staticMode = true;
+  const url = new URL(path, window.location.origin);
+  if (url.pathname === '/api/meta') return staticJson('static-data/meta.json');
+  if (url.pathname === '/api/sources') return staticJson('static-data/sources.json');
+  const detail = url.pathname.match(/^\/api\/stations\/([^/]+)$/);
+  if (detail) return staticJson(`static-data/details/${encodeURIComponent(decodeURIComponent(detail[1]))}.json`);
+  if (url.pathname !== '/api/stations') throw new Error('Эта функция доступна только в локальном режиме.');
+
+  const p = url.searchParams;
+  const grade = p.get('grade') || 'AI95';
+  const bundle = await staticJson(`static-data/stations-${grade}.json`);
+  const statuses = new Set((p.get('status') || '').split(',').filter(Boolean));
+  const timeline = p.get('timeline');
+  const area = p.get('area') || 'all';
+  const query = (p.get('q') || '').trim().toLocaleLowerCase();
+  const bbox = (p.get('bbox') || '').split(',').map(Number);
+  const hasBbox = bbox.length === 4 && bbox.every(Number.isFinite);
+  const rawLat = p.get('lat');
+  const rawLon = p.get('lon');
+  const lat = rawLat == null ? NaN : Number(rawLat);
+  const lon = rawLon == null ? NaN : Number(rawLon);
+  const center = Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+  const radiusKm = Number(p.get('radius_km'));
+  const hasRadius = center && Number.isFinite(radiusKm) && radiusKm > 0;
+  const list = [];
+  const statusCounts = {};
+  let appeared = 0;
+  for (const original of bundle.stations) {
+    const station = structuredClone(original);
+    const location = station.location;
+    if (!staticInArea(station, area)) continue;
+    if (query && !`${station.network} ${station.address}`.toLocaleLowerCase().includes(query)) continue;
+    if (hasBbox && !(bbox[0] <= location.lon && location.lon <= bbox[2] && bbox[1] <= location.lat && location.lat <= bbox[3])) continue;
+    if (center) station.distance_km = Math.round(haversineKm(center, location) * 100) / 100;
+    if (hasRadius && station.distance_km > radiusKm) continue;
+    const status = station.grade.status;
+    statusCounts[status] = (statusCounts[status] || 0) + 1;
+    if (station.grade.timeline?.appeared_recent) appeared += 1;
+    if (statuses.size && !statuses.has(status)) continue;
+    if (timeline === 'appeared' && !station.grade.timeline?.appeared_recent) continue;
+    list.push(station);
+  }
+  const sort = p.get('sort') || 'status';
+  list.sort((a, b) => {
+    if (sort === 'distance' && center) return (a.distance_km - b.distance_km) || (STATUS_PRIORITY[a.grade.status] - STATUS_PRIORITY[b.grade.status]);
+    if (sort === 'freshness') return (a.grade.age_seconds ?? Number.MAX_SAFE_INTEGER) - (b.grade.age_seconds ?? Number.MAX_SAFE_INTEGER);
+    if (sort === 'price') return (a.grade.price_rub ?? Number.MAX_SAFE_INTEGER) - (b.grade.price_rub ?? Number.MAX_SAFE_INTEGER);
+    if (sort === 'appeared') return Number(b.grade.timeline?.appeared_recent) - Number(a.grade.timeline?.appeared_recent);
+    return (STATUS_PRIORITY[a.grade.status] - STATUS_PRIORITY[b.grade.status]) || ((a.grade.age_seconds ?? Number.MAX_SAFE_INTEGER) - (b.grade.age_seconds ?? Number.MAX_SAFE_INTEGER));
+  });
+  const offset = Number(p.get('offset') || 0);
+  const limit = Number(p.get('limit') || 250);
+  return { grade, total: list.length, offset, limit, status_counts: statusCounts, timeline_counts: { appeared }, stations: list.slice(offset, offset + limit) };
+}
+
+function formatQueue(queue) {
+  if (!queue) return null;
+  const raw = typeof queue === 'object' ? (queue.size || queue.label || queue.value) : queue;
+  const key = String(raw || '').trim().toLowerCase();
+  if (!key || ['none', 'no', 'false', '0', 'no_queue'].includes(key)) return null;
+  return QUEUE_LABELS[key] || String(raw || 'есть').replaceAll('_', ' ');
+}
+
+function localizeNote(note) {
+  if (!note) return '';
+  const value = String(note);
+  if (/not a stock guarantee/i.test(value)) return 'Прогноз по платежной и каталожной активности, не гарантия физического остатка.';
+  if (/not proof of a specific grade/i.test(value)) return 'Платёж не доказывает наличие конкретной марки топлива.';
+  if (/provenance is separate from availability/i.test(value)) return 'Источник цены не подтверждает наличие топлива.';
+  return value;
+}
+
+async function bootstrap() {
+  bindControls();
+  try {
+    state.meta = await api('/api/meta');
+    renderMeta();
+    initMap();
+    await loadStations();
+  } catch (error) {
+    $('#stationList').innerHTML = `<div class="empty-state"><strong>Не удалось загрузить приложение</strong><br>${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderMeta() {
+  const frozenAge = state.meta.mode === 'static_github_pages' && state.meta.snapshot_at ? Math.max(0, Math.round((Date.now() - new Date(state.meta.snapshot_at).getTime()) / 1000)) : state.meta.snapshot_age_seconds;
+  const [title, subtitle, stale] = formatSnapshot(frozenAge, state.meta.mode);
+  const stats = state.meta.stats || {};
+  const baseline = Number((stats.source_rows || {}).sber || 0);
+  $('#snapshotCard').innerHTML = `<span class="pulse ${stale ? 'stale' : ''}"></span><span><strong>${title}</strong><small>${subtitle} · ${Number(stats.canonical_stations).toLocaleString('ru-RU')} карточек</small></span>`;
+  $('#identityNote').textContent = baseline ? `Физический baseline Sber/2GIS: ${baseline.toLocaleString('ru-RU')} точек; лишние карточки не склеиваются без достаточных признаков.` : 'Карточки не объединяются только по близости координат.';
+  const refresh = $('#refreshButton');
+  if (state.staticMode || state.meta.mode === 'static_github_pages') {
+    refresh.textContent = 'Автообновление: 15 мин';
+    refresh.disabled = true;
+    refresh.title = 'Публичная версия обновляется GitHub Actions по расписанию.';
+  }
+}
+
+function bindControls() {
+  $('#gradePicker').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-grade]');
+    if (!button) return;
+    state.grade = button.dataset.grade;
+    $$('[data-grade]').forEach((item) => { item.classList.toggle('active', item === button); item.setAttribute('aria-checked', item === button); });
+    state.status = null;
+    state.timeline = null;
+    loadStations();
+  });
+  $('.location-row .segmented').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-area]');
+    if (!button) return;
+    state.area = button.dataset.area;
+    $$('[data-area]').forEach((item) => item.classList.toggle('active', item === button));
+    loadStations();
+  });
+  $('.view-switch').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-view]');
+    if (!button) return;
+    state.view = button.dataset.view;
+    $$('[data-view]').forEach((item) => item.classList.toggle('active', item === button));
+    $('#contentGrid').classList.toggle('map-mode', state.view === 'map');
+    if (state.map) setTimeout(() => state.map.invalidateSize(), 80);
+  });
+  let searchTimer;
+  $('#searchInput').addEventListener('input', (event) => {
+    clearTimeout(searchTimer);
+    state.search = event.target.value;
+    if (state.searchScope) clearSearchScope({ keepText: true, reload: false });
+    searchTimer = setTimeout(loadStations, 250);
+  });
+  $('#searchInput').addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    findNearby();
+  });
+  $('#nearbySearchButton').addEventListener('click', findNearby);
+  $('#sortSelect').addEventListener('change', (event) => { state.sort = event.target.value; loadStations(); });
+  $('#locateButton').addEventListener('click', locate);
+  $('#mapAreaButton').addEventListener('click', () => {
+    const bounds = state.map.getBounds();
+    state.bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
+    state.location = null;
+    state.search = '';
+    state.searchScope = 'map';
+    state.searchLabel = 'Показываем АЗС в выбранной области карты.';
+    $('#searchInput').value = '';
+    renderSearchContext();
+    $('#mapAreaButton').style.display = 'none';
+    loadStations();
+  });
+  $('#drawerClose').addEventListener('click', closeDrawer);
+  $('#scrim').addEventListener('click', closeDrawer);
+  $('#aboutButton').addEventListener('click', showAbout);
+  $('#sourcesButton').addEventListener('click', showSources);
+  $('#refreshButton').addEventListener('click', refreshData);
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeDrawer(); });
+}
+
+async function refreshData() {
+  if (state.staticMode) return;
+  const button = $('#refreshButton');
+  button.disabled = true;
+  button.textContent = '↻ Получаем данные…';
+  $('#snapshotCard').querySelector('strong').textContent = 'Обновляем 11 каналов';
+  $('#snapshotCard').querySelector('small').textContent = 'обычно 15–60 секунд';
+  try {
+    const response = await fetch('/api/refresh', { method: 'POST', headers: { 'X-SPBFI-Action': 'refresh', Accept: 'application/json' } });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    state.meta = result.meta;
+    renderMeta();
+    await loadStations();
+    button.textContent = '✓ Данные обновлены';
+    setTimeout(() => { button.textContent = '↻ Обновить данные'; }, 3000);
+  } catch (error) {
+    renderMeta();
+    button.textContent = 'Повторить обновление';
+    alert(`Не удалось обновить данные: ${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderSearchContext() {
+  const context = $('#searchContext');
+  if (state.searchScope === 'place') {
+    context.innerHTML = `<strong>Рядом с: ${escapeHtml(state.searchLabel)}</strong> · радиус ${state.radiusKm} км <button type="button" data-clear-scope>Сбросить</button>`;
+  } else if (state.searchScope === 'device') {
+    context.innerHTML = `<strong>Рядом с вашей позицией</strong> · радиус ${state.radiusKm} км <button type="button" data-clear-scope>Сбросить</button>`;
+  } else if (state.searchScope === 'map') {
+    context.innerHTML = `<strong>${escapeHtml(state.searchLabel)}</strong> <button type="button" data-clear-scope>Сбросить</button>`;
+  } else if (state.search.trim()) {
+    context.textContent = 'Ищем точное совпадение по сети или адресу АЗС. Нажмите «Найти рядом», если это адрес места.';
+  } else {
+    context.textContent = 'Введите адрес места и нажмите «Найти рядом» — покажем АЗС в радиусе 5 км.';
+  }
+  context.querySelector('[data-clear-scope]')?.addEventListener('click', () => clearSearchScope({ keepText: false, reload: true }));
+}
+
+function clearSearchScope({ keepText = false, reload = true } = {}) {
+  state.location = null;
+  state.bbox = null;
+  state.searchScope = null;
+  state.searchLabel = null;
+  if (!keepText) {
+    state.search = '';
+    $('#searchInput').value = '';
+  }
+  $('#locateButton').innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
+  renderSearchContext();
+  if (reload) loadStations();
+}
+
+async function geocodePlace(query) {
+  const path = `/api/geocode?q=${encodeURIComponent(query)}`;
+  try {
+    return await api(path);
+  } catch (localError) {
+    // GitHub Pages has no private server. This is an explicit button action,
+    // not autocomplete; the request is constrained to our SPB/LO viewbox.
+    const params = new URLSearchParams({
+      q: `${query}, Санкт-Петербург`, format: 'jsonv2', limit: '1', countrycodes: 'ru', bounded: '1',
+      viewbox: '29.50,60.35,31.10,59.60', addressdetails: '0',
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error('Сервис поиска места временно недоступен. Переместите карту вручную.');
+    const rows = await response.json();
+    if (!rows.length) throw new Error('Место не найдено в Санкт-Петербурге и ближайшей области.');
+    const row = rows[0];
+    return { query, label: row.display_name || query, location: { lat: Number(row.lat), lon: Number(row.lon) } };
+  }
+}
+
+async function findNearby() {
+  const query = $('#searchInput').value.trim();
+  if (query.length < 3) return alert('Введите адрес или название места: например, «ул. Уточкина 3» или «МЦ на Уточкина».');
+  const button = $('#nearbySearchButton');
+  button.disabled = true;
+  button.textContent = 'Ищем место…';
+  $('#searchContext').textContent = 'Находим место, затем ищем ближайшие АЗС…';
+  try {
+    const place = await geocodePlace(query);
+    if (!Number.isFinite(place.location?.lat) || !Number.isFinite(place.location?.lon)) throw new Error('Сервис поиска вернул неполные координаты.');
+    state.location = place.location;
+    state.bbox = null;
+    state.search = '';
+    state.searchScope = 'place';
+    state.searchLabel = place.label;
+    state.radiusKm = 5;
+    state.sort = 'distance';
+    $('#sortSelect').value = 'distance';
+    if (state.map) state.map.setView([place.location.lat, place.location.lon], 13);
+    renderSearchContext();
+    await loadStations();
+  } catch (error) {
+    $('#searchContext').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = '⌖ Найти рядом';
+  }
+}
+
+function locate() {
+  if (!navigator.geolocation) return alert('Геолокация не поддерживается этим браузером.');
+  const button = $('#locateButton');
+  button.textContent = 'Определяем…';
+  navigator.geolocation.getCurrentPosition(({ coords }) => {
+    state.location = { lat: coords.latitude, lon: coords.longitude };
+    state.bbox = null;
+    state.search = '';
+    state.searchScope = 'device';
+    state.searchLabel = null;
+    state.radiusKm = 5;
+    $('#searchInput').value = '';
+    state.sort = 'distance';
+    $('#sortSelect').value = 'distance';
+    button.innerHTML = '<span aria-hidden="true">●</span> Моя позиция';
+    if (state.map) state.map.setView([coords.latitude, coords.longitude], 13);
+    renderSearchContext();
+    loadStations();
+  }, () => {
+    button.innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
+    alert('Не удалось получить координаты. Разрешите геолокацию в браузере.');
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+async function loadStations() {
+  const requestId = ++state.request;
+  $('#stationList').innerHTML = '<div class="loading-state">Собираем доказательства по АЗС…</div>';
+  const params = new URLSearchParams({ grade: state.grade, area: state.area, sort: state.sort, limit: '500' });
+  if (state.search.trim()) params.set('q', state.search.trim());
+  if (state.status) params.set('status', state.status);
+  if (state.timeline) params.set('timeline', state.timeline);
+  if (state.location) { params.set('lat', state.location.lat); params.set('lon', state.location.lon); if (state.searchScope) params.set('radius_km', state.radiusKm); }
+  if (state.bbox) params.set('bbox', state.bbox.join(','));
+  try {
+    const data = await api(`/api/stations?${params}`);
+    if (requestId !== state.request) return;
+    state.stations = data.stations;
+    $('#resultCount').textContent = data.total.toLocaleString('ru-RU');
+    renderStatusStrip(data.status_counts, data.timeline_counts);
+    renderStations();
+    renderMarkers();
+  } catch (error) {
+    $('#stationList').innerHTML = `<div class="empty-state">Ошибка: ${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderStatusStrip(counts, timelineCounts = {}) {
+  const strip = $('#statusStrip');
+  const appeared = timelineCounts.appeared || 0;
+  const temporalChip = `<button class="status-chip timeline-filter ${state.timeline === 'appeared' ? 'active' : ''}" style="--status-color:#0d5a43" data-timeline="appeared" ${appeared ? '' : 'disabled'}>✦ Появилось недавно · ${appeared}</button>`;
+  strip.innerHTML = temporalChip + Object.entries(STATUS).map(([key, item]) => {
+    const count = counts[key] || 0;
+    return `<button class="status-chip ${state.status === key ? 'active' : ''}" style="--status-color:${item.color}" data-status="${key}">${item.short} · ${count}</button>`;
+  }).join('');
+  strip.onclick = (event) => {
+    const temporal = event.target.closest('[data-timeline]');
+    if (temporal) {
+      state.timeline = state.timeline === temporal.dataset.timeline ? null : temporal.dataset.timeline;
+      loadStations();
+      return;
+    }
+    const button = event.target.closest('[data-status]');
+    if (!button) return;
+    state.status = state.status === button.dataset.status ? null : button.dataset.status;
+    loadStations();
+  };
+}
+
+function timelineBadge(timeline) {
+  if (!timeline || timeline.state === 'NO_HISTORY' || timeline.state === 'OBSERVED') return null;
+  if (['JUST_APPEARED', 'RECENTLY_APPEARED'].includes(timeline.state)) return { text: `✦ ${timeline.label}`, tone: 'fresh' };
+  if (timeline.state === 'RECENTLY_DISAPPEARED') return { text: timeline.label, tone: 'negative' };
+  if (timeline.state === 'OBSERVED_AVAILABLE' || timeline.state === 'AVAILABLE_CONTINUOUS') return { text: `Есть непрерывно ${formatDuration(timeline.duration_seconds)}`, tone: 'stable' };
+  if (timeline.state === 'OBSERVED_UNAVAILABLE' || timeline.state === 'UNAVAILABLE_CONTINUOUS') return { text: `Нет непрерывно ${formatDuration(timeline.duration_seconds)}`, tone: 'negative' };
+  return null;
+}
+
+function factsFor(station) {
+  const grade = station.grade;
+  const facts = [];
+  if (grade.price_rub != null) facts.push(`${grade.price_rub.toFixed(2)} ₽/л`);
+  if (grade.limit_liters != null) facts.push(`лимит ${grade.limit_liters} л`);
+  const queue = formatQueue(grade.queue);
+  if (queue) facts.push(`очередь: ${queue}`);
+  facts.push(formatAge(grade.age_seconds));
+  facts.push(`${grade.fresh_provenance_count} ист.`);
+  return facts.join(' · ');
+}
+
+function renderStations() {
+  const list = $('#stationList');
+  if (!state.stations.length) {
+    list.innerHTML = '<div class="empty-state"><strong>Ничего не найдено</strong><br>Измените фильтр или область карты.</div>';
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  state.stations.forEach((station) => {
+    const node = $('#stationTemplate').content.cloneNode(true);
+    const status = STATUS[station.grade.status];
+    const card = node.querySelector('.station-card');
+    card.style.setProperty('--status-color', status.color);
+    node.querySelector('.network').textContent = station.network;
+    node.querySelector('.address').textContent = station.address;
+    node.querySelector('.status-label').textContent = station.grade.label;
+    const temporal = timelineBadge(station.grade.timeline);
+    if (temporal) {
+      const badge = node.querySelector('.timeline-badge');
+      badge.hidden = false;
+      badge.textContent = temporal.text;
+      badge.dataset.tone = temporal.tone;
+    }
+    node.querySelector('.facts').textContent = factsFor(station);
+    node.querySelector('.distance').textContent = station.distance_km != null ? `${station.distance_km.toLocaleString('ru-RU')} км` : '';
+    node.querySelector('.card-main').addEventListener('click', () => openStation(station.id));
+    fragment.appendChild(node);
+  });
+  list.replaceChildren(fragment);
+}
+
+function initMap() {
+  if (!window.L) { $('#mapFallback').hidden = false; return; }
+  // Required map-data credit is kept in the footer; it no longer obscures stations.
+  state.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([59.94, 30.32], 10);
+  L.control.zoom({ position: 'bottomright' }).addTo(state.map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18
+  }).addTo(state.map);
+  state.markers = L.layerGroup().addTo(state.map);
+  state.map.on('moveend', () => { $('#mapAreaButton').style.display = 'block'; });
+}
+
+function renderMarkers() {
+  if (!state.map || !state.markers) return;
+  state.markers.clearLayers();
+  state.stations.forEach((station) => {
+    const status = STATUS[station.grade.status];
+    const icon = L.divIcon({ className: '', html: `<div class="fuel-marker" style="--marker:${status.color}"></div>`, iconSize: [20, 20], iconAnchor: [10, 20] });
+    const marker = L.marker([station.location.lat, station.location.lon], { icon });
+    marker.bindPopup(`<div class="popup-title">${escapeHtml(station.network)}</div><div>${escapeHtml(station.address)}</div><div class="popup-status" style="--popup-color:${status.color}">${escapeHtml(station.grade.label)}</div><button class="popup-open" onclick="window.openFuelStation('${station.id}')">Почему?</button>`);
+    marker.addTo(state.markers);
+  });
+}
+
+window.openFuelStation = openStation;
+async function openStation(id) {
+  openDrawer('<div class="loading-state">Загружаем доказательства…</div>');
+  try {
+    const station = await api(`/api/stations/${encodeURIComponent(id)}`);
+    const selected = station.grades[state.grade];
+    const status = STATUS[selected.status];
+    const lat = Number(station.location.lat);
+    const lon = Number(station.location.lon);
+    const routeUrl = `https://yandex.ru/maps/?rtext=~${lat},${lon}&rtt=auto`;
+    const gradeCells = Object.entries(station.grades).map(([grade, value]) => `<div class="grade-cell" style="--cell-color:${STATUS[value.status].color}"><b>${GRADE_LABELS[grade]}</b><small>${STATUS[value.status].short}</small></div>`).join('');
+    const timeline = selected.timeline || {};
+    const transition = timeline.last_transition;
+    const confidenceLabels = { high: 'высокая', medium: 'средняя', low: 'низкая' };
+    const timelinePanel = timeline.state === 'NO_HISTORY' ? `<div class="timeline-panel neutral"><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p></div>` : `<div class="timeline-panel ${timeline.recent ? 'fresh' : ''}"><span class="timeline-kicker">История статуса</span><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p><dl><div><dt>Текущий статус длится</dt><dd>${escapeHtml(formatDuration(timeline.duration_seconds))}</dd></div><div><dt>Проверок</dt><dd>${Number(timeline.confirmations || 1)}</dd></div>${transition ? `<div><dt>Уверенность перехода</dt><dd>${escapeHtml(confidenceLabels[transition.confidence] || transition.confidence)}</dd></div>` : ''}</dl></div>`;
+    const evidence = selected.evidence.length ? selected.evidence.map((row) => {
+      const rowStatus = row.fresh ? (row.availability === 'AVAILABLE' || row.availability === 'LIKELY' ? '#158257' : row.availability === 'NOT_AVAILABLE' || row.availability === 'LIKELY_NOT' ? '#b8333a' : '#d58a13') : '#8a9691';
+      const extras = [row.limit_liters != null ? `лимит ${row.limit_liters} л` : null, formatQueue(row.queue) ? `очередь: ${formatQueue(row.queue)}` : null].filter(Boolean).join(' · ');
+      const note = localizeNote(row.note);
+      return `<div class="evidence-row" style="--evidence-color:${rowStatus}"><div class="evidence-head"><strong>${escapeHtml(AVAILABILITY_LABELS[row.availability] || row.availability)}</strong><span>${row.fresh ? formatAge(row.age_seconds) : 'устарело'}</span></div><div class="evidence-meta">${escapeHtml(row.source || 'источник не указан')} · ${escapeHtml(KIND_LABELS[row.kind] || row.kind)}${extras ? `<br>${escapeHtml(extras)}` : ''}<br>provenance: ${escapeHtml(row.effective_provenance)}${note ? `<br>${escapeHtml(note)}` : ''}</div></div>`;
+    }).join('') : '<div class="empty-state">Для этой марки нет даже устаревших station-level свидетельств.</div>';
+    $('#drawerContent').innerHTML = `
+      <h2>${escapeHtml(station.network || 'АЗС')}</h2>
+      <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
+      <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
+      <div class="drawer-status" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}</strong><p>${escapeHtml(selected.reason)}</p></div>
+      ${timelinePanel}
+      <div class="grade-matrix">${gradeCells}</div>
+      <h3 class="section-title">Почему такой результат по ${GRADE_LABELS[state.grade]}</h3>
+      <div class="evidence-list">${evidence}</div>
+      <h3 class="section-title">Связанные идентификаторы</h3>
+      <div class="evidence-meta">${station.source_refs.map((ref) => `${escapeHtml(ref.source)}:${escapeHtml(ref.station_id)}`).join('<br>')}</div>`;
+    $('#copyCoords').addEventListener('click', async (event) => {
+      try {
+        await navigator.clipboard.writeText(`${lat}, ${lon}`);
+        event.currentTarget.textContent = 'Координаты скопированы';
+      } catch {
+        event.currentTarget.textContent = `${lat}, ${lon}`;
+      }
+    });
+  } catch (error) {
+    $('#drawerContent').innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function openDrawer(html) {
+  $('#drawerContent').innerHTML = html;
+  $('#scrim').hidden = false;
+  $('#detailDrawer').classList.add('open');
+  $('#detailDrawer').setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  $('#detailDrawer').classList.remove('open');
+  $('#detailDrawer').setAttribute('aria-hidden', 'true');
+  $('#scrim').hidden = true;
+  document.body.style.overflow = '';
+}
+
+function showAbout() {
+  openDrawer(`<h2>Что здесь иначе</h2><p class="drawer-address">Приложение не выдаёт отсутствие данных за отсутствие топлива и запоминает изменения по каждой марке.</p><div class="drawer-status" style="--status-color:#0d5a43"><strong>История «не было → появилось»</strong><p>После каждого живого обновления сохраняется статус конкретной АЗС и марки. Переход показывается отдельно от обычного давнего наличия. «Возможное пополнение» — только осторожная интерпретация подтверждённого перехода, а не заявление о бензовозе или количестве литров.</p></div><div class="drawer-status about-secondary" style="--status-color:#7856c7"><strong>Evidence-first</strong><p>Учитываются возраст, тип сигнала, независимость upstream, очередь, лимит и конфликт источников.</p></div><h3 class="section-title">Семь честных состояний</h3><div class="source-list">${Object.values(STATUS).map((item) => `<div class="source-row"><strong style="color:${item.color}">${item.short}</strong></div>`).join('')}</div>`);
+}
+
+async function showSources() {
+  openDrawer('<div class="loading-state">Загружаем реестр источников…</div>');
+  try {
+    const data = await api('/api/sources');
+    $('#drawerContent').innerHTML = `<h2>Источники</h2><p class="drawer-address">Фактическая классификация Phase 0. GREEN означает проверенный контракт, но не независимость upstream.</p><div class="source-list">${data.sources.map((source) => `<div class="source-row"><strong>${escapeHtml(source.id)}</strong><span>${escapeHtml(source.status || '—')}</span><small>${Number(source.station_rows_in_snapshot || 0).toLocaleString('ru-RU')} строк в снимке</small></div>`).join('')}</div>`;
+  } catch (error) { $('#drawerContent').innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; }
+}
+
+bootstrap();

@@ -1,0 +1,74 @@
+[
+  {
+    "name": "gdebenz-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 295211,
+    "url": "https://gdebenz.ru/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10",
+    "captured_at": "2026-09-11T01:08:46.9327625+03:00"
+  },
+  {
+    "name": "benzas-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 120729,
+    "url": "https://benzas.ru/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10",
+    "captured_at": "2026-09-11T01:08:47.1845544+03:00"
+  },
+  {
+    "name": "benzas-comments-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 86660,
+    "url": "https://benzas.ru/api/comments?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10",
+    "captured_at": "2026-09-11T01:08:47.5354361+03:00"
+  },
+  {
+    "name": "benzinest-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 735236,
+    "url": "https://benzinest.ru/api/stations?bbox=59.60,29.50,60.35,31.10",
+    "captured_at": "2026-09-11T01:08:48.1027408+03:00"
+  },
+  {
+    "name": "tutbenz-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1046290,
+    "url": "https://tutbenz.app/api/stations?bbox=29.50,59.60,31.10,60.35&prices=1",
+    "captured_at": "2026-09-11T01:08:48.6627619+03:00"
+  },
+  {
+    "name": "gdebenzin-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 349995,
+    "url": "https://xn--90addebmh2bc.xn--p1ai/api/v1/map?bbox=59.60,29.50,60.35,31.10&zoom=10&price=1&confidence=1",
+    "captured_at": "2026-09-11T01:08:49.2939883+03:00"
+  },
+  {
+    "name": "benzonavt-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 403217,
+    "url": "https://benzonavt.ru/api/v1/stations?bbox=59.6000,29.5000,60.3500,31.1000",
+    "captured_at": "2026-09-11T01:08:49.6785302+03:00"
+  },
+  {
+    "name": "benzinkarta-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 346962,
+    "url": "https://benzinkarta.ru/api/stations?bbox=29.50,59.60,31.10,60.35",
+    "captured_at": "2026-09-11T01:08:50.0012898+03:00"
+  },
+  {
+    "name": "benzinradar-full-aoi",
+    "curl_exit": 0,
+    "http_status_line": "HTTP/1.1 200 OK",
+    "bytes": 1134170,
+    "url": "https://benzinradar.ru/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10&limit=2000&offset=0",
+    "captured_at": "2026-09-11T01:08:50.4164923+03:00"
+  }
+]
