@@ -15,9 +15,13 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('name="spbfi-static-site" content="false"', html)
         self.assertNotIn('href="/', html)
         self.assertNotIn('src="/', html)
-        self.assertEqual(manifest["start_url"], ".")
-        self.assertEqual(manifest["scope"], ".")
+        self.assertIn(manifest["start_url"], {".", "./"})
+        self.assertIn(manifest["scope"], {".", "./"})
         self.assertTrue(all(not icon["src"].startswith("/") for icon in manifest["icons"]))
+        # Safari only accepts a PNG as the home-screen icon.
+        self.assertIn('rel="apple-touch-icon"', html)
+        self.assertIn("icons/apple-touch-icon.png", html)
+        self.assertTrue((ROOT / "web" / "icons" / "apple-touch-icon.png").exists())
         self.assertIn("const APP_SHELL = ['./'", service_worker)
 
 

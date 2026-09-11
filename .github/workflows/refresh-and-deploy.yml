@@ -1,67 +1,79 @@
-name: Refresh fuel data and build mobile map
+name: Refresh fuel data and publish map
 
 on:
   workflow_dispatch:
   schedule:
-    # 15 minutes is intentionally conservative for public third-party sources.
-    - cron: "7,22,37,52 * * * *"
+    # GitHub never runs cron exactly on time; ten minutes is the shortest
+    # interval that still gives every run room to finish before the next one.
+    - cron: "1,11,21,31,41,51 * * * *"
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
-  group: "spb-fuel-refresh"
+  group: spb-fuel-refresh
   cancel-in-progress: false
 
 jobs:
   refresh-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - name: Fetch public station-level sources and update history
+      # Temporal history is state, not source.  Keeping it on a single-commit
+      # orphan branch avoids rewriting a multi-megabyte blob into main's
+      # history 144 times a day.
+      - name: Restore temporal history
+        run: |
+          mkdir -p data
+          if git fetch --depth=1 origin state 2>/dev/null; then
+            git show FETCH_HEAD:history.json > data/history.json
+            echo "restored $(wc -c < data/history.json) bytes"
+          else
+            echo "no stored history yet; starting from an empty timeline"
+          fi
+
+      - name: Fetch public sources, rebuild snapshot and history
         run: python scripts/refresh_live.py
 
-      - name: Persist only temporal history
+      - name: Store temporal history
         run: |
+          work="$(mktemp -d)"
+          cp data/history.json "$work/history.json"
+          cd "$work"
+          git init -q
+          git checkout -q -b state
           git config user.name "spb-fuel-bot"
           git config user.email "spb-fuel-bot@users.noreply.github.com"
-          git add data/history.json
-          git diff --cached --quiet || git commit -m "Update fuel-status history"
-          git push
+          git add history.json
+          git commit -q -m "Fuel status history $(date -u +%FT%TZ)"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" state
 
-      - name: Build static public map from the fresh snapshot
+      - name: Build the static public map
         run: python scripts/build_static_site.py --output site
 
-      - name: Preserve deployable mobile map
-        uses: actions/upload-artifact@v4
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: spb-fuel-site
           path: site
-          retention-days: 2
-          compression-level: 9
 
-      - name: Check out public deployment repository
-        uses: actions/checkout@v5
-        with:
-          repository: ogrebete-max/spb-fuel-intelligence-site
-          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
-          path: public-site
-
-      - name: Publish fresh mobile map
-        run: |
-          rsync -a --delete --exclude .git/ site/ public-site/
-          cd public-site
-          git config user.name "spb-fuel-bot"
-          git config user.email "spb-fuel-bot@users.noreply.github.com"
-          git add --all
-          git diff --cached --quiet && exit 0
-          git commit -m "Update public fuel map"
-          git push origin main
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

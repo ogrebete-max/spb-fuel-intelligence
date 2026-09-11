@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.normalizers import (  # noqa: E402
     canonical_grade,
+    grade_tokens,
     normalize_gazpromneft,
     normalize_benzinest,
     normalize_benzonavt,
@@ -110,11 +111,15 @@ def normalize_undated_gdebenz(station: dict[str, Any], received_at: str) -> dict
         "evidence": [],
     }
     status = station.get("status")
+    # ``fuels_now`` is a comma separated string such as "92,95,98,ДТ"; iterating
+    # it directly would yield single characters.
+    present = grade_tokens(station.get("fuels_now"))
+    catalog = grade_tokens(",".join(str(item) for item in ((station.get("meta") or {}).get("f") or [])))
     availability = "LIKELY" if status == "yes" else "QUEUE" if status == "queue" else "UNKNOWN"
-    for raw_grade in station.get("fuels_now") or []:
+    for grade in present:
         row["evidence"].append({
-            "grade": canonical_grade(raw_grade),
-            "availability": availability,
+            "grade": grade,
+            "availability": availability if status in {"yes", "queue"} else "LIKELY",
             "kind": "undated_crowd_summary",
             "observed_at": None,
             "received_at": received_at,
@@ -127,6 +132,28 @@ def normalize_undated_gdebenz(station: dict[str, Any], received_at: str) -> dict
             "raw_status": status,
             "note": "The map row has no report timestamp; this is only a short-lived hint.",
         })
+    # The source publishes "what is available right now"; a catalog grade left
+    # out of that list while the station itself reports a state is a negative
+    # hint, never a hard negative.
+    if status in {"yes", "no", "queue"}:
+        for grade in catalog:
+            if grade in present:
+                continue
+            row["evidence"].append({
+                "grade": grade,
+                "availability": "LIKELY_NOT",
+                "kind": "undated_crowd_summary",
+                "observed_at": None,
+                "received_at": received_at,
+                "price_rub": None,
+                "limit_liters": None,
+                "queue": None,
+                "confidence": {"timestamp_missing": True, "inferred_from_absence": True},
+                "provenance_cluster": "gdebenz-crowd",
+                "independent": True,
+                "raw_status": status,
+                "note": "The grade is sold here but missing from the current availability list.",
+            })
     for raw_grade, price in (station.get("prices_now") or {}).items():
         row["evidence"].append({
             "grade": canonical_grade(raw_grade), "availability": "UNKNOWN", "kind": "price",
@@ -286,7 +313,7 @@ def build(raw_dir: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--raw-dir", type=Path, default=ROOT.parents[1] / "work" / "pages")
+    parser.add_argument("--raw-dir", type=Path, default=ROOT / "data" / "live")
     parser.add_argument("--output", type=Path, default=ROOT / "data" / "stations.json")
     args = parser.parse_args()
     result = build(args.raw_dir.resolve())

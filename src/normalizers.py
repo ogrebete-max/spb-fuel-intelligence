@@ -42,7 +42,7 @@ def canonical_grade(value: Any) -> str | None:
     return None
 
 
-def _grade_tokens(value: Any) -> list[str]:
+def grade_tokens(value: Any) -> list[str]:
     grades: list[str] = []
     for token in re.split(r"[,;/]", str(value or "")):
         grade = canonical_grade(token)
@@ -201,7 +201,7 @@ def normalize_gdebenz(body: dict[str, Any]) -> list[dict[str, Any]]:
     s = body["station"]
     rec = _station("gdebenz", s["osm_id"], s.get("brand") or s.get("name"), s.get("addr"), s["lat"], s["lon"])
     for report in body.get("recent", []):
-        grades = _grade_tokens(report.get("detail"))
+        grades = grade_tokens(report.get("detail"))
         limit_match = re.search(r"лимит\s*(\d+)\s*л", report.get("detail", ""), re.I)
         queue_match = re.search(r"очередь\s*([^·]+)", report.get("detail", ""), re.I)
         for grade in grades or [None]:
@@ -223,7 +223,7 @@ def normalize_benzas(body: dict[str, Any]) -> list[dict[str, Any]]:
     s = body["station"]
     rec = _station("benzas", s["osm_id"], s.get("brand") or s.get("name"), s.get("addr"), s["lat"], s["lon"])
     for report in body.get("recent", []):
-        for grade in _grade_tokens(report.get("fuels_now") or report.get("detail")) or [None]:
+        for grade in grade_tokens(report.get("fuels_now") or report.get("detail")) or [None]:
             rec["evidence"].append(_evidence(grade, _crowd_status(report.get("status")), "crowd_report", "benzas-crowd", observed_at=report.get("created_at"), independent=True, raw_status=report.get("status")))
     for raw_grade, price in body.get("insight", {}).get("prices", {}).items():
         rec["evidence"].append(_evidence(

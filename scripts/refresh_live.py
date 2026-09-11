@@ -80,8 +80,12 @@ def main() -> int:
     if success == 0:
         return 2
     if not args.skip_build:
-        for script in ("build_snapshot.py", "update_history.py"):
-            completed = subprocess.run([sys.executable, str(ROOT / "scripts" / script)], cwd=ROOT, check=False)
+        stages: tuple[tuple[str, list[str]], ...] = (
+            ("build_snapshot.py", ["--raw-dir", str(OUT_DIR), "--output", str(ROOT / "data" / "stations.json")]),
+            ("update_history.py", []),
+        )
+        for script, extra in stages:
+            completed = subprocess.run([sys.executable, str(ROOT / "scripts" / script), *extra], cwd=ROOT, check=False)
             if completed.returncode:
                 return completed.returncode
     return 0
