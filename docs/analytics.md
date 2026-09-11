@@ -1,26 +1,21 @@
-# Usage analytics
+# Аналитика использования
 
-Usage analytics is mandatory for the deployed application, but must not turn
-fuel searches into personal tracking.
+## Что собирается сейчас
 
-## What the owner sees
+**Ничего.** На опубликованной странице нет счётчиков, трекеров и сторонних скриптов. Единственные сетевые зависимости — тайлы OpenStreetMap и, только по явному нажатию «Найти рядом», один запрос к Nominatim. Геолокация запрашивается исключительно по кнопке «Рядом со мной» и никуда не отправляется: радиус считается в браузере.
 
-- privacy-preserving visitors and page views;
-- installations of the web app;
-- searches near a place, opening the map, and refresh success/failure;
-- aggregate demand only for `spb`, `lo`, and `spb_lo`.
+Раньше здесь был план на Cloudflare Pages Analytics, но сайт раздаётся с GitHub Pages, и ничего из этого не подключено. Документ приведён в соответствие с фактом.
 
-Exact address text, GPS coordinates, IP addresses and advertising identifiers
-are not product analytics fields.
+## Если аналитика понадобится
 
-## Free deployment
+Для раздачи знакомым она не нужна. Она станет осмысленной, когда появятся вопросы «какими марками пользуются» или «как часто ломаются источники». Тогда:
 
-Cloudflare Pages Web Analytics is the default for visitors/page views. It is
-enabled from the Pages dashboard and is privacy-first. Product events will be
-sent to a small Cloudflare Worker and stored as daily aggregates in D1 or
-Analytics Engine. This avoids a paid third-party analytics service and gives a
-clear capacity signal before any plan change.
+- считать посещения и установки приложения без привязки к личности;
+- считать продуктовые события: поиск рядом, открытие карты, успех и отказ обновления;
+- агрегировать спрос только до уровня `spb`, `lo`, `spb_lo`.
 
-For 10–20 users the free tier has ample capacity. Review the dashboard weekly:
-daily unique visitors, searches per visitor, refresh failure rate, and Worker
-requests. Do not automatically upgrade; only do so from measured use.
+Текст адреса, координаты, IP-адреса и рекламные идентификаторы продуктовыми полями не являются и в аналитику не попадают ни при каком варианте.
+
+## Что уже можно измерить без аналитики
+
+Надёжность источников видна и так: результат каждого коллектора публикуется в `static-data/collectors.json`, а `static-data/meta.json` содержит число карточек, записей и строк по каждому источнику в последнем снимке. История прогонов доступна на вкладке Actions.
