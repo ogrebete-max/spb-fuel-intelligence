@@ -47,3 +47,21 @@ jobs:
           path: site
           retention-days: 2
           compression-level: 9
+
+      - name: Check out public deployment repository
+        uses: actions/checkout@v5
+        with:
+          repository: ogrebete-max/spb-fuel-intelligence-site
+          ssh-key: ${{ secrets.SITE_DEPLOY_KEY }}
+          path: public-site
+
+      - name: Publish fresh mobile map
+        run: |
+          rsync -a --delete --exclude .git/ site/ public-site/
+          cd public-site
+          git config user.name "spb-fuel-bot"
+          git config user.email "spb-fuel-bot@users.noreply.github.com"
+          git add --all
+          git diff --cached --quiet && exit 0
+          git commit -m "Update public fuel map"
+          git push origin main
