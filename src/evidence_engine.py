@@ -264,6 +264,11 @@ def evaluate_grade(
     ]
     official_positive = [item for item in positives if item.row.get("kind") == "official_stock"]
     official_negative = [item for item in negatives if item.row.get("kind") == "official_stock"]
+    # A relay carries the network's own stock feed one hop removed.  Its content
+    # is official, only its delivery is not, so it answers like the direct
+    # source but says so and never scores as high.
+    relay_positive = [item for item in positives if item.row.get("kind") == "official_relay"]
+    relay_negative = [item for item in negatives if item.row.get("kind") == "official_relay"]
 
     independent_positive = {item.cluster for item in positives if item.row.get("independent") is True}
     independent_negative = {item.cluster for item in negatives if item.row.get("independent") is True}
@@ -295,6 +300,12 @@ def evaluate_grade(
     elif official_negative:
         status = "CONFIRMED_NO"
         reason = "Официальный station-level источник сообщил отсутствие остатка."
+    elif relay_positive:
+        status = "CAN_REFUEL"
+        reason = "Ретранслятор официальной ленты сети сообщил доступный остаток."
+    elif relay_negative:
+        status = "CONFIRMED_NO"
+        reason = "Ретранслятор официальной ленты сети сообщил отсутствие остатка."
     elif len(independent_positive) >= 2:
         status = "CAN_REFUEL"
         reason = "Наличие подтверждено двумя независимыми свежими provenance-кластерами."
@@ -314,6 +325,10 @@ def evaluate_grade(
     newest = max((item.observed_at for item in fresh if item.observed_at), default=None)
     agreeing = independent_positive if status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"} else independent_negative
     trust_score, trust_tier, trust_reason = _trust_score(status, fresh, len(agreeing), current_time)
+    if (relay_positive or relay_negative) and not (official_positive or official_negative):
+        # A relayed answer is never as strong as reading the source directly.
+        trust_score = min(trust_score, 90)
+        trust_tier = "conflict" if status == "CONFLICT" else "high" if trust_score >= 75 else "moderate" if trust_score >= 45 else "low"
     if disagreement:
         side = "отрицательный" if disagreement["side"] == "negative" else "положительный"
         reason += f" Более слабый {side} сигнал ({disagreement['count']} шт.) учтён, но не перевесил."

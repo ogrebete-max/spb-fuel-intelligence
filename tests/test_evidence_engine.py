@@ -31,6 +31,37 @@ class EvidenceEngineTests(unittest.TestCase):
         result = evaluate_grade([row("AVAILABLE", age_minutes=5 * 60)], "AI95", now=NOW)
         self.assertEqual(result["status"], "NO_FRESH_DATA")
 
+    def test_official_relay_answers_like_the_source_but_scores_lower(self):
+        direct = evaluate_grade([row("AVAILABLE", kind="official_stock", cluster="gazpromneft-official")], "AI95", now=NOW)
+        relay = evaluate_grade([row("AVAILABLE", kind="official_relay", cluster="gazpromneft-official")], "AI95", now=NOW)
+        self.assertEqual(relay["status"], "CAN_REFUEL")
+        self.assertIn("Ретранслятор", relay["reason"])
+        self.assertLessEqual(relay["trust_score"], 90)
+        self.assertLess(relay["trust_score"], direct["trust_score"])
+
+    def test_a_relay_and_its_source_are_not_two_confirmations(self):
+        result = evaluate_grade([
+            row("AVAILABLE", kind="official_stock", cluster="gazpromneft-official"),
+            row("AVAILABLE", kind="official_relay", cluster="gazpromneft-official"),
+        ], "AI95", now=NOW)
+        self.assertEqual(result["independent_agreeing_count"], 1)
+        self.assertEqual(result["fresh_provenance_count"], 1)
+
+    def test_a_weak_opposing_signal_is_a_footnote_not_a_conflict(self):
+        result = evaluate_grade([
+            row("AVAILABLE", kind="official_stock", cluster="gazpromneft-official"),
+            row("LIKELY_NOT", kind="payment_prediction", cluster="mixed-bank-payments", independent=False),
+        ], "AI95", now=NOW)
+        self.assertEqual(result["status"], "CAN_REFUEL")
+        self.assertEqual(result["disagreement"]["side"], "negative")
+
+    def test_comparable_opposing_signals_still_conflict(self):
+        result = evaluate_grade([
+            row("AVAILABLE", kind="crowd_report", cluster="crowd-a"),
+            row("NOT_AVAILABLE", kind="crowd_report", cluster="crowd-b"),
+        ], "AI95", now=NOW)
+        self.assertEqual(result["status"], "CONFLICT")
+
     def test_official_stock_is_confirmation(self):
         result = evaluate_grade([row("AVAILABLE", kind="official_stock", cluster="official")], "AI95", now=NOW)
         self.assertEqual(result["status"], "CAN_REFUEL")
