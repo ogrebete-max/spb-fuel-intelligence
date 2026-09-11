@@ -28,7 +28,13 @@ BROWSER_UA = (
 )
 ENDPOINTS = (
     ("sber-full-aoi", f"https://sberazs.ru/api/stations?bbox={AOI_WSEN}", "https://sberazs.ru/"),
-    ("gdebenz-full-aoi", "https://gdebenz.ru/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10", "https://gdebenz.ru/"),
+    # gdebenz.org is a live mirror of the same service; it is tried only when
+    # the primary host fails, so a single bad host does not cost a whole
+    # provenance cluster for that refresh.
+    ("gdebenz-full-aoi", (
+        "https://gdebenz.ru/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10",
+        "https://gdebenz.org/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10",
+    ), "https://gdebenz.ru/"),
     ("benzas-full-aoi", "https://benzas.ru/api/stations?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10", "https://benzas.ru/"),
     ("benzas-comments-full-aoi", "https://benzas.ru/api/comments?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10", "https://benzas.ru/"),
     ("benzinest-full-aoi", f"https://benzinest.ru/api/stations?bbox={AOI_SWNE}", "https://benzinest.ru/"),
@@ -69,24 +75,32 @@ def _write_atomic(target: Path, payload: Any) -> int:
     return len(text.encode("utf-8"))
 
 
-def fetch_one(name: str, url: str, referer: str) -> dict[str, Any]:
+def fetch_one(name: str, url: str | tuple[str, ...], referer: str) -> dict[str, Any]:
     started = datetime.now(timezone.utc)
     target = OUT_DIR / f"{name}.json"
     temporary = target.with_suffix(".next.json")
     headers = {"Accept": "application/json", "Referer": referer, "User-Agent": BROWSER_UA}
-    try:
-        request = Request(url, headers=headers)
-        with urlopen(request, timeout=75) as response:
-            body = response.read()
-            status = getattr(response, "status", 200)
-        parsed = json.loads(body.decode("utf-8"))
-        size = _write_atomic(target, parsed)
-        return _result(name, started, ok=size >= MIN_BYTES, status=status, size=size,
-                       error=None if size >= MIN_BYTES else "empty payload")
-    except (HTTPError, URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        temporary.unlink(missing_ok=True)
-        return _result(name, started, ok=False, status=getattr(exc, "code", 0),
-                       size=target.stat().st_size if target.exists() else 0, error=str(exc))
+    candidates = (url,) if isinstance(url, str) else tuple(url)
+    failures: list[str] = []
+    last_status: Any = 0
+    for candidate in candidates:
+        try:
+            request = Request(candidate, headers=headers)
+            with urlopen(request, timeout=75) as response:
+                body = response.read()
+                last_status = getattr(response, "status", 200)
+            parsed = json.loads(body.decode("utf-8"))
+            size = _write_atomic(target, parsed)
+            if size < MIN_BYTES:
+                failures.append(f"{candidate}: empty payload")
+                continue
+            return _result(name, started, ok=True, status=last_status, size=size, error=None)
+        except (HTTPError, URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            temporary.unlink(missing_ok=True)
+            last_status = getattr(exc, "code", 0)
+            failures.append(f"{candidate}: {exc}")
+    return _result(name, started, ok=False, status=last_status,
+                   size=target.stat().st_size if target.exists() else 0, error="; ".join(failures))
 
 
 def run_collector(name: str) -> dict[str, Any]:
