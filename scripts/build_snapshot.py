@@ -20,9 +20,11 @@ from typing import Any, Callable
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from src.evidence_engine import parse_time  # noqa: E402
 from src.normalizers import (  # noqa: E402
     canonical_grade,
     grade_tokens,
+    normalize_benzinradar,
     normalize_gazpromneft,
     normalize_benzinest,
     normalize_benzonavt,
@@ -30,11 +32,22 @@ from src.normalizers import (  # noqa: E402
     normalize_fixture,
     normalize_gdebenzin,
     normalize_sber,
-    normalize_teboil,
     normalize_toplivo,
     normalize_tutbenz,
 )
+from src.sources_live import (  # noqa: E402
+    normalize_gdezapravka,
+    normalize_kirishi_live,
+    normalize_rosneft_live,
+    normalize_tatneft_live,
+    normalize_teboil_live,
+    normalize_telegram_post,
+    normalize_tofuel,
+)
 from src.station_matcher import merge_stations  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "scripts"))
+from collectors import parse_moscow_confirmation  # noqa: E402
 
 
 AOI = {"west": 29.50, "south": 59.60, "east": 31.10, "north": 60.35}
@@ -246,10 +259,64 @@ def build(raw_dir: Path) -> dict[str, Any]:
         benzas_rows.append(normalize_benzas(body)[0])
     add_rows(rows, counts, benzas_rows, time_for("benzas-comments-full-aoi"))
 
-    teboil_groups = []
-    for file_name in ("teboil-spb.json", "teboil-lo.json"):
-        teboil_groups.extend((read_json(raw_dir / file_name, {}) or {}).get("data", []))
-    add_rows(rows, counts, normalize_teboil({"data": teboil_groups}), snapshot_at)
+    tofuel = read_json(raw_dir / "tofuel-full-aoi.json", {}) or {}
+    tofuel_at = tofuel.get("captured_at") or snapshot_at
+    add_rows(rows, counts, [row for item in tofuel.get("stations", []) for row in normalize_tofuel(item)], tofuel_at)
+
+    gdezapravka = read_json(raw_dir / "gdezapravka-full-aoi.json", {}) or {}
+    gdezapravka_at = gdezapravka.get("captured_at") or snapshot_at
+    add_rows(
+        rows, counts,
+        [row for item in gdezapravka.get("stations", []) for row in normalize_gdezapravka(item, gdezapravka_at)],
+        gdezapravka_at,
+    )
+
+    # The channel republishes driver confirmations with an explicit "last
+    # confirmed at" line, which is a better observation time than the post time.
+    telegram = read_json(raw_dir / "telegram-benzinspb78.json", {}) or {}
+    telegram_at = telegram.get("captured_at") or snapshot_at
+    telegram_reference = parse_time(telegram_at) or datetime.now(timezone.utc)
+    telegram_rows = []
+    for post in telegram.get("posts", []):
+        confirmed = parse_moscow_confirmation(str(post.get("text") or ""), reference=telegram_reference)
+        telegram_rows.extend(normalize_telegram_post(post, observed_at=confirmed))
+    add_rows(rows, counts, telegram_rows, telegram_at)
+
+    teboil = read_json(raw_dir / "teboil-official.json", {}) or {}
+    teboil_rows = [
+        row
+        for group in teboil.get("data", [])
+        for shop in group.get("shops", [])
+        for row in normalize_teboil_live(shop)
+    ]
+    add_rows(rows, counts, teboil_rows, teboil.get("captured_at") or snapshot_at)
+
+    kirishi = read_json(raw_dir / "kirishi-official.json", {}) or {}
+    add_rows(
+        rows, counts,
+        [row for marker in kirishi.get("markers", []) for row in normalize_kirishi_live(marker)],
+        kirishi.get("captured_at") or snapshot_at,
+    )
+
+    tatneft = read_json(raw_dir / "tatneft-azs.json", {}) or {}
+    tatneft_types = ((read_json(raw_dir / "tatneft-fuel-types.json", {}) or {}).get("data") or {}).get("items", [])
+    tatneft_titles = {item.get("id"): item.get("title") for item in tatneft_types}
+    add_rows(
+        rows, counts,
+        [row for item in tatneft.get("data", []) for row in normalize_tatneft_live(item, tatneft_titles)],
+        time_for("tatneft-azs"),
+    )
+
+    rosneft = (read_json(raw_dir / "rosneft-stations.json", {}) or {}).get("data") or {}
+    rosneft_updated = rosneft.get("prices_update_date")
+    add_rows(
+        rows, counts,
+        [row for item in rosneft.get("stations", []) for row in normalize_rosneft_live(item, updated=rosneft_updated)],
+        time_for("rosneft-stations"),
+    )
+
+    benzinradar = read_json(raw_dir / "benzinradar-full-aoi.json", []) or []
+    add_rows(rows, counts, normalize_benzinradar(benzinradar, time_for("benzinradar-full-aoi")), time_for("benzinradar-full-aoi"))
 
     toplivo = read_json(raw_dir / "toplivo-data.json", {}) or {}
     direct_rows = [normalize_toplivo({"direct_station": item})[0] for item in toplivo.get("stations", []) if in_aoi(item.get("la"), item.get("lo"))]

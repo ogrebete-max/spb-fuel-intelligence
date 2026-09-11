@@ -19,16 +19,33 @@ def _text(value: Any) -> str:
     return re.sub(r"[^a-zа-я0-9]+", " ", value).strip()
 
 
+# Sources spell the same brand as "GPN", "Газпромнефть", "Газпромнефть, АЗС"
+# and "Газпром нефть".  Matching on the raw string leaves one physical station
+# split across several cards, so brands are folded to a single key.
+BRAND_KEYS: tuple[tuple[str, str], ...] = (
+    ("газпромнефт", "gazpromneft"), ("газпромнефть", "gazpromneft"), ("газпромнефт", "gazpromneft"),
+    ("gazpromneft", "gazpromneft"), ("gpn", "gazpromneft"),
+    ("лукойл", "lukoil"), ("lukoil", "lukoil"),
+    ("тебойл", "teboil"), ("teboil", "teboil"),
+    ("роснефт", "rosneft"), ("rosneft", "rosneft"),
+    ("киришавтосервис", "kirishi"), ("кириши", "kirishi"), ("kirishi", "kirishi"),
+    ("татнефт", "tatneft"), ("tatneft", "tatneft"),
+    ("нефтьмагистрал", "neftmagistral"), ("несте", "neste"), ("neste", "neste"),
+    ("фаэтон", "faeton"), ("птк", "ptk"), ("shell", "shell"),
+    ("royaloil", "royaloil"), ("benzostyle", "benzostyle"), ("78petrol", "78petrol"),
+    ("трасса", "trassa"), ("сургутнефтегаз", "surgut"), ("газпром", "gazprom"),
+)
+
+
 def _network(value: Any) -> str:
     raw = _text(value)
-    aliases = {
-        "газпром нефть": "газпромнефть",
-        "gpn": "газпромнефть",
-        "лукойл": "lukoil",
-        "тебойл": "teboil",
-        "роснефть": "rosneft",
-    }
-    return aliases.get(raw, raw)
+    compact = re.sub(r"[^a-zа-я0-9]+", "", raw)
+    if not compact:
+        return raw
+    for token, key in BRAND_KEYS:
+        if token in compact:
+            return key
+    return raw
 
 
 def haversine_km(a: dict[str, float], b: dict[str, float]) -> float:
@@ -103,6 +120,21 @@ def is_match(a: dict[str, Any], b: dict[str, Any]) -> tuple[bool, str | None]:
         return False, None
     address_score = _address_similarity(a.get("address"), b.get("address"))
     same_network = _same_network(a.get("network"), b.get("network"))
+    # Aggregators copy the same physical point but write the address very
+    # differently ("Мурино, Оборонная 2" vs "дер. Мурино, ул. Оборонная, д. 2"),
+    # and several of them ship no address at all.  Two rows of the same network
+    # standing on practically the same coordinate are one station; requiring
+    # string similarity there splits a single АЗС into a handful of cards.
+    if distance_m <= 25 and same_network:
+        return True, "network+25m"
+    both_named = (
+        same_network
+        and _network(a.get("network")) not in GENERIC_NETWORKS
+        and _network(b.get("network")) not in GENERIC_NETWORKS
+    )
+    missing_address = not _text(a.get("address")) or not _text(b.get("address"))
+    if distance_m <= 60 and both_named and (missing_address or address_score >= 0.3):
+        return True, "network+60m"
     if distance_m <= 45 and same_network and address_score >= 0.32:
         return True, "network+address+45m"
     if distance_m <= 140 and same_network and address_score >= 0.62:

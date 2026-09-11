@@ -21,6 +21,7 @@ SOURCE_COUNT_KEYS = {
     "rosneft_ptk": "rosneft-ptk",
     "benzinradar_analogue": "benzinradar-analogue",
     "benzin_live_analogue": "benzin-live-analogue",
+    "telegram_benzinspb78": "telegram-benzinspb78",
 }
 
 

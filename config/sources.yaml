@@ -95,7 +95,7 @@ sources:
 
   - id: lukoil
     priority: 5
-    status: RED_NO_REALTIME_DATA
+    status: GREEN_CATALOG_ONLY
     public_url: "https://auto.lukoil.ru/ru/ProductsAndServices/PetrolStations"
     access: "anonymous JSON cartography API"
     endpoints:
@@ -136,7 +136,7 @@ sources:
 
   - id: teboil
     priority: 7
-    status: RED_NO_REALTIME_DATA
+    status: GREEN_CATALOG_ONLY
     public_url: "https://azs.teboil.ru/map/"
     access: "anonymous form POST returning JSON"
     endpoints:
@@ -338,7 +338,7 @@ sources:
 
   - id: rosneft_ptk
     priority: 17
-    status: RED_NO_REALTIME_DATA
+    status: GREEN_CATALOG_ONLY
     public_url: "https://rosneft-azs.ru/"
     access: "anonymous JSON REST"
     endpoints:
@@ -357,7 +357,7 @@ sources:
 
   - id: tatneft
     priority: 18
-    status: RED_NO_REALTIME_DATA
+    status: GREEN_CATALOG_ONLY
     public_url: "https://azs.tatneft.ru/locator"
     access: "anonymous official JSON API"
     endpoints:
@@ -378,7 +378,7 @@ sources:
 
   - id: kirishiavtoservis
     priority: 19
-    status: RED_NO_REALTIME_DATA
+    status: GREEN_CATALOG_ONLY
     public_url: "https://kirishiavtoservis.ru/stations/"
     access: "public HTML with embedded data-markers JSON"
     endpoints:
@@ -454,7 +454,7 @@ sources:
 
   - id: benzinradar_analogue
     priority: 23
-    status: RED_NO_REALTIME_DATA
+    status: GREEN_CATALOG_ONLY
     public_url: "https://benzinradar.ru/"
     access: "anonymous JSON REST"
     endpoints:
@@ -490,3 +490,63 @@ sources:
     polling: "disabled"
     collector_ready: false
     reason: "Both live endpoints returned HTTP 500 because the public Cloudflare D1 daily read quota was exhausted."
+
+  - id: tofuel
+    priority: 25
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://tofuel.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://tofuel.ru/api/stations?region={region}&limit=5000"
+      - "GET https://tofuel.ru/api/stations/{stationId}"
+    auth: "none"
+    geo_query: "region name in Russian; Saint Petersburg and Leningrad oblast are separate calls"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "per-grade availability with votes, confidence, probability and lastReportAt"
+    fields: [station_id, coordinates, address, brand, grade, availability, price, votes, confidence, probability, last_report_at]
+    upstream: "own votes mixed with three third-party provider feeds"
+    independence: "dependent aggregator; provider1/2/3 are not disclosed"
+    polling: "10 minutes"
+    collector_ready: true
+    reason: "Live call returned 582 AOI stations with per-grade availability and a per-grade report timestamp."
+
+  - id: gdezapravka
+    priority: 26
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://gdezapravka.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://gdezapravka.ru/api/stations?bbox={south},{west},{north},{east}"
+      - "GET https://gdezapravka.ru/api/stations/{stationId}"
+    auth: "none"
+    geo_query: "bbox, latitude first; the response is silently truncated at 500 rows so the AOI is tiled"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "available_fuels list plus confidence, fresh report count, queue bucket and report age"
+    fields: [station_id, coordinates, address, brand, status, available_fuels, catalog_fuels, confidence, fresh_count, queue_bucket, last_report_age_ms]
+    upstream: "own driver community over an OSM station base"
+    independence: "own crowd cluster"
+    polling: "10 minutes"
+    collector_ready: true
+    reason: "Tiled AOI collection returned 829 stations with per-grade availability and report ages down to two minutes."
+
+  - id: telegram_benzinspb78
+    priority: 27
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://t.me/s/benzinspb78"
+    access: "public web preview of a public channel; no account and no Bot API token"
+    endpoints:
+      - "GET https://t.me/s/benzinspb78"
+      - "GET https://t.me/s/benzinspb78?before={messageId}"
+    auth: "none"
+    geo_query: "each card links to Yandex Maps with exact pt=lon,lat coordinates"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "driver confirmations: grades, queue bucket, litre limit, prices and an explicit last-confirmation time"
+    fields: [network, address, coordinates, grades, queue, limit_liters, prices, confirmed_at, confirmation_count]
+    upstream: "readers of the channel's own chat"
+    independence: "own crowd cluster, separate from the map aggregators"
+    polling: "10 minutes, six pages back"
+    collector_ready: true
+    reason: "Six pages returned 103 structured station cards; only positive availability is published, so it never produces a negative."

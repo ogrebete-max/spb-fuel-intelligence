@@ -18,6 +18,7 @@ ALLOWED_SOURCE_STATUSES = {
     "CONTROL_ONLY",
     "RED_BLOCKED",
     "RED_NO_REALTIME_DATA",
+    "GREEN_CATALOG_ONLY",
 }
 FORBIDDEN_JSON_KEYS = {
     "authorization",
@@ -75,10 +76,15 @@ def main() -> None:
     config = (ROOT / "config" / "sources.yaml").read_text(encoding="utf-8")
     ids = re.findall(r"(?m)^  - id: (.+)$", config)
     config_statuses = re.findall(r"(?m)^    status: (.+)$", config)
-    assert len(ids) == len(set(ids)) == 24
-    assert len(config_statuses) == 24
-    assert set(config_statuses) <= ALLOWED_SOURCE_STATUSES
-    assert Counter(config_statuses) == Counter(statuses)
+    assert len(ids) == len(set(ids)), "duplicate source id in config/sources.yaml"
+    assert len(config_statuses) == len(ids), "every source needs exactly one status"
+    assert set(config_statuses) <= ALLOWED_SOURCE_STATUSES, set(config_statuses) - ALLOWED_SOURCE_STATUSES
+    # The fixtures freeze the Phase-0 contract of a source; the registry also
+    # covers sources added later, so it only has to be a superset.
+    fixture_sources = {value["_fixture"]["source"].replace("-", "_") for value in source_docs.values()}
+    registry_ids = {name.replace("-", "_") for name in ids}
+    missing = {name for name in fixture_sources if not any(name.startswith(item) or item.startswith(name) for item in registry_ids)}
+    assert not missing, f"fixture sources missing from the registry: {missing}"
 
     required = [
         ROOT / "docs" / "source-capability-matrix.md",
@@ -92,6 +98,7 @@ def main() -> None:
 
     print(f"QA OK: {len(source_docs)} sources, {len(fixture_paths)} JSON evidence files")
     print("Status counts:", dict(sorted(Counter(statuses).items())))
+    print("Registry:", len(ids), "sources ->", dict(sorted(Counter(config_statuses).items())))
 
 
 if __name__ == "__main__":

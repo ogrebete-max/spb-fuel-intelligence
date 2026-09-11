@@ -46,6 +46,10 @@ TTL_SECONDS = {
     "undated_crowd_summary": 30 * 60,
 }
 
+# How much stronger one side has to be before the weaker opposing signal stops
+# counting as a conflict and becomes a footnote.
+DECISIVE_STRENGTH_GAP = 25
+
 KIND_STRENGTH = {
     "official_stock": 100,
     "realtime_status": 80,
@@ -262,6 +266,21 @@ def evaluate_grade(
     independent_positive = {item.cluster for item in positives if item.row.get("independent") is True}
     independent_negative = {item.cluster for item in negatives if item.row.get("independent") is True}
 
+    # With a dozen aggregators on one card a single weak negative would turn
+    # almost every station into "данные расходятся".  Opposing signals are only
+    # a real conflict when they carry comparable weight; a clearly weaker one
+    # is reported as a disagreement instead of erasing the answer.
+    disagreement: dict[str, Any] | None = None
+    if positives and negatives and not (official_positive and official_negative):
+        best_positive = max(item.strength for item in positives)
+        best_negative = max(item.strength for item in negatives)
+        if best_positive - best_negative >= DECISIVE_STRENGTH_GAP:
+            disagreement = {"side": "negative", "count": len(negatives), "strength": best_negative}
+            negatives, independent_negative, official_negative = [], set(), []
+        elif best_negative - best_positive >= DECISIVE_STRENGTH_GAP:
+            disagreement = {"side": "positive", "count": len(positives), "strength": best_positive}
+            positives, independent_positive, official_positive = [], set(), []
+
     if (positives and negatives) or (official_positive and official_negative):
         status = "CONFLICT"
         reason = "Свежие источники с разным provenance дают противоположные сигналы."
@@ -293,6 +312,12 @@ def evaluate_grade(
     newest = max((item.observed_at for item in fresh if item.observed_at), default=None)
     agreeing = independent_positive if status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"} else independent_negative
     trust_score, trust_tier, trust_reason = _trust_score(status, fresh, len(agreeing), current_time)
+    if disagreement:
+        side = "отрицательный" if disagreement["side"] == "negative" else "положительный"
+        reason += f" Более слабый {side} сигнал ({disagreement['count']} шт.) учтён, но не перевесил."
+        trust_score = max(1, round(trust_score * 0.85))
+        trust_tier = "conflict" if status == "CONFLICT" else "high" if trust_score >= 75 else "moderate" if trust_score >= 45 else "low"
+        trust_reason += "; есть более слабый противоположный сигнал"
     # A static build freezes the answer at build time.  Publishing the TTL of
     # the signal the answer rests on lets the page expire it in the browser
     # instead of pretending the whole snapshot ages at one rate.
@@ -325,6 +350,7 @@ def evaluate_grade(
         "trust_score": trust_score,
         "trust_tier": trust_tier,
         "trust_label": TRUST_LABELS[trust_tier],
+        "disagreement": disagreement,
         "trust_reason": trust_reason,
         "source_count": len({str(item.row.get("source") or item.cluster) for item in deduped}),
         "fresh_source_count": len({str(item.row.get("source") or item.cluster) for item in fresh}),
