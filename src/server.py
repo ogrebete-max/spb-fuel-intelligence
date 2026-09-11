@@ -9,6 +9,7 @@ import json
 import mimetypes
 from pathlib import Path
 import subprocess
+import sys
 import threading
 import time
 from urllib.error import HTTPError, URLError
@@ -22,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT / "web"
 DATA_PATH = ROOT / "data" / "stations.json"
 HISTORY_PATH = ROOT / "data" / "history.json"
-REFRESH_SCRIPT = ROOT / "scripts" / "refresh-live.ps1"
+REFRESH_SCRIPT = ROOT / "scripts" / "refresh_live.py"
 REFRESH_COOLDOWN_SECONDS = 4 * 60
 GEOCODE_ENDPOINT = "https://nominatim.openstreetmap.org/search"
 AOI = {"west": 29.50, "south": 59.60, "east": 31.10, "north": 60.35}
@@ -215,11 +216,10 @@ class AppHandler(BaseHTTPRequestHandler):
                 self._error(HTTPStatus.TOO_MANY_REQUESTS, f"Повторное обновление доступно через {wait_seconds} сек.")
                 return
             attempted = True
+            # The same collector the scheduled job runs, so the local button and
+            # the published snapshot can never drift apart.
             completed = subprocess.run(
-                [
-                    "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
-                    "-File", str(REFRESH_SCRIPT),
-                ],
+                [sys.executable, str(REFRESH_SCRIPT)],
                 cwd=ROOT,
                 capture_output=True,
                 text=True,

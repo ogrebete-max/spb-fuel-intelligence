@@ -1,8 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$bundledPython = 'C:\Users\Я\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
-$python = if (Test-Path -LiteralPath $bundledPython) { $bundledPython } else { 'python' }
+$python = 'python'
 
 Set-Location -LiteralPath $projectRoot
 Write-Host 'SPB Fuel Intelligence запускается на http://127.0.0.1:8765' -ForegroundColor Green
