@@ -32,11 +32,12 @@ from src.normalizers import (  # noqa: E402
     normalize_fixture,
     normalize_gdebenzin,
     normalize_sber,
-    normalize_toplivo,
     normalize_tutbenz,
 )
 from src.sources_live import (  # noqa: E402
     normalize_gdezapravka,
+    normalize_toplivo_direct,
+    parse_moscow_file_time,
     normalize_kirishi_live,
     normalize_rosneft_live,
     normalize_tatneft_live,
@@ -319,8 +320,13 @@ def build(raw_dir: Path) -> dict[str, Any]:
     add_rows(rows, counts, normalize_benzinradar(benzinradar, time_for("benzinradar-full-aoi")), time_for("benzinradar-full-aoi"))
 
     toplivo = read_json(raw_dir / "toplivo-data.json", {}) or {}
-    direct_rows = [normalize_toplivo({"direct_station": item})[0] for item in toplivo.get("stations", []) if in_aoi(item.get("la"), item.get("lo"))]
-    add_rows(rows, counts, direct_rows, snapshot_at)
+    toplivo_updated = parse_moscow_file_time(toplivo.get("updated")) or time_for("toplivo-data")
+    direct_rows = [
+        row
+        for item in toplivo.get("stations", []) if in_aoi(item.get("la"), item.get("lo"))
+        for row in normalize_toplivo_direct(item, updated_at=toplivo_updated)
+    ]
+    add_rows(rows, counts, direct_rows, time_for("toplivo-data"))
     predictions = read_json(raw_dir / "toplivo-predict.json", {}) or {}
     add_rows(rows, counts, [prediction_row(item) for item in predictions.get("stations", []) if in_aoi(item.get("la"), item.get("lo"))], snapshot_at)
 

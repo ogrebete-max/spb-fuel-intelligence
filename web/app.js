@@ -20,7 +20,7 @@ const AVAILABILITY_LABELS = {
   LIMITED: 'Ограничение', QUEUE: 'Очередь', UNKNOWN: 'Неизвестно',
 };
 const KIND_LABELS = {
-  official_stock: 'официальный остаток', realtime_status: 'текущий статус', crowd_report: 'сообщение водителя',
+  official_stock: 'официальный остаток', official_relay: 'официальный остаток через ретранслятор', realtime_status: 'текущий статус', crowd_report: 'сообщение водителя',
   crowd_status: 'сообщения водителей', parsed_status: 'распознанный статус', aggregated_status: 'агрегированный статус',
   imported_status: 'импортированный статус', payment_projection: 'прогноз по платежам', payment_prediction: 'прогноз по активности',
   network_claim_aggregated: 'сводный сигнал сети', undated_crowd_summary: 'недатированный сигнал', price: 'цена',
@@ -213,6 +213,12 @@ function localizeNote(note) {
   if (!note) return '';
   const value = String(note);
   if (/not a stock guarantee/i.test(value)) return 'Прогноз по платежной и каталожной активности, не гарантия физического остатка.';
+  if (/relay of the official/i.test(value)) return 'Ретрансляция официальной ленты «Газпромнефти» сторонним сервисом, а не прямое чтение.';
+  if (/Aggregated network claim/i.test(value)) return 'Сводное заявление сети; как официальное подтверждено только для «Газпромнефти».';
+  if (/missing from the current availability list/i.test(value)) return 'Марка продаётся здесь, но её нет в текущем списке доступного топлива.';
+  if (/does not state current stock/i.test(value)) return 'Официальная лента цен; текущий остаток она не сообщает.';
+  if (/Configured assortment/i.test(value)) return 'Штатный ассортимент, а не текущий остаток.';
+  if (/republished by the channel/i.test(value)) return 'Подтверждения водителей из канала, а не официальное чтение остатка.';
   if (/not proof of a specific grade/i.test(value)) return 'Платёж не доказывает наличие конкретной марки топлива.';
   if (/provenance is separate from availability/i.test(value)) return 'Источник цены не подтверждает наличие топлива.';
   return value;

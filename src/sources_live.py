@@ -231,3 +231,54 @@ def normalize_telegram_post(post: dict[str, Any], *, observed_at: str | None = N
             note="Driver confirmations republished by the channel; not an official stock reading.",
         ))
     return [rec]
+
+
+# tboo.ru/gpn relays the Gazpromneft feed itself.  The official endpoint is
+# reachable from a home connection but times out from data-centre addresses, so
+# without this relay the published snapshot loses its only official signal.  It
+# stays in the same provenance cluster as the direct source, so a relay and the
+# original can never be counted as two independent confirmations.
+GPN_RELAY_BRANDS = {"GPN"}
+
+
+def normalize_toplivo_direct(station: dict[str, Any], *, updated_at: str | None) -> list[dict[str, Any]]:
+    brand = str(station.get("b") or "")
+    is_relay = brand in GPN_RELAY_BRANDS
+    rec = _station(
+        "toplivo-ryadom",
+        f"{brand}:{station.get('n')}:{station.get('la')}:{station.get('lo')}",
+        brand, station.get("a"), station.get("la"), station.get("lo"),
+    )
+    for fuel in station.get("f") or []:
+        if len(fuel) < 3:
+            continue
+        raw_grade, raw_price, raw_available = fuel[0], fuel[1], fuel[2]
+        rec["evidence"].append(_evidence(
+            canonical_grade(raw_grade),
+            "AVAILABLE" if raw_available == 1 else "NOT_AVAILABLE",
+            "official_relay" if is_relay else "network_claim_aggregated",
+            "gazpromneft-official" if is_relay else f"toplivo-network:{brand}",
+            # The per-grade timestamps in this feed are price and payment times;
+            # the availability flags are as of the file's own update time.
+            observed_at=updated_at if is_relay else station.get("pt"),
+            price=raw_price, independent=is_relay, raw_status=raw_available,
+            note=(
+                "Third-party relay of the official Gazpromneft feed, not a direct reading."
+                if is_relay else
+                "Aggregated network claim, cross-verified as official only for Gazpromneft."
+            ),
+        ))
+    return [rec]
+
+
+def parse_moscow_file_time(value: Any) -> str | None:
+    """Parse the feed header "12.09.2026 00:00" as Moscow time into UTC."""
+    match = re.match(r"\s*(\d{2})\.(\d{2})\.(\d{4})\s+(\d{1,2}):(\d{2})", str(value or ""))
+    if not match:
+        return None
+    day, month, year, hour, minute = (int(part) for part in match.groups())
+    try:
+        moscow = datetime(year, month, day, hour, minute, tzinfo=timezone(timedelta(hours=3)))
+    except ValueError:
+        return None
+    return moscow.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")

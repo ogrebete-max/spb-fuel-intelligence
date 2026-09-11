@@ -24,12 +24,12 @@ HEADERS = {
 }
 
 
-def post_json(url: str, *, attempts: int = 3) -> tuple[dict, int]:
+def post_json(url: str, *, attempts: int = 3, timeout: int = 35) -> tuple[dict, int]:
     last_error: Exception | None = None
     for attempt in range(attempts):
         request = Request(url, data=b"{}", headers=HEADERS, method="POST")
         try:
-            with urlopen(request, timeout=35) as response:
+            with urlopen(request, timeout=timeout) as response:
                 return json.loads(response.read().decode("utf-8")), response.status
         except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
             last_error = exc
@@ -59,7 +59,9 @@ def main() -> int:
     args = parser.parse_args()
 
     started = datetime.now(timezone.utc)
-    listing, list_status = post_json(LIST_URL)
+    # The WAF silently drops connections from data-centre addresses instead of
+    # answering, so a long retry ladder here only burns runner minutes.
+    listing, list_status = post_json(LIST_URL, attempts=2, timeout=20)
     stations = sorted((row for row in listing.get("stations", []) if in_aoi(row)), key=lambda row: str(row["GPNAZSID"]))
     details: list[dict] = []
     errors: list[dict] = []

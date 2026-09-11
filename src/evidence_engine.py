@@ -33,6 +33,7 @@ TTL_SECONDS = {
     # This product answers “can I refuel now?”.  A five-hour-old report is
     # useful history but not a current station-level answer.
     "official_stock": 30 * 60,
+    "official_relay": 30 * 60,
     "realtime_status": 30 * 60,
     "crowd_report": 45 * 60,
     "crowd_status": 45 * 60,
@@ -52,6 +53,7 @@ DECISIVE_STRENGTH_GAP = 25
 
 KIND_STRENGTH = {
     "official_stock": 100,
+    "official_relay": 85,
     "realtime_status": 80,
     "crowd_report": 70,
     "parsed_status": 60,
