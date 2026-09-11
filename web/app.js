@@ -29,7 +29,7 @@ const KIND_LABELS = {
 
 const state = {
   grade: 'AI95', area: 'all', view: 'list', search: '', sort: 'status',
-  status: null, timeline: null, location: null, bbox: null, meta: null, stations: [], map: null,
+  status: null, timeline: null, location: null, bbox: null, meta: null, stations: [], visible: 0, map: null,
   markers: null, request: 0,
   staticMode: document.querySelector('meta[name="spbfi-static-site"]')?.content === 'true',
   searchScope: null, radiusKm: 5, searchLabel: null,
@@ -236,7 +236,10 @@ function renderMeta() {
   const stats = state.meta.stats || {};
   const baseline = Number((stats.source_rows || {}).sber || 0);
   $('#snapshotCard').innerHTML = `<span class="pulse ${stale ? 'stale' : ''}"></span><span><strong>${title}</strong><small>${subtitle} · ${Number(stats.canonical_stations).toLocaleString('ru-RU')} карточек</small></span>`;
-  $('#identityNote').textContent = baseline ? `Физический baseline Sber/2GIS: ${baseline.toLocaleString('ru-RU')} точек; лишние карточки не склеиваются без достаточных признаков.` : 'Карточки не объединяются только по близости координат.';
+  const live = Object.keys(stats.source_rows || {}).length;
+  $('#identityNote').textContent = baseline
+    ? `${live} источников в этом снимке; записи одной сети на одной точке объединены, остальные не склеиваются без достаточных признаков. Физический baseline Sber/2GIS: ${baseline.toLocaleString('ru-RU')} точек.`
+    : 'Карточки не объединяются только по близости координат.';
   const refresh = $('#refreshButton');
   if (state.staticMode || state.meta.mode === 'static_github_pages') {
     refresh.textContent = 'Автообновление: 10 мин';
@@ -252,6 +255,10 @@ function bindControls() {
     $('#installButton').hidden = false;
   });
   window.addEventListener('appinstalled', () => { installPrompt = null; $('#installButton').hidden = true; });
+  // iOS Safari never fires beforeinstallprompt, so the button stays visible
+  // everywhere except inside an already installed window.
+  const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  $('#installButton').hidden = installed;
   $('#installButton').addEventListener('click', async () => {
     if (installPrompt) {
       installPrompt.prompt();
@@ -260,7 +267,7 @@ function bindControls() {
       $('#installButton').hidden = true;
       return;
     }
-    alert('В Safari: «Поделиться» → «На экран Домой». В Chrome: меню браузера → «Установить приложение».');
+    showInstallHelp();
   });
   $('#gradePicker').addEventListener('click', (event) => {
     const button = event.target.closest('[data-grade]');
@@ -333,8 +340,8 @@ async function refreshData() {
   const button = $('#refreshButton');
   button.disabled = true;
   button.textContent = '↻ Получаем данные…';
-  $('#snapshotCard').querySelector('strong').textContent = 'Обновляем 11 каналов';
-  $('#snapshotCard').querySelector('small').textContent = 'обычно 15–60 секунд';
+  $('#snapshotCard').querySelector('strong').textContent = 'Обновляем все каналы';
+  $('#snapshotCard').querySelector('small').textContent = 'обычно 20–90 секунд';
   try {
     const response = await fetch('/api/refresh', { method: 'POST', headers: { 'X-SPBFI-Action': 'refresh', Accept: 'application/json' } });
     const result = await response.json().catch(() => ({}));
@@ -544,14 +551,22 @@ function factsFor(station) {
   return facts.join(' · ');
 }
 
-function renderStations() {
+// A phone should not receive 500 detailed cards at once: the list renders in
+// pages and grows on demand.
+const PAGE_SIZE = 40;
+
+function renderStations({ append = false } = {}) {
   const list = $('#stationList');
   if (!state.stations.length) {
     list.innerHTML = '<div class="empty-state"><strong>Ничего не найдено</strong><br>Измените фильтр или область карты.</div>';
     return;
   }
+  if (!append) state.visible = 0;
+  const from = state.visible;
+  const to = Math.min(state.stations.length, from + PAGE_SIZE);
+  state.visible = to;
   const fragment = document.createDocumentFragment();
-  state.stations.forEach((station) => {
+  state.stations.slice(from, to).forEach((station) => {
     const node = $('#stationTemplate').content.cloneNode(true);
     const status = STATUS[station.grade.status];
     const card = node.querySelector('.station-card');
@@ -571,7 +586,20 @@ function renderStations() {
     node.querySelector('.card-main').addEventListener('click', () => openStation(station.id));
     fragment.appendChild(node);
   });
-  list.replaceChildren(fragment);
+  if (append) {
+    list.querySelector('.list-more')?.remove();
+    list.appendChild(fragment);
+  } else {
+    list.replaceChildren(fragment);
+  }
+  if (state.visible < state.stations.length) {
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'list-more';
+    more.textContent = `Показать ещё ${Math.min(PAGE_SIZE, state.stations.length - state.visible)} из ${(state.stations.length - state.visible).toLocaleString('ru-RU')}`;
+    more.addEventListener('click', () => renderStations({ append: true }));
+    list.appendChild(more);
+  }
 }
 
 function initMap() {
@@ -668,15 +696,52 @@ function closeDrawer() {
   document.body.style.overflow = '';
 }
 
+function showInstallHelp() {
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const steps = iOS
+    ? ['Откройте эту страницу в <b>Safari</b> (в Chrome на iPhone установка недоступна).',
+       'Нажмите кнопку «Поделиться» — квадрат со стрелкой вверх внизу экрана.',
+       'Прокрутите список и выберите <b>«На экран “Домой”»</b>.',
+       'Нажмите «Добавить». Приложение появится на экране как обычная иконка и будет открываться без адресной строки.']
+    : ['Откройте меню браузера (три точки).',
+       'Выберите <b>«Установить приложение»</b> или «Добавить на главный экран».',
+       'Подтвердите установку.'];
+  openDrawer(`<h2>Установить на телефон</h2>
+    <p class="drawer-address">Приложение работает как обычный сайт, но его можно поставить на главный экран: полноэкранный режим и последний загруженный снимок доступны даже без сети.</p>
+    <ol class="install-steps">${steps.map((step) => `<li>${step}</li>`).join('')}</ol>
+    <div class="drawer-status" style="--status-color:#0d5a43"><strong>Что работает офлайн</strong><p>Интерфейс и последний открытый снимок. Свежие статусы появятся, когда снова будет связь — возраст данных всегда показан на карточке.</p></div>`);
+}
+
 function showAbout() {
   openDrawer(`<h2>Что здесь иначе</h2><p class="drawer-address">Приложение не выдаёт отсутствие данных за отсутствие топлива и запоминает изменения по каждой марке.</p><div class="drawer-status" style="--status-color:#0d5a43"><strong>История «не было → появилось»</strong><p>После каждого живого обновления сохраняется статус конкретной АЗС и марки. Переход показывается отдельно от обычного давнего наличия. «Возможное пополнение» — только осторожная интерпретация подтверждённого перехода, а не заявление о бензовозе или количестве литров.</p></div><div class="drawer-status about-secondary" style="--status-color:#7856c7"><strong>Evidence-first</strong><p>Учитываются возраст, тип сигнала, независимость upstream, очередь, лимит и конфликт источников.</p></div><h3 class="section-title">Семь честных состояний</h3><div class="source-list">${Object.values(STATUS).map((item) => `<div class="source-row"><strong style="color:${item.color}">${item.short}</strong></div>`).join('')}</div>`);
 }
+
+const SOURCE_STATUS_LABELS = {
+  GREEN_VERIFIED_HTTP: 'живые статусы',
+  GREEN_VERIFIED_BROWSER: 'живые статусы (браузер)',
+  GREEN_CATALOG_ONLY: 'каталог и цены',
+  CONTROL_ONLY: 'контрольная сверка',
+  YELLOW_NEEDS_KEY: 'нужен ключ',
+  YELLOW_NEEDS_MANUAL_HAR: 'нужен ручной разбор',
+  RED_BLOCKED: 'закрыт',
+  RED_NO_REALTIME_DATA: 'без данных о наличии',
+};
 
 async function showSources() {
   openDrawer('<div class="loading-state">Загружаем реестр источников…</div>');
   try {
     const data = await api('/api/sources');
-    $('#drawerContent').innerHTML = `<h2>Источники</h2><p class="drawer-address">Фактическая классификация Phase 0. GREEN означает проверенный контракт, но не независимость upstream.</p><div class="source-list">${data.sources.map((source) => `<div class="source-row"><strong>${escapeHtml(source.id)}</strong><span>${escapeHtml(source.status || '—')}</span><small>${Number(source.station_rows_in_snapshot || 0).toLocaleString('ru-RU')} строк в снимке</small></div>`).join('')}</div>`;
+    const rows = [...data.sources].sort((a, b) => (b.station_rows_in_snapshot || 0) - (a.station_rows_in_snapshot || 0));
+    const live = rows.filter((source) => source.station_rows_in_snapshot > 0);
+    const idle = rows.filter((source) => !source.station_rows_in_snapshot);
+    const card = (source) => `<div class="source-row"><strong>${escapeHtml(source.id)}</strong><span>${escapeHtml(SOURCE_STATUS_LABELS[source.status] || source.status || '—')}</span><small>${Number(source.station_rows_in_snapshot || 0).toLocaleString('ru-RU')} строк в снимке</small></div>`;
+    $('#drawerContent').innerHTML = `<h2>Источники</h2>
+      <p class="drawer-address">В последнем снимке данные дали <b>${live.length}</b> из ${rows.length} проверенных каналов. Строка — это одна запись об АЗС от одного источника; на карточке они объединяются и дедуплицируются по upstream.</p>
+      <h3 class="section-title">Отдали данные сейчас</h3>
+      <div class="source-list">${live.map(card).join('')}</div>
+      <h3 class="section-title">Проверены, но сейчас не отдают</h3>
+      <div class="source-list">${idle.map(card).join('')}</div>`;
   } catch (error) { $('#drawerContent').innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; }
 }
 

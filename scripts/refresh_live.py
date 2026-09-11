@@ -134,7 +134,7 @@ def main() -> int:
 
     for row in rows:
         mark = "ok  " if row["ok"] else "FAIL"
-        detail = "" if row["ok"] else f"  {str(row['error'])[:140]}"
+        detail = "" if row["ok"] else "  " + " ".join(str(row["error"]).split())[:600]
         print(f"{mark} {row['name']:26} http={row['http_status']!s:>18} {row['bytes']:>9} B {row['elapsed_ms']:>6} ms{detail}")
     success = sum(1 for row in rows if row["ok"])
     print(f"Completed: {success}/{len(rows)} sources")

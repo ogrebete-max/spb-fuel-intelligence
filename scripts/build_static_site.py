@@ -43,6 +43,11 @@ def main() -> int:
     data_dir = output / "static-data"
     write_json(data_dir / "meta.json", meta)
     write_json(data_dir / "sources.json", repository.sources())
+    # Publishing the raw collector outcome makes a silently failing upstream
+    # visible on the site itself, not only in a workflow log.
+    probe_path = ROOT / "data" / "live" / "full-aoi-probe-results.json"
+    if probe_path.exists():
+        write_json(data_dir / "collectors.json", json.loads(probe_path.read_text(encoding="utf-8")))
 
     for grade in GRADES:
         payload = repository.query(grade=grade, as_of=snapshot_time, limit=10_000)

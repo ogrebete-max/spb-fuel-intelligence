@@ -217,3 +217,20 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 .trust-panel dt { font-size: .72rem; color: #6d7a74; }
 .trust-panel dd { margin: 0; font-size: .92rem; font-weight: 600; }
 .trust-panel p { margin: 0; font-size: .78rem; line-height: 1.45; color: #6d7a74; }
+
+.list-more {
+  width: 100%;
+  margin-top: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(13, 51, 40, .28);
+  background: rgba(255, 255, 255, .6);
+  font: inherit;
+  font-weight: 600;
+  color: #0d3328;
+  cursor: pointer;
+}
+.list-more:hover { background: #fff; }
+
+.install-steps { margin: 12px 0 18px; padding-left: 22px; display: grid; gap: 10px; }
+.install-steps li { line-height: 1.5; }
