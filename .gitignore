@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.tmp-site-deploy-key/
 site/
 data/live/
 data/stations.json
