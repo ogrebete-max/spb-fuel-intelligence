@@ -164,7 +164,15 @@ class StationRepository:
             "CAN_REFUEL": 0, "LIMITED": 1, "LIKELY_AVAILABLE": 2, "CONFLICT": 3,
             "LIKELY_NOT": 4, "CONFIRMED_NO": 5, "NO_FRESH_DATA": 6,
         }
-        if sort == "distance" and center:
+        # "Ближайшие доступные" answers the question people actually ask: the
+        # closest station that can serve this grade now, not the closest station.
+        serves_now = {
+            "CAN_REFUEL": 0, "LIMITED": 0, "LIKELY_AVAILABLE": 0,
+            "CONFLICT": 1, "NO_FRESH_DATA": 2, "LIKELY_NOT": 3, "CONFIRMED_NO": 3,
+        }
+        if sort == "nearest_available" and center:
+            result.sort(key=lambda item: (serves_now[item["grade"]["status"]], item["distance_km"]))
+        elif sort == "distance" and center:
             result.sort(key=lambda item: (item["distance_km"], priority[item["grade"]["status"]]))
         elif sort == "freshness":
             result.sort(key=lambda item: (item["grade"]["age_seconds"] is None, item["grade"]["age_seconds"] or 10**12))

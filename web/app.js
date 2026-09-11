@@ -36,6 +36,7 @@ const state = {
 };
 const staticCache = new Map();
 const STATUS_PRIORITY = { CAN_REFUEL: 0, LIMITED: 1, LIKELY_AVAILABLE: 2, CONFLICT: 3, LIKELY_NOT: 4, CONFIRMED_NO: 5, NO_FRESH_DATA: 6 };
+const SERVES_NOW = { CAN_REFUEL: 0, LIMITED: 0, LIKELY_AVAILABLE: 0, CONFLICT: 1, NO_FRESH_DATA: 2, LIKELY_NOT: 3, CONFIRMED_NO: 3 };
 let installPrompt = null;
 
 const $ = (selector) => document.querySelector(selector);
@@ -154,6 +155,9 @@ async function staticApi(path) {
   const sort = p.get('sort') || 'status';
   list.sort((a, b) => {
     if (sort === 'distance' && center) return (a.distance_km - b.distance_km) || (STATUS_PRIORITY[a.grade.status] - STATUS_PRIORITY[b.grade.status]);
+    // "Ближайшие доступные" answers the actual question: the closest station
+    // that can currently serve this grade, not the closest station of any kind.
+    if (sort === 'nearest_available' && center) return (SERVES_NOW[a.grade.status] - SERVES_NOW[b.grade.status]) || (a.distance_km - b.distance_km);
     if (sort === 'freshness') return (a.grade.age_seconds ?? Number.MAX_SAFE_INTEGER) - (b.grade.age_seconds ?? Number.MAX_SAFE_INTEGER);
     if (sort === 'price') return (a.grade.price_rub ?? Number.MAX_SAFE_INTEGER) - (b.grade.price_rub ?? Number.MAX_SAFE_INTEGER);
     if (sort === 'appeared') return Number(b.grade.timeline?.appeared_recent) - Number(a.grade.timeline?.appeared_recent);
@@ -432,8 +436,8 @@ async function findNearby() {
     state.searchScope = 'place';
     state.searchLabel = place.label;
     state.radiusKm = 5;
-    state.sort = 'distance';
-    $('#sortSelect').value = 'distance';
+    state.sort = 'nearest_available';
+    $('#sortSelect').value = 'nearest_available';
     if (state.map) state.map.setView([place.location.lat, place.location.lon], 13);
     renderSearchContext();
     await loadStations();
@@ -457,8 +461,8 @@ function locate() {
     state.searchLabel = null;
     state.radiusKm = 5;
     $('#searchInput').value = '';
-    state.sort = 'distance';
-    $('#sortSelect').value = 'distance';
+    state.sort = 'nearest_available';
+    $('#sortSelect').value = 'nearest_available';
     button.innerHTML = '<span aria-hidden="true">●</span> Моя позиция';
     if (state.map) state.map.setView([coords.latitude, coords.longitude], 13);
     renderSearchContext();
