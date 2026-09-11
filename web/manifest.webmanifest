@@ -3,10 +3,10 @@
   "short_name": "Топливо СПб",
   "description": "Карта статусов топлива на АЗС Санкт-Петербурга и Ленинградской области.",
   "lang": "ru",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#f5f4ee",
   "theme_color": "#0d3328",
-  "icons": [{ "src": "/icons/fuel-intelligence.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+  "icons": [{ "src": "icons/fuel-intelligence.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

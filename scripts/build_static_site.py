@@ -28,6 +28,12 @@ def main() -> int:
     if output.exists():
         shutil.rmtree(output)
     shutil.copytree(ROOT / "web", output)
+    index_path = output / "index.html"
+    index_html = index_path.read_text(encoding="utf-8")
+    static_marker = '<meta name="spbfi-static-site" content="false">'
+    if static_marker not in index_html:
+        raise RuntimeError("static-site marker is missing from web/index.html")
+    index_path.write_text(index_html.replace(static_marker, '<meta name="spbfi-static-site" content="true">'), encoding="utf-8")
 
     repository = StationRepository(ROOT / "data" / "stations.json", ROOT / "data" / "history.json")
     snapshot_time = "snapshot"

@@ -30,7 +30,9 @@ const KIND_LABELS = {
 const state = {
   grade: 'AI95', area: 'all', view: 'list', search: '', sort: 'status',
   status: null, timeline: null, location: null, bbox: null, meta: null, stations: [], map: null,
-  markers: null, request: 0, staticMode: false, searchScope: null, radiusKm: 5, searchLabel: null,
+  markers: null, request: 0,
+  staticMode: document.querySelector('meta[name="spbfi-static-site"]')?.content === 'true',
+  searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
 const STATUS_PRIORITY = { CAN_REFUEL: 0, LIMITED: 1, LIKELY_AVAILABLE: 2, CONFLICT: 3, LIKELY_NOT: 4, CONFIRMED_NO: 5, NO_FRESH_DATA: 6 };
@@ -67,6 +69,7 @@ function formatSnapshot(seconds, mode) {
 }
 
 async function api(path) {
+  if (state.staticMode && path.startsWith('/api/')) return staticApi(path);
   try {
     const response = await fetch(path, { headers: { Accept: 'application/json' } });
     if (response.ok) return response.json();
@@ -620,5 +623,5 @@ async function showSources() {
 
 bootstrap();
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
