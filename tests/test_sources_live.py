@@ -63,6 +63,19 @@ class GdezapravkaTests(unittest.TestCase):
         self.assertEqual(by_grade["AI92"]["availability"], "LIKELY_NOT")
         self.assertEqual(by_grade["DT"]["availability"], "LIKELY_NOT")
         self.assertEqual(by_grade["AI95"]["observed_at"], "2026-09-11T20:50:00Z")
+        # Absence of a grade from the list is a hint, so it must never act as
+        # one of the two independent confirmations behind "ПОДТВЕРЖДЕНО НЕТ".
+        self.assertTrue(by_grade["AI95"]["independent"])
+        self.assertIsNone(by_grade["AI92"]["independent"])
+
+    def test_a_station_reporting_nothing_is_a_direct_negative(self):
+        row = normalize_gdezapravka({
+            "id": "9", "brand": "Лукойл", "lat": 59.9, "lng": 30.3, "status": "none",
+            "fuel_types": ["ai92", "ai95"], "available_fuels": [], "last_report_age_ms": 60000,
+        }, "2026-09-11T21:00:00Z")[0]
+        for item in row["evidence"]:
+            self.assertEqual(item["availability"], "NOT_AVAILABLE")
+            self.assertTrue(item["independent"])
 
     def test_an_undated_row_produces_no_negative(self):
         row = normalize_gdezapravka({

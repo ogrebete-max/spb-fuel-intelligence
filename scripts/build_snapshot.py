@@ -164,7 +164,9 @@ def normalize_undated_gdebenz(station: dict[str, Any], received_at: str) -> dict
                 "queue": None,
                 "confidence": {"timestamp_missing": True, "inferred_from_absence": True},
                 "provenance_cluster": "gdebenz-crowd",
-                "independent": True,
+                # Inferred from an absence and undated: useful as a hint, never
+                # as one of the two independent confirmations of "нет".
+                "independent": None,
                 "raw_status": status,
                 "note": "The grade is sold here but missing from the current availability list.",
             })

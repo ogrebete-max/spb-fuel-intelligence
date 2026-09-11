@@ -93,10 +93,14 @@ def normalize_gdezapravka(station: dict[str, Any], captured_at: str | None = Non
         for grade in catalog:
             if grade in available:
                 continue
+            # "none" is the source stating the station has nothing; for the
+            # other states this is inferred from a grade's absence, so it must
+            # not count towards a strict independent confirmation of absence.
             rec["evidence"].append(_evidence(
                 grade, "NOT_AVAILABLE" if status == "none" else "LIKELY_NOT",
                 "crowd_status", "gdezapravka-crowd",
-                observed_at=observed, confidence=confidence, independent=True, raw_status=status,
+                observed_at=observed, confidence=confidence,
+                independent=True if status == "none" else None, raw_status=status,
                 note="Grade is sold here but missing from the current availability list.",
             ))
     return [rec]
