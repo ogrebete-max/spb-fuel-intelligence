@@ -37,6 +37,11 @@ button { color: inherit; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px clamp(18px, 4vw, 48px);
+  /* viewport-fit=cover plus a translucent iOS status bar puts the notch over
+     the page, so the shell has to keep clear of the device insets itself. */
+  padding-top: calc(22px + env(safe-area-inset-top, 0px));
+  padding-left: calc(clamp(18px, 4vw, 48px) + env(safe-area-inset-left, 0px));
+  padding-right: calc(clamp(18px, 4vw, 48px) + env(safe-area-inset-right, 0px));
 }
 .topbar-actions { display: flex; align-items: center; gap: 9px; }
 .install-button { border: 1px solid var(--brand); background: var(--brand); color: white; border-radius: 10px; padding: 9px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
@@ -130,12 +135,12 @@ select { color: white; border: 1px solid rgba(255,255,255,.18); background: #173
 .popup-title { font-weight: 800; margin-bottom: 3px; }
 .popup-status { color: var(--popup-color); font-weight: 750; margin-top: 7px; }
 .popup-open { border: 0; background: var(--brand-dark); color: white; padding: 7px 10px; border-radius: 8px; margin-top: 9px; cursor: pointer; }
-footer { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin: 0 clamp(18px,4vw,48px); padding: 24px 0 38px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+footer { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin: 0 clamp(18px,4vw,48px); padding: 24px 0 calc(38px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 footer button { border: 0; background: transparent; color: var(--brand); cursor: pointer; font-weight: 750; }
 .map-credit { white-space: nowrap; }
 .map-credit a { color: inherit; }
 .scrim { position: fixed; z-index: 900; inset: 0; background: rgba(6, 24, 18, .46); backdrop-filter: blur(3px); }
-.drawer { position: fixed; z-index: 1000; right: 0; top: 0; bottom: 0; width: min(540px, 100%); padding: 28px; overflow: auto; background: var(--panel); box-shadow: -20px 0 60px rgba(5,25,18,.18); transform: translateX(102%); transition: transform .25s ease; }
+.drawer { position: fixed; z-index: 1000; right: 0; top: 0; bottom: 0; width: min(540px, 100%); padding: calc(28px + env(safe-area-inset-top, 0px)) 28px calc(28px + env(safe-area-inset-bottom, 0px)); overflow: auto; background: var(--panel); box-shadow: -20px 0 60px rgba(5,25,18,.18); transform: translateX(102%); transition: transform .25s ease; }
 .drawer.open { transform: translateX(0); }
 .drawer-close { position: sticky; top: 0; float: right; z-index: 2; font-size: 24px; line-height: 1; background: var(--paper); }
 .drawer h2 { margin: 38px 0 4px; font-size: 29px; letter-spacing: -.04em; }
@@ -182,7 +187,7 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 }
 @media (min-width: 851px) { .view-switch { display: none; } }
 @media (max-width: 620px) {
-  .topbar { padding-top: 15px; }
+  .topbar { padding-top: calc(15px + env(safe-area-inset-top, 0px)); }
   .install-button { padding: 8px 10px; }
   .hero { padding-bottom: 22px; }
   h1 { font-size: 45px; }
