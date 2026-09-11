@@ -1,4 +1,4 @@
-name: Refresh fuel data and deploy public map
+name: Refresh fuel data and preserve history
 
 on:
   workflow_dispatch:
@@ -8,11 +8,9 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "spb-fuel-pages"
+  group: "spb-fuel-refresh"
   cancel-in-progress: false
 
 jobs:
@@ -39,17 +37,5 @@ jobs:
           git diff --cached --quiet || git commit -m "Update fuel-status history"
           git push
 
-      - name: Build static public site
+      - name: Verify static build for the future public host
         run: python scripts/build_static_site.py --output site
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4

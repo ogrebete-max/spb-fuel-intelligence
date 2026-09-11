@@ -2,7 +2,7 @@
 
 ## Публичный бесплатный запуск
 
-Проект подготовлен к публикации на GitHub Pages: GitHub Actions раз в 15 минут получает публичные источники, обновляет историю статусов и публикует статическую карту. Инструкция без серверов и оплаты: [`docs/free-deployment.md`](docs/free-deployment.md).
+Репозиторий хранится приватно. GitHub Actions раз в 15 минут получает публичные источники и обновляет историю статусов. Для публичной карты нужен отдельный бесплатный хостинг, подключённый к приватному репозиторию; инструкция: [`docs/free-deployment.md`](docs/free-deployment.md).
 
 Локальный режим остаётся удобнее для разработки: кнопка обновления делает запросы сразу. На публичной странице кнопка заменяется честной пометкой об автоматическом обновлении.
 
@@ -51,7 +51,7 @@ python scripts/qa_package.py
 python scripts/build_manifest.py
 ```
 
-Актуальная автоматическая проверка: 37 unit-тестов Evidence Engine, temporal history, normalizers, repository и station matcher; отдельный package QA проверяет 24 источника и отсутствие секретов в fixtures.
+Актуальная автоматическая проверка: 38 unit-тестов Evidence Engine, temporal history, normalizers, repository и station matcher; отдельный package QA проверяет 24 источника и отсутствие секретов в fixtures.
 
 ## Структура
 
