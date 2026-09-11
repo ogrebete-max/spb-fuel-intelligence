@@ -175,7 +175,27 @@ def timeline_for(
         return {"state": "NO_HISTORY", "label": "История ещё не накоплена", "description": "Появится после следующих обновлений данных.", "recent": False, "appeared_recent": False}
     transitions = list(entry.get("transitions") or [])
     last = transitions[-1] if transitions else None
-    status_group = availability_group(str(entry.get("current_status")))
+    stored_group = availability_group(str(entry.get("current_status")))
+    live_group = availability_group(current_status) if current_status else None
+    # The stored entry is only as new as the last successful refresh.  When the
+    # live answer already disagrees with it, continuity claims like "нет
+    # непрерывно 13 ч" would contradict the card the user is looking at.
+    contradicts = (
+        (live_group in {"positive", "restricted"} and stored_group == "negative")
+        or (live_group == "negative" and stored_group == "positive")
+    )
+    if contradicts:
+        return {
+            "state": "OUTDATED_HISTORY",
+            "label": "История отстаёт от текущего ответа",
+            "description": "Сохранённая история относится к предыдущему обновлению и пока не подтверждает текущий статус.",
+            "recent": False, "appeared_recent": False,
+            "current_since": None, "duration_seconds": None,
+            "last_observed_at": entry.get("last_observed_at"),
+            "confirmations": entry.get("confirmations", 1),
+            "last_transition": last, "transitions": transitions[-5:],
+        }
+    status_group = stored_group
     duration_start = (entry.get("positive_since") or entry.get("current_since")) if status_group == "positive" else (entry.get("negative_since") or entry.get("current_since")) if status_group == "negative" else entry.get("current_since")
     current_since = parse_time(duration_start)
     duration = max(0, round((now - current_since).total_seconds())) if current_since else None

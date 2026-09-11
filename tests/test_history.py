@@ -73,6 +73,18 @@ class HistoryTests(unittest.TestCase):
         view = timeline_for(history, station, "AI95", now=datetime(2026, 9, 11, 10, 25, tzinfo=timezone.utc), current_status="NO_FRESH_DATA")
         self.assertEqual(view["state"], "HISTORICAL_POSITIVE")
         self.assertFalse(view["appeared_recent"])
+    def test_stale_negative_history_never_contradicts_a_live_positive(self):
+        first, _ = snapshot("2026-09-11T05:00:00Z", "NOT_AVAILABLE")
+        second, station = snapshot("2026-09-11T05:20:00Z", "NOT_AVAILABLE")
+        history = update_history_data(update_history_data(None, first), second)
+        view = timeline_for(
+            history, station, "AI95",
+            now=datetime(2026, 9, 11, 18, 0, tzinfo=timezone.utc),
+            current_status="CAN_REFUEL",
+        )
+        self.assertEqual(view["state"], "OUTDATED_HISTORY")
+        self.assertIsNone(view["duration_seconds"])
+        self.assertFalse(view["appeared_recent"])
 
 
 if __name__ == "__main__":

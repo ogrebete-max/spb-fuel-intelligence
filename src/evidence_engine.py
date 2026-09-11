@@ -61,6 +61,47 @@ KIND_STRENGTH = {
 }
 
 
+TRUST_LABELS = {
+    "high": "высокая",
+    "moderate": "средняя",
+    "low": "низкая",
+    "conflict": "противоречивая",
+    "none": "нет данных",
+}
+
+
+def _trust_score(
+    status: str,
+    fresh: list[EvaluatedRow],
+    independent_clusters: int,
+    current_time: datetime,
+) -> tuple[int, str, str]:
+    """Score how much the current answer can be trusted, 0-100.
+
+    The score mixes the strongest kind of fresh evidence, how many genuinely
+    independent provenance clusters agree, and how much of each signal's TTL
+    has already been spent.  It is a statement about the evidence, never about
+    the physical tank.
+    """
+    if status == "NO_FRESH_DATA" or not fresh:
+        return 0, "none", "Нет свежего grade-specific сигнала."
+    strongest = max(fresh, key=lambda item: item.strength)
+    score = min(100, strongest.strength)
+    score += min(24, 12 * max(0, independent_clusters - 1))
+    score += min(8, 4 * max(0, len({item.cluster for item in fresh}) - 1))
+    ttl = TTL_SECONDS.get(str(strongest.row.get("kind") or ""), 2 * 60 * 60)
+    spent = min(1.0, (strongest.age_seconds or 0) / ttl) if ttl else 1.0
+    score = round(score * (1 - 0.35 * spent))
+    if status == "CONFLICT":
+        score = min(score, 45)
+    score = max(1, min(100, score))
+    tier = "conflict" if status == "CONFLICT" else "high" if score >= 75 else "moderate" if score >= 45 else "low"
+    parts = [f"сильнейший сигнал — {strongest.row.get('kind')}"]
+    parts.append(f"независимых источников: {independent_clusters}")
+    parts.append(f"свежих записей: {len(fresh)}")
+    return score, tier, "; ".join(parts)
+
+
 @dataclass(frozen=True)
 class EvaluatedRow:
     row: dict[str, Any]
@@ -250,6 +291,15 @@ def evaluate_grade(
         reason = "Нет пригодного по времени grade-specific сигнала; UNKNOWN не считается отсутствием топлива."
 
     newest = max((item.observed_at for item in fresh if item.observed_at), default=None)
+    agreeing = independent_positive if status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"} else independent_negative
+    trust_score, trust_tier, trust_reason = _trust_score(status, fresh, len(agreeing), current_time)
+    # A static build freezes the answer at build time.  Publishing the TTL of
+    # the signal the answer rests on lets the page expire it in the browser
+    # instead of pretending the whole snapshot ages at one rate.
+    ttl_seconds = max(
+        (TTL_SECONDS.get(str(item.row.get("kind") or ""), 2 * 60 * 60) for item in fresh),
+        default=None,
+    )
     confidence = {
         "CAN_REFUEL": "high",
         "CONFIRMED_NO": "high",
@@ -271,6 +321,14 @@ def evaluate_grade(
         "price_rub": latest_price.row.get("price_rub") if latest_price else None,
         "limit_liters": min(limits) if limits else None,
         "queue": queues[0] if queues else None,
+        "ttl_seconds": ttl_seconds,
+        "trust_score": trust_score,
+        "trust_tier": trust_tier,
+        "trust_label": TRUST_LABELS[trust_tier],
+        "trust_reason": trust_reason,
+        "source_count": len({str(item.row.get("source") or item.cluster) for item in deduped}),
+        "fresh_source_count": len({str(item.row.get("source") or item.cluster) for item in fresh}),
+        "independent_agreeing_count": len(agreeing),
         "fresh_provenance_count": len({item.cluster for item in fresh}),
         "fresh_evidence_count": len(fresh),
         "evidence_count": len(relevant),

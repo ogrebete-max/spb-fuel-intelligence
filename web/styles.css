@@ -200,3 +200,20 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
   footer { align-items: flex-start; flex-direction: column; }
   .drawer { padding: 20px; }
 }
+
+.trust-panel {
+  margin: 14px 0 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(13, 51, 40, .12);
+  background: rgba(255, 255, 255, .72);
+}
+.trust-head { display: flex; flex-direction: column; gap: 2px; }
+.trust-kicker { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: #6d7a74; }
+.trust-head strong { font-size: 1.05rem; color: var(--trust-color); }
+.trust-bar { margin: 10px 0 12px; height: 8px; border-radius: 999px; background: rgba(13, 51, 40, .1); overflow: hidden; }
+.trust-bar span { display: block; height: 100%; border-radius: 999px; background: var(--trust-color); }
+.trust-panel dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px 14px; margin: 0 0 10px; }
+.trust-panel dt { font-size: .72rem; color: #6d7a74; }
+.trust-panel dd { margin: 0; font-size: .92rem; font-weight: 600; }
+.trust-panel p { margin: 0; font-size: .78rem; line-height: 1.45; color: #6d7a74; }

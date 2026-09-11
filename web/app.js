@@ -134,16 +134,10 @@ async function staticApi(path) {
   const list = [];
   const statusCounts = {};
   let appeared = 0;
-  const snapshotAge = state.meta?.snapshot_at ? Date.now() - new Date(state.meta.snapshot_at).getTime() : 0;
-  const snapshotTooOld = snapshotAge > 45 * 60 * 1000;
+  const elapsed = staticElapsedSeconds();
   for (const original of bundle.stations) {
     const station = structuredClone(original);
-    if (snapshotTooOld) {
-      station.grade.status = 'NO_FRESH_DATA';
-      station.grade.label = STATUS.NO_FRESH_DATA.short.toUpperCase();
-      station.grade.fresh_provenance_count = 0;
-      station.grade.timeline = { ...(station.grade.timeline || {}), state: 'HISTORICAL_POSITIVE', label: 'Исторический сигнал', appeared_recent: false, recent: false };
-    }
+    expireGrade(station.grade, elapsed);
     const location = station.location;
     if (!staticInArea(station, area)) continue;
     if (query && !`${station.network} ${station.address}`.toLocaleLowerCase().includes(query)) continue;
@@ -168,6 +162,43 @@ async function staticApi(path) {
   const offset = Number(p.get('offset') || 0);
   const limit = Number(p.get('limit') || 250);
   return { grade, total: list.length, offset, limit, status_counts: statusCounts, timeline_counts: { appeared }, stations: list.slice(offset, offset + limit) };
+}
+
+// A published snapshot keeps ageing in the reader's browser.  Each answer
+// carries the TTL of the signal it rests on, so the page can expire exactly
+// the answers that went stale instead of blanking the whole map at once.
+function staticElapsedSeconds() {
+  if (!state.meta?.snapshot_at) return 0;
+  return Math.max(0, (Date.now() - new Date(state.meta.snapshot_at).getTime()) / 1000);
+}
+
+function expireGrade(grade, elapsed) {
+  if (!grade || !elapsed) return grade;
+  if (grade.age_seconds != null) grade.age_seconds = Math.round(grade.age_seconds + elapsed);
+  if (grade.timeline?.duration_seconds != null) grade.timeline.duration_seconds = Math.round(grade.timeline.duration_seconds + elapsed);
+  const ttl = grade.ttl_seconds;
+  if (grade.status === 'NO_FRESH_DATA' || ttl == null) return grade;
+  if (grade.age_seconds != null && grade.age_seconds > ttl) {
+    grade.status = 'NO_FRESH_DATA';
+    grade.label = 'НЕТ СВЕЖИХ ДАННЫХ';
+    grade.reason = 'Сигнал, на котором держался ответ, устарел уже после публикации снимка.';
+    grade.confidence = 'none';
+    grade.trust_score = 0;
+    grade.trust_tier = 'none';
+    grade.trust_label = 'нет данных';
+    grade.fresh_provenance_count = 0;
+    grade.fresh_source_count = 0;
+    if (grade.timeline) grade.timeline = { ...grade.timeline, appeared_recent: false, recent: false };
+    return grade;
+  }
+  // Trust decays with the part of the TTL that has been spent since publishing.
+  if (grade.trust_score) {
+    const spent = Math.min(1, (grade.age_seconds || 0) / ttl);
+    grade.trust_score = Math.max(1, Math.round(grade.trust_score * (1 - 0.35 * spent)));
+    grade.trust_tier = grade.trust_tier === 'conflict' ? 'conflict' : grade.trust_score >= 75 ? 'high' : grade.trust_score >= 45 ? 'moderate' : 'low';
+    grade.trust_label = { high: 'высокая', moderate: 'средняя', low: 'низкая', conflict: 'противоречивая', none: 'нет данных' }[grade.trust_tier];
+  }
+  return grade;
 }
 
 function formatQueue(queue) {
@@ -208,7 +239,7 @@ function renderMeta() {
   $('#identityNote').textContent = baseline ? `Физический baseline Sber/2GIS: ${baseline.toLocaleString('ru-RU')} точек; лишние карточки не склеиваются без достаточных признаков.` : 'Карточки не объединяются только по близости координат.';
   const refresh = $('#refreshButton');
   if (state.staticMode || state.meta.mode === 'static_github_pages') {
-    refresh.textContent = 'Автообновление: 15 мин';
+    refresh.textContent = 'Автообновление: 10 мин';
     refresh.disabled = true;
     refresh.title = 'Публичная версия обновляется GitHub Actions по расписанию.';
   }
@@ -469,8 +500,29 @@ function renderStatusStrip(counts, timelineCounts = {}) {
   };
 }
 
+const TRUST_COLORS = { high: '#158257', moderate: '#d58a13', low: '#b8333a', conflict: '#7856c7', none: '#8a9691' };
+
+function trustPanel(grade) {
+  const score = Number(grade.trust_score || 0);
+  const tier = grade.trust_tier || 'none';
+  const sources = grade.fresh_source_count ?? grade.fresh_provenance_count ?? 0;
+  const independent = grade.independent_agreeing_count ?? 0;
+  const total = grade.source_count ?? 0;
+  const rows = [
+    ['Свежих источников', `${sources} из ${total}`],
+    ['Независимо подтвердили', String(independent)],
+    ['Возраст сигнала', formatAge(grade.age_seconds)],
+  ];
+  return `<div class="trust-panel" style="--trust-color:${TRUST_COLORS[tier]}">
+    <div class="trust-head"><span class="trust-kicker">Достоверность ответа</span><strong>${score}% · ${escapeHtml(grade.trust_label || 'нет данных')}</strong></div>
+    <div class="trust-bar"><span style="width:${Math.max(2, Math.min(100, score))}%"></span></div>
+    <dl>${rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>
+    <p>Это оценка качества данных: тип сигнала, число независимых источников и то, сколько времени прошло. Она не измеряет остаток в резервуаре.</p>
+  </div>`;
+}
+
 function timelineBadge(timeline) {
-  if (!timeline || timeline.state === 'NO_HISTORY' || timeline.state === 'OBSERVED') return null;
+  if (!timeline || ['NO_HISTORY', 'OBSERVED', 'OUTDATED_HISTORY'].includes(timeline.state)) return null;
   if (['JUST_APPEARED', 'RECENTLY_APPEARED'].includes(timeline.state)) return { text: `✦ ${timeline.label}`, tone: 'fresh' };
   if (timeline.state === 'RECENTLY_DISAPPEARED') return { text: timeline.label, tone: 'negative' };
   if (timeline.state === 'OBSERVED_AVAILABLE' || timeline.state === 'AVAILABLE_CONTINUOUS') return { text: `Есть непрерывно ${formatDuration(timeline.duration_seconds)}`, tone: 'stable' };
@@ -486,7 +538,9 @@ function factsFor(station) {
   const queue = formatQueue(grade.queue);
   if (queue) facts.push(`очередь: ${queue}`);
   facts.push(formatAge(grade.age_seconds));
-  facts.push(`${grade.fresh_provenance_count} ист.`);
+  const sources = grade.fresh_source_count ?? grade.fresh_provenance_count ?? 0;
+  facts.push(`${sources} ист.`);
+  if (grade.trust_score) facts.push(`достоверность ${grade.trust_score}%`);
   return facts.join(' · ');
 }
 
@@ -555,6 +609,10 @@ async function openStation(id) {
   openDrawer('<div class="loading-state">Загружаем доказательства…</div>');
   try {
     const station = await api(`/api/stations/${encodeURIComponent(id)}`);
+    if (state.staticMode) {
+      const elapsed = staticElapsedSeconds();
+      Object.values(station.grades).forEach((value) => expireGrade(value, elapsed));
+    }
     const selected = station.grades[state.grade];
     const status = STATUS[selected.status];
     const lat = Number(station.location.lat);
@@ -564,7 +622,7 @@ async function openStation(id) {
     const timeline = selected.timeline || {};
     const transition = timeline.last_transition;
     const confidenceLabels = { high: 'высокая', medium: 'средняя', low: 'низкая' };
-    const timelinePanel = timeline.state === 'NO_HISTORY' ? `<div class="timeline-panel neutral"><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p></div>` : `<div class="timeline-panel ${timeline.recent ? 'fresh' : ''}"><span class="timeline-kicker">История статуса</span><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p><dl><div><dt>Текущий статус длится</dt><dd>${escapeHtml(formatDuration(timeline.duration_seconds))}</dd></div><div><dt>Проверок</dt><dd>${Number(timeline.confirmations || 1)}</dd></div>${transition ? `<div><dt>Уверенность перехода</dt><dd>${escapeHtml(confidenceLabels[transition.confidence] || transition.confidence)}</dd></div>` : ''}</dl></div>`;
+    const timelinePanel = ['NO_HISTORY', 'OUTDATED_HISTORY'].includes(timeline.state) ? `<div class="timeline-panel neutral"><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p></div>` : `<div class="timeline-panel ${timeline.recent ? 'fresh' : ''}"><span class="timeline-kicker">История статуса</span><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p><dl><div><dt>Текущий статус длится</dt><dd>${escapeHtml(formatDuration(timeline.duration_seconds))}</dd></div><div><dt>Проверок</dt><dd>${Number(timeline.confirmations || 1)}</dd></div>${transition ? `<div><dt>Уверенность перехода</dt><dd>${escapeHtml(confidenceLabels[transition.confidence] || transition.confidence)}</dd></div>` : ''}</dl></div>`;
     const evidence = selected.evidence.length ? selected.evidence.map((row) => {
       const rowStatus = row.fresh ? (row.availability === 'AVAILABLE' || row.availability === 'LIKELY' ? '#158257' : row.availability === 'NOT_AVAILABLE' || row.availability === 'LIKELY_NOT' ? '#b8333a' : '#d58a13') : '#8a9691';
       const extras = [row.limit_liters != null ? `лимит ${row.limit_liters} л` : null, formatQueue(row.queue) ? `очередь: ${formatQueue(row.queue)}` : null].filter(Boolean).join(' · ');
@@ -576,6 +634,7 @@ async function openStation(id) {
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
       <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="drawer-status" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}</strong><p>${escapeHtml(selected.reason)}</p></div>
+      ${trustPanel(selected)}
       ${timelinePanel}
       <div class="grade-matrix">${gradeCells}</div>
       <h3 class="section-title">Почему такой результат по ${GRADE_LABELS[state.grade]}</h3>
