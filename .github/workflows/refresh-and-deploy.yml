@@ -3,8 +3,10 @@ name: Refresh fuel data and publish map
 on:
   workflow_dispatch:
   schedule:
-    # GitHub never runs cron exactly on time; ten minutes is the shortest
-    # interval that still gives every run room to finish before the next one.
+    # GitHub honours a high-frequency cron on a public repository only now and
+    # then: with slots every ten minutes it actually started one run roughly
+    # every two hours.  The cron is therefore only a wake-up, and each run keeps
+    # refreshing on its own for the next few hours (see the slot matrix below).
     - cron: "1,11,21,31,41,51 * * * *"
 
 permissions:
@@ -12,18 +14,33 @@ permissions:
   pages: write
   id-token: write
 
+# A newer wake-up takes over from the running chain instead of queueing behind
+# it, so there is always exactly one live refresher.
 concurrency:
   group: spb-fuel-refresh
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   refresh-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 200
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        # Sixteen sequential slots ≈ three hours of ten-minute refreshes per
+        # wake-up. One failing slot must not end the chain.
+        slot: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      - name: Hold this slot
+        if: matrix.slot != 0
+        # A slot costs about two minutes of work, so eight minutes of waiting
+        # keeps the published snapshot about ten minutes apart.
+        run: sleep 480
+
       - name: Check out repository
         uses: actions/checkout@v5
         with:
@@ -36,7 +53,7 @@ jobs:
 
       # Temporal history is state, not source.  Keeping it on a single-commit
       # orphan branch avoids rewriting a multi-megabyte blob into main's
-      # history 144 times a day.
+      # history every ten minutes.
       - name: Restore temporal history
         run: |
           mkdir -p data
