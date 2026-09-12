@@ -410,15 +410,15 @@ async function refreshData() {
 function renderSearchContext() {
   const context = $('#searchContext');
   if (state.searchScope === 'place') {
-    context.innerHTML = `<strong>Рядом с: ${escapeHtml(state.searchLabel)}</strong> · радиус ${state.radiusKm} км <button type="button" data-clear-scope>Сбросить</button>`;
+    context.innerHTML = `<strong>Рядом с: ${escapeHtml(state.searchLabel)}</strong> · радиус ${state.radiusKm} км по прямой <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.searchScope === 'device') {
-    context.innerHTML = `<strong>Рядом с вашей позицией</strong> · радиус ${state.radiusKm} км <button type="button" data-clear-scope>Сбросить</button>`;
+    context.innerHTML = `<strong>Рядом с вашей позицией</strong> · радиус ${state.radiusKm} км по прямой <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.searchScope === 'map') {
     context.innerHTML = `<strong>${escapeHtml(state.searchLabel)}</strong> <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.search.trim()) {
     context.textContent = 'Ищем точное совпадение по сети или адресу АЗС. Нажмите «Найти рядом», если это адрес места.';
   } else {
-    context.textContent = 'Введите адрес места и нажмите «Найти рядом» — покажем АЗС в радиусе 5 км.';
+    context.textContent = 'Введите адрес, посёлок или название АЗС. Ввод фильтрует список; «Найти рядом» ищет вокруг этого места, расширяя радиус, пока не найдётся из чего выбрать.';
   }
   context.querySelector('[data-clear-scope]')?.addEventListener('click', () => clearSearchScope({ keepText: false, reload: true }));
 }
@@ -437,7 +437,29 @@ function clearSearchScope({ keepText = false, reload = true } = {}) {
   if (reload) loadStations();
 }
 
+// The snapshot already knows where two thousand stations are and what their
+// addresses say, so a place we actually serve is resolved from our own data.
+// Nominatim does not index every village around the city — "Мистолово" is not
+// in it at all — and it is only asked about places we have never heard of.
+function localPlaceMatch(query) {
+  const needle = query.trim().toLocaleLowerCase();
+  if (needle.length < 3) return null;
+  const hits = state.stations.filter((station) =>
+    `${station.network} ${station.address}`.toLocaleLowerCase().includes(needle));
+  if (!hits.length) return null;
+  const lat = hits.reduce((sum, item) => sum + item.location.lat, 0) / hits.length;
+  const lon = hits.reduce((sum, item) => sum + item.location.lon, 0) / hits.length;
+  return {
+    query,
+    label: `${query} — по адресам ${hits.length} ${plural(hits.length, 'АЗС', 'АЗС', 'АЗС')} в наших данных`,
+    location: { lat, lon },
+    local: true,
+  };
+}
+
 async function geocodePlace(query) {
+  const local = localPlaceMatch(query);
+  if (local) return local;
   const path = `/api/geocode?q=${encodeURIComponent(query)}`;
   try {
     return await api(path);
@@ -445,14 +467,16 @@ async function geocodePlace(query) {
     // GitHub Pages has no private server. This is an explicit button action,
     // not autocomplete; the request is constrained to our SPB/LO viewbox.
     const params = new URLSearchParams({
-      q: `${query}, Санкт-Петербург`, format: 'jsonv2', limit: '1', countrycodes: 'ru', bounded: '1',
-      viewbox: '29.50,60.35,31.10,59.60', addressdetails: '0',
+      q: query, format: 'jsonv2', limit: '5', countrycodes: 'ru',
+      viewbox: '29.50,60.35,31.10,59.60', bounded: '1', addressdetails: '0',
     });
     const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error('Сервис поиска места временно недоступен. Переместите карту вручную.');
     const rows = await response.json();
-    if (!rows.length) throw new Error('Место не найдено в Санкт-Петербурге и ближайшей области.');
-    const row = rows[0];
+    const row = rows.find((item) => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lon)));
+    if (!row) {
+      throw new Error(`«${query}» не нашлось ни среди адресов АЗС, ни в справочнике мест. Попробуйте соседнюю улицу или переместите карту и нажмите «Искать в этой области».`);
+    }
     return { query, label: row.display_name || query, location: { lat: Number(row.lat), lon: Number(row.lon) } };
   }
 }
@@ -503,7 +527,7 @@ function locate() {
     button.innerHTML = '<span aria-hidden="true">●</span> Моя позиция';
     if (state.map) state.map.setView([coords.latitude, coords.longitude], 13);
     renderSearchContext();
-    loadStations();
+    loadStationsWideningRadius();
   }, () => {
     button.innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
     alert('Не удалось получить координаты. Разрешите геолокацию в браузере.');
@@ -733,7 +757,11 @@ function renderStations({ append = false } = {}) {
     }
     node.querySelector('.facts').textContent = factsFor(station);
     node.querySelector('.meta-line').textContent = metaFor(station);
-    node.querySelector('.distance').textContent = station.distance_km != null ? `${station.distance_km.toLocaleString('ru-RU')} км` : '';
+    const distance = node.querySelector('.distance');
+    distance.textContent = station.distance_km != null ? `${station.distance_km.toLocaleString('ru-RU')} км` : '';
+    // Straight line, not the drive: around water and interchanges the road can
+    // be far longer, and saying "км" without that is misleading.
+    if (station.distance_km != null) distance.title = 'по прямой, дорога может быть заметно длиннее';
     node.querySelector('.card-main').addEventListener('click', () => openStation(station.id));
     fragment.appendChild(node);
   });
