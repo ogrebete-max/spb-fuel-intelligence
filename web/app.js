@@ -498,7 +498,10 @@ function renderStatusStrip(counts, timelineCounts = {}) {
   const temporalChip = `<button class="status-chip timeline-filter ${state.timeline === 'appeared' ? 'active' : ''}" style="--status-color:#0d5a43" data-timeline="appeared" ${appeared ? '' : 'disabled'}>✦ Появилось недавно · ${appeared}</button>`;
   strip.innerHTML = temporalChip + Object.entries(STATUS).map(([key, item]) => {
     const count = counts[key] || 0;
-    return `<button class="status-chip ${state.status === key ? 'active' : ''}" style="--status-color:${item.color}" data-status="${key}">${item.short} · ${count}</button>`;
+    // A chip reading "· 0" must not be clickable: selecting it empties the
+    // list and looks exactly like a broken page.
+    const disabled = count === 0 && state.status !== key ? 'disabled' : '';
+    return `<button class="status-chip ${state.status === key ? 'active' : ''}" style="--status-color:${item.color}" data-status="${key}" ${disabled}>${item.short} · ${count}</button>`;
   }).join('');
   strip.onclick = (event) => {
     const temporal = event.target.closest('[data-timeline]');
