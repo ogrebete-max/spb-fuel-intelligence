@@ -19,10 +19,16 @@ from __future__ import annotations
 import re
 from typing import Any
 
-GAS_NAME = re.compile(
-    r"агзс|агнкс|газозаправ|газомотор|газов(?:ая|ой|ые) заправ"
-    r"|(?:^|[\s,«\"(])газ(?:[\s,»\")]|$)|автогаз|росгаз|пропан|метан"
-    r"|\bкпг\b|\bспг\b|\bgas\b|\blpg\b|\bcng\b|greengas|globalgaz|vervex|вервекс|митекс",
+# A name that says "gas pump" in so many words. Crowd sites print template
+# rows of petrol grades for these too, so no amount of that evidence keeps them.
+GAS_PUMP = re.compile(
+    r"агзс|агнкс|газозаправ|газомотор|газов(?:ая|ой|ые) заправ|пропан|метан"
+    r"|\bкпг\b|\bспг\b|\blpg\b|\bcng\b",
+    re.IGNORECASE,
+)
+# A brand that sells gas but also runs ordinary forecourts; evidence decides.
+GAS_BRAND = re.compile(
+    r"(?:^|[\s,«\"(])газ(?:[\s,»\")]|$)|автогаз|росгаз|\bgas\b|greengas|globalgaz|vervex|вервекс|митекс",
     re.IGNORECASE,
 )
 # "Сургутнефтегаз" is an oil company, not a gas pump.
@@ -31,12 +37,18 @@ DEFINITE = {"AVAILABLE", "NOT_AVAILABLE", "LIMITED", "QUEUE", "CONFLICT", "LIKEL
 LIQUID_FUEL_SOURCES_REQUIRED = 2
 
 
-def gas_named(station: dict[str, Any]) -> bool:
+def _name(station: dict[str, Any]) -> str:
     name = f"{station.get('network') or ''} {station.get('name') or ''}"
-    lowered = name.lower()
-    if any(marker in lowered for marker in NOT_GAS):
-        return False
-    return bool(GAS_NAME.search(name))
+    return "" if any(marker in name.lower() for marker in NOT_GAS) else name
+
+
+def gas_pump_named(station: dict[str, Any]) -> bool:
+    return bool(GAS_PUMP.search(_name(station)))
+
+
+def gas_named(station: dict[str, Any]) -> bool:
+    name = _name(station)
+    return bool(GAS_PUMP.search(name) or GAS_BRAND.search(name))
 
 
 def liquid_fuel_sources(station: dict[str, Any]) -> set[str]:
@@ -51,6 +63,8 @@ def liquid_fuel_sources(station: dict[str, Any]) -> set[str]:
 def is_gas_only(station: dict[str, Any]) -> bool:
     grades = {row.get("grade") for row in station.get("evidence", []) if row.get("grade")}
     if grades and grades <= {"LPG"}:
+        return True
+    if gas_pump_named(station):
         return True
     if not gas_named(station):
         return False

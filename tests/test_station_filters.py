@@ -25,6 +25,11 @@ class GasOnlyStations(unittest.TestCase):
     def test_one_feed_is_not_enough_to_call_a_gas_pump_a_petrol_station(self):
         self.assertTrue(is_gas_only(station("АГЗС", ("AI95", "NOT_AVAILABLE", "benzinest"))))
 
+    def test_a_named_gas_pump_goes_even_with_petrol_template_rows(self):
+        self.assertTrue(is_gas_only(station(
+            "Пропан, АГЗС", ("AI95", "NOT_AVAILABLE", "benzinest"), ("AI92", "AVAILABLE", "gdebenzfuel"),
+        )))
+
     def test_gas_network_forecourt_with_real_petrol_reports_stays(self):
         self.assertFalse(is_gas_only(station(
             "Митекс", ("AI95", "AVAILABLE", "benzonavt"), ("AI92", "AVAILABLE", "gdebenzin24"),
