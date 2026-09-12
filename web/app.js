@@ -239,6 +239,17 @@ function localizeNote(note) {
 async function bootstrap() {
   bindControls();
   state.marks = loadMarks();
+  // A tapped notification lands here with the station in the URL.
+  const wanted = new URLSearchParams(location.search).get('station');
+  if (wanted) {
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => openStation(wanted), 600);
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.station) openStation(event.data.station);
+    });
+  }
   // A phone in a car wants "рядом" from the first second, without hunting for a
   // button. If permission was never granted the browser asks once; if it was
   // refused earlier this fails silently and the city list stays.
@@ -613,11 +624,13 @@ function startFollowing({ manual = false } = {}) {
       renderSearchContext();
       loadStationsWideningRadius();
       renderGroupFeed();
+      refreshPushLocation();
       return;
     }
     if (moved && state.searchScope === 'device') {
       loadStations({ silent: true });
     }
+    if (moved) refreshPushLocation();
   };
   const onError = (error) => {
     state.follow = false;
@@ -892,7 +905,7 @@ function loadMarks() {
   }
 }
 
-function saveMark(stationId, grade, seen, queue = null, { render = true } = {}) {
+function saveMark(stationId, grade, seen, queue = null, { render = true, notify = true, summary = '' } = {}) {
   const marks = loadMarks();
   marks[stationId] = marks[stationId] || {};
   marks[stationId][grade] = { seen, at: Date.now(), queue };
@@ -910,7 +923,7 @@ function saveMark(stationId, grade, seen, queue = null, { render = true } = {}) 
     renderHerePanel();
     renderGroupFeed();
   }
-  shareMark(stationId, grade, seen, queue);
+  shareMark(stationId, grade, seen, queue, { notify, summary });
 }
 
 // Sharing is optional. With no endpoint configured the mark stays on this
@@ -927,14 +940,17 @@ function deviceId() {
   return id;
 }
 
-async function shareMark(stationId, grade, seen, queue = null) {
+async function shareMark(stationId, grade, seen, queue = null, { notify = true, summary = '' } = {}) {
   const endpoint = window.SPBFI_REPORT_ENDPOINT;
   if (!endpoint) return;
-  const place = state.stations.find((item) => item.id === stationId)?.location;
+  const known = state.stations.find((item) => item.id === stationId) || state.stationInfo[stationId];
+  const place = known?.location || (known?.lat != null ? { lat: known.lat, lon: known.lon } : null);
+  const name = known?.network || '';
+  const address = shortAddress(known?.address || '');
   const send = async (key) => fetch(`${endpoint.replace(/\/$/, '')}/report`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Group-Key': key } : {}) },
-    body: JSON.stringify({ station: stationId, grade, seen, who: deviceId(), lat: place?.lat, lon: place?.lon, ...(queue != null ? { queue } : {}) }),
+    body: JSON.stringify({ station: stationId, grade, seen, who: deviceId(), lat: place?.lat, lon: place?.lon, name, address, notify, summary, ...(queue != null ? { queue } : {}) }),
   });
   try {
     let key = localStorage.getItem(GROUP_KEY) || '';
@@ -992,9 +1008,11 @@ async function pollGroupMarks() {
       }
     }
     const changed = JSON.stringify(marks) !== JSON.stringify(state.groupMarks || {});
+    const previous = state.groupMarks || {};
     state.groupMarks = marks;
     if (changed && state.stations.length) renderStations();
     renderGroupFeed();
+    if (changed) announceNewMarks(previous, marks);
   } catch {
     // Offline or the worker is down; the pipeline's copy still arrives.
     renderGroupFeed();
@@ -1038,7 +1056,8 @@ async function renderGroupFeed() {
     return { stationId, items, latest, queue, people };
   }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
   if (!entries.length) {
-    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.</div>`;
+    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>`;
+    bindPushButton(box);
     return;
   }
   await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
@@ -1054,8 +1073,174 @@ async function renderGroupFeed() {
       <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
     </button>`;
   }).join('');
-  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small></div><div class="feed-list">${cards}</div>`;
+  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div><div class="feed-list">${cards}</div>`;
   box.querySelectorAll('[data-feed-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.feedStation)));
+  bindPushButton(box);
+}
+
+// A mark someone else just filed nearby is worth interrupting for: a banner
+// slides in at the top while the app is open, with a buzz where the phone
+// allows it. (Nothing arrives while the app is closed — that needs a push
+// channel, which is a separate decision.)
+const ANNOUNCE_RADIUS_KM = 7;
+const seenAnnouncements = new Set();
+
+async function announceNewMarks(previous, marks) {
+  const me = deviceId();
+  const fresh = [];
+  for (const [stationId, grades] of Object.entries(marks)) {
+    for (const [grade, mark] of Object.entries(grades)) {
+      if (!GRADE_LABELS[grade]) continue;
+      const before = previous[stationId]?.[grade];
+      const isNew = !before || mark.at > before.at;
+      const mine = (mark.people || []).length === 1 && mark.people[0] === me;
+      const key = `${stationId}:${grade}:${mark.at}`;
+      if (!isNew || mine || seenAnnouncements.has(key)) continue;
+      seenAnnouncements.add(key);
+      fresh.push({ stationId, grade, mark });
+    }
+  }
+  if (!fresh.length) return;
+  // The first poll after opening is catch-up, not news.
+  if (!Object.keys(previous).length) return;
+  const byStation = new Map();
+  for (const item of fresh) {
+    const slot = byStation.get(item.stationId) || [];
+    slot.push(item);
+    byStation.set(item.stationId, slot);
+  }
+  for (const [stationId, items] of byStation) {
+    const info = await stationInfo(stationId);
+    const distanceKm = state.location && info.lat != null ? haversineKm(state.location, { lat: info.lat, lon: info.lon }) : null;
+    if (distanceKm != null && distanceKm > ANNOUNCE_RADIUS_KM) continue;
+    const grades = items.map(({ grade, mark }) => `${GRADE_LABELS[grade].replace('АИ-', '')} ${mark.seen ? 'есть' : 'нет'}`).join(', ');
+    const queue = queueWords(items.map(({ mark }) => mark.queue).find((value) => value != null));
+    const where = [shortAddress(info.address || ''), distanceKm != null ? formatDistance(distanceKm) : null].filter(Boolean).join(' · ');
+    showToast(`👁 Свой отметил: ${info.network || 'АЗС'} — ${grades}${queue ? `, очередь: ${queue}` : ''}`, where, stationId);
+  }
+  if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+}
+
+function showToast(title, subtitle, stationId) {
+  const stack = $('#toastStack');
+  if (!stack) return;
+  const toast = document.createElement('button');
+  toast.type = 'button';
+  toast.className = 'toast';
+  toast.innerHTML = `<strong>${escapeHtml(title)}</strong>${subtitle ? `<span>${escapeHtml(subtitle)}</span>` : ''}`;
+  toast.addEventListener('click', () => { toast.remove(); if (stationId) openStation(stationId); });
+  stack.prepend(toast);
+  setTimeout(() => toast.classList.add('show'), 20);
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 12000);
+}
+
+// Push: the phone hears about a mark with the app closed. Web Push is the
+// browser's own channel; the worker signs and encrypts each message and the
+// phone's push service delivers it. On iPhone this exists only for the app
+// installed on the home screen (iOS 16.4+), never for a Safari tab.
+const PUSH_FLAG = 'spbfi-push-v1';
+const PUSH_LOCATION_MS = 10 * 60 * 1000;
+let pushLocationSentAt = 0;
+
+function pushSupported() {
+  return !!(window.SPBFI_REPORT_ENDPOINT && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+}
+
+function standalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function pushState() {
+  if (!window.SPBFI_REPORT_ENDPOINT) return 'unavailable';
+  if (!pushSupported()) return platformInfo().iOS && !standalone() ? 'install-first' : 'unavailable';
+  if (Notification.permission === 'denied') return 'denied';
+  return localStorage.getItem(PUSH_FLAG) === 'on' && Notification.permission === 'granted' ? 'on' : 'off';
+}
+
+async function postSubscription(subscription) {
+  const endpoint = window.SPBFI_REPORT_ENDPOINT.replace(/\/$/, '');
+  const key = localStorage.getItem(GROUP_KEY) || '';
+  const response = await fetch(`${endpoint}/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Group-Key': key } : {}) },
+    body: JSON.stringify({ subscription: subscription.toJSON(), who: deviceId(), lat: state.location?.lat, lon: state.location?.lon }),
+  });
+  if (response.status === 403) {
+    const asked = prompt('Введите слово для своих, чтобы получать их отметки:');
+    if (!asked) throw new Error('нет слова');
+    try { localStorage.setItem(GROUP_KEY, asked); } catch { /* nothing to keep it in */ }
+    return postSubscription(subscription);
+  }
+  if (!response.ok) throw new Error(`приёмник ответил ${response.status}`);
+  pushLocationSentAt = Date.now();
+}
+
+async function enablePush() {
+  const status = pushState();
+  if (status === 'install-first') {
+    alert('На iPhone уведомления работают только у приложения на главном экране: Поделиться → «На экран „Домой“», затем откройте его оттуда и нажмите эту кнопку снова.');
+    return;
+  }
+  if (status === 'unavailable') {
+    alert('Этот браузер не умеет push-уведомления. На телефоне установите приложение на главный экран.');
+    return;
+  }
+  if (status === 'denied') {
+    alert('Уведомления запрещены для этого сайта в настройках телефона. Разрешите их там и нажмите снова.');
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { renderGroupFeed(); return; }
+    const registration = await navigator.serviceWorker.ready;
+    const vapid = await (await fetch(`${window.SPBFI_REPORT_ENDPOINT.replace(/\/$/, '')}/vapid`, { cache: 'no-store' })).json();
+    const raw = atob(String(vapid.publicKey).replace(/-/g, '+').replace(/_/g, '/'));
+    const applicationServerKey = Uint8Array.from(raw, (char) => char.charCodeAt(0));
+    const subscription = (await registration.pushManager.getSubscription()) || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
+    await postSubscription(subscription);
+    localStorage.setItem(PUSH_FLAG, 'on');
+    showToast('🔔 Уведомления включены', 'Когда свой отметит АЗС в 7 км от вас, телефон сообщит — даже с закрытым приложением.');
+  } catch (error) {
+    alert(`Не удалось включить уведомления: ${error.message}`);
+  }
+  renderGroupFeed();
+}
+
+async function disablePush() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      await fetch(`${window.SPBFI_REPORT_ENDPOINT.replace(/\/$/, '')}/unsubscribe`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }),
+      }).catch(() => {});
+      await subscription.unsubscribe();
+    }
+  } catch { /* nothing to undo */ }
+  localStorage.removeItem(PUSH_FLAG);
+  renderGroupFeed();
+}
+
+// The worker only wakes phones near the station; it needs to know roughly
+// where each phone is, refreshed every ten minutes while following.
+async function refreshPushLocation() {
+  if (pushState() !== 'on' || !state.location || Date.now() - pushLocationSentAt < PUSH_LOCATION_MS) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) await postSubscription(subscription);
+  } catch { /* next fix tries again */ }
+}
+
+function pushButton() {
+  const status = pushState();
+  if (status === 'unavailable') return '';
+  if (status === 'on') return '<button type="button" class="push-button on" data-push="off">🔔 Уведомления включены</button>';
+  return '<button type="button" class="push-button" data-push="on">🔔 Уведомлять о своих</button>';
+}
+
+function bindPushButton(root) {
+  root.querySelectorAll('[data-push]').forEach((button) => button.addEventListener('click', () => (button.dataset.push === 'on' ? enablePush() : disablePush())));
 }
 
 function groupMarkFor(stationId, grade) {
@@ -1174,12 +1359,14 @@ function bindComposer(root) {
     event.stopPropagation();
     const stationId = box.dataset.composeStation;
     const grades = Object.keys(chosen);
-    grades.forEach((grade) => saveMark(stationId, grade, chosen[grade], queue, { render: false }));
+    const summary = grades.map((grade) => `${GRADE_LABELS[grade].replace('АИ-', '')} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
+    const queueText = queue != null ? `, очередь: ${queueWords(queue)}` : '';
+    grades.forEach((grade, index) => saveMark(stationId, grade, chosen[grade], queue, {
+      render: false, notify: index === 0, summary: index === 0 ? summary + queueText : '',
+    }));
     renderStations();
     renderHerePanel();
     renderGroupFeed();
-    const summary = grades.map((grade) => `${GRADE_LABELS[grade].replace('АИ-', '')} ${chosen[grade] ? '✓' : '✗'}`).join(', ');
-    const queueText = queue != null ? `, очередь: ${queueWords(queue)}` : '';
     box.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(summary)}${escapeHtml(queueText)}. У всех это уже наверху, в «Свои сообщают».</span>`;
   });
 }

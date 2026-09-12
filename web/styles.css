@@ -502,3 +502,14 @@ body.following #locateButton { background: var(--accent, #1f7a4d); color: #fff; 
 .pin-label em.pin-eye.yes { color: #1f7a4d; font-weight: 700; }
 .pin-label em.pin-eye.no { color: #b8333a; font-weight: 700; }
 .leaflet-marker-icon:hover .pin-label { z-index: 5; }
+
+/* ---- in-app announcements ---- */
+.toast-stack { position: fixed; z-index: 1200; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 10px); display: grid; gap: 8px; pointer-events: none; }
+.toast { pointer-events: auto; display: grid; gap: 2px; text-align: left; padding: 12px 14px; border: 0; border-radius: 14px; background: #0d3328; color: #fff; font: inherit; box-shadow: 0 10px 30px rgba(0,0,0,.3); transform: translateY(-20px); opacity: 0; transition: transform .3s ease, opacity .3s ease; cursor: pointer; }
+.toast.show { transform: none; opacity: 1; }
+.toast strong { font-size: 15px; }
+.toast span { font-size: 12px; opacity: .8; }
+
+.push-button { margin-left: auto; padding: 8px 12px; border: 1px solid #1f7a4d; border-radius: 999px; background: #fff; color: #1f7a4d; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.push-button.on { background: #1f7a4d; color: #fff; }
+.feed-empty .push-button { display: inline-block; margin: 10px 0 0; }
