@@ -672,7 +672,9 @@ function metaFor(station) {
   const votes = (grade.votes || []).length;
   const parts = [];
   if (votes) parts.push(`${votes} ${plural(votes, 'источник', 'источника', 'источников')} проголосовали`);
-  parts.push(formatAge(grade.age_seconds));
+  // A source that never says when it saw anything cannot be presented as
+  // minutes old just because we polled it a minute ago.
+  parts.push(grade.undated_only ? 'источник не сообщает времени' : formatAge(grade.age_seconds));
   if (grade.price_rub != null) {
     const sources = grade.price_sources ?? 0;
     const value = `${grade.price_rub.toFixed(2).replace('.', ',')} ₽/л`;

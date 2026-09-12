@@ -52,11 +52,16 @@ def normalize_gdebenzi(station: dict[str, Any], captured_at: str | None = None) 
         "gdebenzi", station.get("id"), station.get("brand") or station.get("name"),
         station.get("addr") or station.get("address"), station["lat"], station["lon"],
     )
-    # `markts` is the time of a batch recompute shared by hundreds of rows;
-    # `updated` is per station and is the honest observation time.
-    observed = station.get("updated") or station.get("rbupd") or captured_at
+    # Only `updated` is a per-station observation time, and it is present on
+    # roughly one row in five.  `markts` is a batch recompute shared by
+    # hundreds of stations and `rbupd` is the price feed's date, so neither says
+    # when a driver saw anything.  Without a real time the row must not claim
+    # freshness: it becomes an undated summary, weighed accordingly.
+    observed = station.get("updated")
+    kind = "crowd_status" if observed else "undated_crowd_summary"
     queue = _queue_bucket(station.get("queueTxt"))
     confidence = {
+        "undated": observed is None,
         "confirmations": station.get("reports"),
         "agreement_pct": station.get("confPct"),
         "consensus": station.get("conf"),
@@ -79,7 +84,7 @@ def normalize_gdebenzi(station: dict[str, Any], captured_at: str | None = None) 
                 continue
             seen.add(grade)
             rec["evidence"].append(_evidence(
-                grade, availability, "crowd_status", "gdebenzi-crowd",
+                grade, availability, kind, "gdebenzi-crowd",
                 observed_at=observed, limit=limits.get(grade),
                 queue=queue if availability in {"AVAILABLE", "LIMITED", "QUEUE"} else None,
                 confidence=confidence, independent=True, raw_status=station.get("state"),
@@ -91,7 +96,7 @@ def normalize_gdebenzi(station: dict[str, Any], captured_at: str | None = None) 
         if availability != "UNKNOWN":
             for grade in grade_tokens(",".join(str(item) for item in station.get("fuelsMaybe") or [])):
                 rec["evidence"].append(_evidence(
-                    grade, availability, "crowd_status", "gdebenzi-crowd",
+                    grade, availability, kind, "gdebenzi-crowd",
                     observed_at=observed, queue=queue, confidence=confidence,
                     independent=True, raw_status=station.get("state"),
                 ))

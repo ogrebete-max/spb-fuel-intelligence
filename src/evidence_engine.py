@@ -540,7 +540,13 @@ def evaluate_grade(
         status = "CONFIRMED_NO"
         reason = "Свежие источники почти единодушны: этой марки нет."
 
-    newest = max((item.observed_at for item in fresh if item.observed_at), default=None)
+    # An undated row is dated by the moment we polled, which is not when anyone
+    # saw anything.  Such a row may still vote, at its low weight, but it must
+    # never set the age shown on the card: that is how a two-month-old crowd
+    # summary starts reading as "4 минуты назад".
+    timed = [item for item in fresh if item.row.get("observed_at")]
+    newest = max((item.observed_at for item in timed if item.observed_at), default=None)
+    undated_only = bool(fresh) and not timed
     agreeing = independent_positive if status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"} else independent_negative
     trust_score, trust_tier, trust_reason = _trust_score(status, fresh, len(agreeing), current_time)
     if (relay_positive or relay_negative) and not (official_positive or official_negative):
@@ -598,6 +604,7 @@ def evaluate_grade(
         "source_count": len({str(item.row.get("source") or item.cluster) for item in deduped}),
         "fresh_source_count": len({str(item.row.get("source") or item.cluster) for item in fresh}),
         "independent_agreeing_count": len(agreeing),
+        "undated_only": undated_only,
         "fresh_provenance_count": len({item.cluster for item in fresh}),
         "fresh_evidence_count": len(fresh),
         "evidence_count": len(relevant),
