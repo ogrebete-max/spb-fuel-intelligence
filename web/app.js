@@ -626,7 +626,7 @@ function yandexPanel(grade) {
     : 'Прямого вердикта нет';
   const tone = line.agrees === true ? 'agree' : line.agrees === false ? 'disagree' : 'neutral';
   const stale = line.stale
-    ? '<p class="yandex-stale">Их сигнал старше нашего окна свежести, поэтому в голосовании он не участвовал.</p>'
+    ? '<p class="yandex-stale">Их сигнал старше нашего окна свежести: он не создаёт вердикта, но снижает нашу уверенность.</p>'
     : '';
   return `<div class="yandex-panel ${tone}">
     <strong>Яндекс Карты · ${escapeHtml(verdict)}</strong>
@@ -643,15 +643,16 @@ function votePanel(grade) {
   const rows = votes.map((vote) => {
     const positive = vote.direction > 0;
     const share = Math.round(Math.min(100, (vote.weight / 1.2) * 100));
-    return `<div class="vote-row">
+    const note = vote.expired ? ' · просрочен, учтён с понижением' : '';
+    return `<div class="vote-row${vote.expired ? ' expired' : ''}">
       <span class="vote-side ${positive ? 'yes' : 'no'}">${positive ? 'за' : 'против'}</span>
-      <span class="vote-name">${escapeHtml(vote.source || '')}<small>${escapeHtml(KIND_LABELS[vote.kind] || vote.kind || '')} · ${escapeHtml(formatAge(vote.age_seconds))}</small></span>
+      <span class="vote-name">${escapeHtml(vote.source || '')}<small>${escapeHtml(KIND_LABELS[vote.kind] || vote.kind || '')} · ${escapeHtml(formatAge(vote.age_seconds))}${note}</small></span>
       <span class="vote-bar"><span style="width:${Math.max(6, share)}%"></span></span>
     </div>`;
   }).join('');
   return `<div class="vote-panel">
     <div class="trust-head"><span class="trust-kicker">Как считался ответ</span><strong>${chance}% за то, что топливо есть</strong></div>
-    <p>Голоса всех свежих источников, взвешенные по типу сигнала, его возрасту и числу подтверждений. Копии одного и того же upstream считаются один раз.</p>
+    <p>Голоса всех свежих источников, взвешенные по типу сигнала, его возрасту и числу подтверждений. Копии одного и того же upstream считаются один раз. Недавно просроченный сигнал против ответа не создаёт своего вердикта, но снижает уверенность.</p>
     <div class="vote-list">${rows}</div>
   </div>`;
 }

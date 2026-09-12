@@ -165,7 +165,37 @@ def _vote(item: EvaluatedRow) -> tuple[float, float]:
     return direction, weight
 
 
-def probability_available(rows: list[EvaluatedRow]) -> tuple[float | None, list[dict[str, Any]]]:
+# Relevance fades, it does not fall off a cliff.  A contrary report that just
+# passed its TTL is poor grounds for claiming fuel, but excellent grounds for
+# being less sure — which is why the card could say 96% while showing a
+# one-hour-old "нет" from two drivers right underneath.
+STALE_OPPOSITION_REACH = 3.0
+STALE_OPPOSITION_WEIGHT = 0.45
+
+
+def _stale_opposition(rows: list[EvaluatedRow], leading: int) -> list[tuple[float, EvaluatedRow]]:
+    """Expired evidence against the leading answer, at a fading weight."""
+    damping: list[tuple[float, EvaluatedRow]] = []
+    for item in rows:
+        if item.fresh:
+            continue
+        direction, weight = _vote(item)
+        if not weight or (direction > 0) == (leading > 0):
+            continue
+        kind = str(item.row.get("kind") or "")
+        ttl = TTL_SECONDS.get(kind, 2 * 60 * 60)
+        age = item.age_seconds
+        if age is None or ttl <= 0 or age >= ttl * STALE_OPPOSITION_REACH:
+            continue
+        fade = 1.0 - (age - ttl) / (ttl * (STALE_OPPOSITION_REACH - 1))
+        damping.append((direction * weight * STALE_OPPOSITION_WEIGHT * max(0.0, fade), item))
+    return damping
+
+
+def probability_available(
+    rows: list[EvaluatedRow],
+    stale: list[EvaluatedRow] | None = None,
+) -> tuple[float | None, list[dict[str, Any]]]:
     """Combine every fresh vote into P(this grade is available right now)."""
     breakdown: list[dict[str, Any]] = []
     total = 0.0
@@ -195,6 +225,20 @@ def probability_available(rows: list[EvaluatedRow]) -> tuple[float | None, list[
     leading = 1 if total >= 0 else -1
     agreeing = sum(1 for row in breakdown if (row["direction"] > 0) == (leading > 0))
     total *= {0: 0.65, 1: 0.65, 2: 0.85}.get(agreeing, 1.0)
+    # Expired opposition may only lower confidence, never create or sustain an
+    # answer of its own, so it is applied after corroboration is counted.
+    for contribution, item in _stale_opposition(stale or [], leading):
+        total += contribution * VOTE_SCALE
+        breakdown.append({
+            "source": item.row.get("source"),
+            "cluster": item.cluster,
+            "kind": item.row.get("kind"),
+            "availability": item.row.get("availability"),
+            "age_seconds": round(item.age_seconds) if item.age_seconds is not None else None,
+            "weight": round(abs(contribution), 3),
+            "direction": 1.0 if contribution > 0 else -1.0,
+            "expired": True,
+        })
     probability = 1.0 / (1.0 + math.exp(-total))
     breakdown.sort(key=lambda row: -row["weight"])
     return probability, breakdown
@@ -527,7 +571,7 @@ def evaluate_grade(
     # Statuses come from the combined probability, not from whichever single
     # row is strongest: a dozen sources disagreeing should read as "расходятся",
     # and one official reading should not erase a fresh crowd.
-    probability, vote_breakdown = probability_available(fresh)
+    probability, vote_breakdown = probability_available(fresh, deduped)
     restricted_now = bool(restricted)
     disagreement: dict[str, Any] | None = None
     if positives and negatives:
