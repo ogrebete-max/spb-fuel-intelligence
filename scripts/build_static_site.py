@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 
 
@@ -18,6 +20,22 @@ from src.repository import GRADES, StationRepository  # noqa: E402
 def write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+
+
+def repository_build_tag() -> str:
+    """A short, changing token for cache busting: the current commit, or the time."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
+            capture_output=True, text=True, check=True, timeout=10,
+        )
+        return result.stdout.strip() or _clock_tag()
+    except (OSError, subprocess.SubprocessError):
+        return _clock_tag()
+
+
+def _clock_tag() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
 
 
 def main() -> int:
@@ -33,7 +51,15 @@ def main() -> int:
     static_marker = '<meta name="spbfi-static-site" content="false">'
     if static_marker not in index_html:
         raise RuntimeError("static-site marker is missing from web/index.html")
-    index_path.write_text(index_html.replace(static_marker, '<meta name="spbfi-static-site" content="true">'), encoding="utf-8")
+    index_html = index_html.replace(static_marker, '<meta name="spbfi-static-site" content="true">')
+    # A browser holding yesterday's app.js against today's data is the single
+    # most confusing failure this project has: the page looks broken and no
+    # amount of server-side fixing shows up.  Stamping the build into the asset
+    # URLs makes a stale bundle impossible to reuse.
+    build = repository_build_tag()
+    index_html = index_html.replace('href="styles.css"', f'href="styles.css?v={build}"')
+    index_html = index_html.replace('src="app.js"', f'src="app.js?v={build}"')
+    index_path.write_text(index_html, encoding="utf-8")
 
     repository = StationRepository(ROOT / "data" / "stations.json", ROOT / "data" / "history.json")
     snapshot_time = "snapshot"

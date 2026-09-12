@@ -548,6 +548,7 @@ async function loadStations() {
     if (requestId !== state.request) return;
     state.stations = data.stations;
     $('#resultCount').textContent = data.total.toLocaleString('ru-RU');
+    $('#resultNoun').textContent = `${plural(data.total, 'карточка', 'карточки', 'карточек')} АЗС`;
     renderStatusStrip(data.status_counts, data.timeline_counts);
     renderStations();
     renderMarkers();

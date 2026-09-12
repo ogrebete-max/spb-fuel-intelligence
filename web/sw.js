@@ -1,5 +1,8 @@
-const CACHE = 'spb-fuel-intelligence-v5';
-const APP_SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/fuel-intelligence.svg', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'vendor/leaflet.css', 'vendor/leaflet.js'];
+const CACHE = 'spb-fuel-intelligence-v6';
+// app.js and styles.css carry a build tag in their URL, so they are not
+// precached here; the network-first handler stores whichever build index.html
+// actually asks for.
+const APP_SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/fuel-intelligence.svg', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'vendor/leaflet.css', 'vendor/leaflet.js'];
 self.addEventListener('install', (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())));
 // Drop caches from earlier versions instead of leaving them on the phone.
 self.addEventListener('activate', (event) => event.waitUntil(
