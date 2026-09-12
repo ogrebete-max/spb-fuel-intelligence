@@ -345,3 +345,5 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
   color: #8a5405; font: inherit; font-size: 12px; font-weight: 700;
   text-decoration: underline; cursor: pointer; padding: 0;
 }
+
+.build-stamp { color: #9aa59f; font-size: 11px; }

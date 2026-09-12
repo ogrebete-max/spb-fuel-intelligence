@@ -259,6 +259,10 @@ function renderMeta() {
   $('#identityNote').textContent = baseline
     ? `${live} источников в этом снимке; записи одной сети на одной точке объединены, остальные не склеиваются без достаточных признаков. Физический baseline Sber/2GIS: ${baseline.toLocaleString('ru-RU')} точек.`
     : 'Карточки не объединяются только по близости координат.';
+  const stamp = $('#buildStamp');
+  if (stamp && state.meta.generated_at) {
+    stamp.textContent = `сборка ${new Date(state.meta.generated_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+  }
   const refresh = $('#refreshButton');
   if (state.staticMode || state.meta.mode === 'static_github_pages') {
     refresh.textContent = 'Автообновление: 10 мин';
@@ -916,6 +920,47 @@ async function showSources() {
 }
 
 bootstrap();
+
+// A published snapshot changes every ten minutes, but an open page used to
+// keep the copy it loaded for as long as it stayed open — which looks exactly
+// like an app that never updates.
+const SNAPSHOT_POLL_MS = 120000;
+
+async function pollForNewSnapshot() {
+  try {
+    staticCache.delete('static-data/meta.json');
+    const meta = await api('/api/meta');
+    if (meta.snapshot_at && meta.snapshot_at !== state.meta?.snapshot_at) {
+      staticCache.clear();
+      state.meta = meta;
+      renderMeta();
+      await loadStations();
+    } else {
+      state.meta = meta;
+      renderMeta();
+    }
+  } catch {
+    // Offline or the host is briefly unavailable; the next tick tries again.
+  }
+}
+
+setInterval(pollForNewSnapshot, SNAPSHOT_POLL_MS);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) pollForNewSnapshot();
+});
+
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  // The worker calls skipWaiting, so a new one takes control immediately — but
+  // the page keeps running the code it already parsed until it is reloaded.
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then((registration) => {
+      setInterval(() => registration.update().catch(() => {}), 10 * 60 * 1000);
+    }).catch(() => {});
+  });
 }

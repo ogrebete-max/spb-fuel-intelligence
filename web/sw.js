@@ -1,4 +1,4 @@
-const CACHE = 'spb-fuel-intelligence-v4';
+const CACHE = 'spb-fuel-intelligence-v5';
 const APP_SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/fuel-intelligence.svg', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'vendor/leaflet.css', 'vendor/leaflet.js'];
 self.addEventListener('install', (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())));
 // Drop caches from earlier versions instead of leaving them on the phone.
