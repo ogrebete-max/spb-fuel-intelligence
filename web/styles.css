@@ -347,3 +347,13 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 }
 
 .build-stamp { color: #9aa59f; font-size: 11px; }
+
+.yandex-panel { margin: 14px 0 4px; padding: 13px 15px; border-radius: 16px; border: 1px solid rgba(13,51,40,.12); background: rgba(255,255,255,.72); }
+.yandex-panel strong { display: block; font-size: .95rem; }
+.yandex-panel p { margin: 6px 0 0; font-size: .82rem; line-height: 1.45; }
+.yandex-panel .yandex-note, .yandex-panel .yandex-stale { color: #6d7a74; font-size: .76rem; }
+.yandex-panel.agree { border-color: rgba(21,130,87,.35); }
+.yandex-panel.agree strong { color: #158257; }
+.yandex-panel.disagree { border-color: rgba(184,51,58,.38); background: rgba(248,226,226,.5); }
+.yandex-panel.disagree strong { color: #b8333a; }
+.yandex-flag { display: block; font-size: 12px; font-weight: 650; color: #8f2a30; background: rgba(248,226,226,.7); border-radius: 8px; padding: 5px 8px; }

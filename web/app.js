@@ -583,6 +583,47 @@ function renderStatusStrip(counts, timelineCounts = {}) {
 
 const TRUST_COLORS = { high: '#158257', moderate: '#d58a13', low: '#b8333a', conflict: '#7856c7', none: '#8a9691' };
 
+const YANDEX_SENSE = {
+  AVAILABLE: 'есть', LIKELY: 'скорее есть', LIMITED: 'есть с ограничением',
+  QUEUE: 'есть, очередь', NOT_AVAILABLE: 'нет', LIKELY_NOT: 'скорее нет',
+  UNKNOWN: 'не уверен',
+};
+
+// Yandex is what people compare against anyway. Showing its verdict beside
+// ours — with its age and how many drivers stand behind it — is the one thing
+// this app can do that neither app does alone.
+function yandexLine(grade) {
+  const y = grade.yandex;
+  if (!y) return null;
+  const said = YANDEX_SENSE[y.availability] || y.availability;
+  const when = y.age_seconds != null ? formatAge(y.age_seconds) : 'время неизвестно';
+  const signals = y.confirmations
+    ? `${y.confirmations} ${plural(y.confirmations, 'подтверждение', 'подтверждения', 'подтверждений')}`
+    : 'без подтверждений';
+  return { text: `Яндекс: ${said} · ${when} · ${signals}`, agrees: y.agrees, stale: !y.fresh };
+}
+
+function yandexPanel(grade) {
+  const line = yandexLine(grade);
+  if (!line) {
+    return `<div class="yandex-panel neutral"><strong>Яндекс Карты</strong><p>По этой АЗС у них нет данных о топливе — сравнивать не с чем.</p></div>`;
+  }
+  const y = grade.yandex;
+  const verdict = line.agrees === true ? 'Совпадает с нашим ответом'
+    : line.agrees === false ? 'Расходится с нашим ответом'
+    : 'Прямого вердикта нет';
+  const tone = line.agrees === true ? 'agree' : line.agrees === false ? 'disagree' : 'neutral';
+  const stale = line.stale
+    ? '<p class="yandex-stale">Их сигнал старше нашего окна свежести, поэтому в голосовании он не участвовал.</p>'
+    : '';
+  return `<div class="yandex-panel ${tone}">
+    <strong>Яндекс Карты · ${escapeHtml(verdict)}</strong>
+    <p>${escapeHtml(line.text)}</p>
+    ${stale}
+    <p class="yandex-note">Это второе мнение из другого сообщества водителей. Наш ответ по ${escapeHtml(GRADE_LABELS[state.grade])} — ${escapeHtml(STATUS[grade.status].short.toLowerCase())}, ${grade.probability_percent}% за наличие по ${(grade.votes || []).length} ${plural((grade.votes || []).length, 'источнику', 'источникам', 'источникам')}.</p>
+  </div>`;
+}
+
 function votePanel(grade) {
   const votes = grade.votes || [];
   if (!votes.length) return '';
@@ -766,6 +807,13 @@ function renderStations({ append = false } = {}) {
     const caution = advice.caution ? ` ${advice.caution}` : '';
     node.querySelector('.facts').textContent = facts + caution;
     node.querySelector('.meta-line').textContent = metaFor(station);
+    const second = yandexLine(grade);
+    if (second && second.agrees === false) {
+      const note = document.createElement('span');
+      note.className = 'yandex-flag';
+      note.textContent = `⚠ ${second.text}`;
+      node.querySelector('.card-main').insertBefore(note, node.querySelector('.meta-line'));
+    }
     const distance = node.querySelector('.distance');
     distance.textContent = station.distance_km != null ? `${station.distance_km.toLocaleString('ru-RU')} км` : '';
     // Straight line, not the drive: around water and interchanges the road can
@@ -850,6 +898,7 @@ async function openStation(id) {
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
       <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="drawer-status" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}</strong><p>${escapeHtml(selected.reason)}</p></div>
+      ${yandexPanel(selected)}
       ${votePanel(selected)}
       ${trustPanel(selected)}
       ${timelinePanel}

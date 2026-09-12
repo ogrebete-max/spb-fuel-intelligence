@@ -455,6 +455,40 @@ def _consensus_price(rows: list[EvaluatedRow], now: datetime) -> dict[str, Any]:
     }
 
 
+# Yandex is the app people actually compare against, and on a card it is more
+# useful as a second opinion than as one more anonymous vote.  Its row is
+# therefore surfaced separately, with its own age and signal count, so a driver
+# can see the disagreement instead of switching apps to find it.
+POSITIVE_SENSE = {"AVAILABLE", "LIKELY", "LIMITED", "QUEUE"}
+NEGATIVE_SENSE = {"NOT_AVAILABLE", "LIKELY_NOT"}
+
+
+def _second_opinion(rows: list[EvaluatedRow], status: str) -> dict[str, Any] | None:
+    """What Yandex Maps says about this grade, and whether it agrees with us."""
+    candidates = [item for item in rows if str(item.row.get("source")) == "yandex-maps"]
+    if not candidates:
+        return None
+    item = min(candidates, key=lambda row: row.age_seconds if row.age_seconds is not None else 10 ** 9)
+    availability = str(item.row.get("availability") or "UNKNOWN")
+    confidence = item.row.get("confidence") if isinstance(item.row.get("confidence"), dict) else {}
+    ours_positive = status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"}
+    ours_negative = status in {"CONFIRMED_NO", "LIKELY_NOT"}
+    if availability in POSITIVE_SENSE:
+        agrees = True if ours_positive else False if ours_negative else None
+    elif availability in NEGATIVE_SENSE:
+        agrees = True if ours_negative else False if ours_positive else None
+    else:
+        agrees = None
+    return {
+        "availability": availability,
+        "age_seconds": round(item.age_seconds) if item.age_seconds is not None else None,
+        "fresh": item.fresh,
+        "confirmations": confidence.get("confirmations"),
+        "station_status": confidence.get("station_status"),
+        "agrees": agrees,
+    }
+
+
 def evaluate_grade(
     evidence: Iterable[dict[str, Any]],
     grade: str,
@@ -605,6 +639,7 @@ def evaluate_grade(
         "fresh_source_count": len({str(item.row.get("source") or item.cluster) for item in fresh}),
         "independent_agreeing_count": len(agreeing),
         "undated_only": undated_only,
+        "yandex": _second_opinion(decorated, status),
         "fresh_provenance_count": len({item.cluster for item in fresh}),
         "fresh_evidence_count": len(fresh),
         "evidence_count": len(relevant),
