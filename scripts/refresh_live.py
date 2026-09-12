@@ -6,6 +6,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -52,6 +53,9 @@ ENDPOINTS = (
 # A source that legitimately answers with nothing for the AOI must not look
 # like a broken collector, so an empty payload is reported separately.
 MIN_BYTES = 200
+# Feeds that are legitimately tiny when nothing has happened: an empty list of
+# eyewitness reports is a healthy answer, not a broken collector.
+MAY_BE_EMPTY = {"own-reports"}
 
 # Nobody is served by asking a source for data faster than that data changes.
 # Yandex signals are two hours old at the median, and one pass over it costs a
@@ -157,8 +161,9 @@ def run_collector(name: str) -> dict[str, Any]:
     target = OUT_DIR / f"{name}.json"
     try:
         size = _write_atomic(target, COLLECTORS[name]())
-        return _result(name, started, ok=size >= MIN_BYTES, status=200, size=size,
-                       error=None if size >= MIN_BYTES else "empty payload")
+        enough = size >= MIN_BYTES or name in MAY_BE_EMPTY
+        return _result(name, started, ok=enough, status=200, size=size,
+                       error=None if enough else "empty payload")
     except Exception as exc:  # a single upstream must not abort the refresh
         # An optional collector that has not been set up is not a failure, and
         # must not sit in the health banner looking like a broken source.
@@ -176,6 +181,15 @@ def collect_gpn() -> dict[str, Any]:
         cwd=ROOT, capture_output=True, text=True, check=False,
     )
     ok = completed.returncode == 0 and target.exists()
+    if not ok and os.environ.get("GITHUB_ACTIONS"):
+        # gpnbonus.ru silently drops connections from GitHub's address ranges;
+        # the same feed arrives through the tboo.ru relay. The attempt is kept
+        # so an unblock would be noticed, but a block is the expected state
+        # here and must not read as a source that broke.
+        return _result("gpn-official", started, ok=True, status="off", size=0, error=None) | {
+            "disabled": True,
+            "note": "gpnbonus.ru не отвечает с серверов GitHub; те же данные приходят через ретранслятор tboo.ru/gpn",
+        }
     return _result(
         "gpn-official", started, ok=ok, status=200 if ok else "partial_or_failed",
         size=target.stat().st_size if target.exists() else 0,

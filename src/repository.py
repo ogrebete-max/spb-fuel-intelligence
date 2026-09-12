@@ -94,10 +94,15 @@ class StationRepository:
         ]
         # A collector that is switched off was never expected to answer.
         live = [row for row in rows if not row.get("disabled")]
+        off = [
+            {"name": row.get("name"), "note": row.get("note") or "выключен"}
+            for row in rows if row.get("disabled")
+        ]
         return {
             "total": len(live),
             "ok": sum(1 for row in live if row.get("ok")),
             "failed": sorted(failed, key=lambda row: str(row["name"])),
+            "off": sorted(off, key=lambda row: str(row["name"])),
             "checked_at": max((row.get("captured_at") or "") for row in rows) or None,
         }
 

@@ -300,9 +300,11 @@ function renderCollectorHealth() {
 function showCollectorHealth() {
   const health = state.meta?.collectors || { failed: [], ok: 0, total: 0 };
   const rows = health.failed.map((item) => `<div class="source-row"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.error || 'нет ответа')}</small></div>`).join('');
+  const off = (health.off || []).map((item) => `<div class="source-row"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.note)}</small></div>`).join('');
   openDrawer(`<h2>Состояние источников</h2>
     <p class="drawer-address">На последнем обновлении ответили ${health.ok} из ${health.total} каналов. Когда источник молчит, его голос просто не учитывается — ответы строятся на остальных, а возраст данных остаётся виден на карточке.</p>
-    ${rows ? `<h3 class="section-title">Не ответили</h3><div class="source-list">${rows}</div>` : '<div class="drawer-status" style="--status-color:#158257"><strong>Все источники ответили</strong><p>На последнем обновлении ни один канал не выпал.</p></div>'}`);
+    ${rows ? `<h3 class="section-title">Не ответили</h3><div class="source-list">${rows}</div>` : '<div class="drawer-status" style="--status-color:#158257"><strong>Все источники ответили</strong><p>На последнем обновлении ни один канал не выпал.</p></div>'}
+    ${off ? `<h3 class="section-title">Не считаются: заведомо недоступны с сервера</h3><div class="source-list">${off}</div>` : ''}`);
 }
 
 function bindControls() {
