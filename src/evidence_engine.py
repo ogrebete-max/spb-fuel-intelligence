@@ -426,6 +426,35 @@ def _has_known_queue(row: dict[str, Any], now: datetime | None = None) -> bool:
     return str(queue or "").strip().lower() not in {"", "0", "false", "no", "none", "no_queue"}
 
 
+# A price is only shown when it is recent and corroborated.  Taking whichever
+# single row was newest let an eleven-day-old catalogue entry set the price on
+# the card, and let one source's branded blend masquerade as the plain grade.
+PRICE_MAX_AGE_SECONDS = 24 * 3600
+
+
+def _consensus_price(rows: list[EvaluatedRow], now: datetime) -> dict[str, Any]:
+    """Median of the recent price quotes, one per provenance cluster."""
+    by_cluster: dict[str, EvaluatedRow] = {}
+    for item in rows:
+        if item.row.get("price_rub") is None:
+            continue
+        age = item.age_seconds
+        if age is None or age > PRICE_MAX_AGE_SECONDS:
+            continue
+        previous = by_cluster.get(item.cluster)
+        if previous is None or (previous.age_seconds or 0) > age:
+            by_cluster[item.cluster] = item
+    quotes = sorted(by_cluster.values(), key=lambda item: float(item.row["price_rub"]))
+    if not quotes:
+        return {"value": None, "sources": 0, "age_seconds": None}
+    middle = quotes[len(quotes) // 2]
+    return {
+        "value": round(float(middle.row["price_rub"]), 2),
+        "sources": len(quotes),
+        "age_seconds": round(min(item.age_seconds or 0 for item in quotes)),
+    }
+
+
 def evaluate_grade(
     evidence: Iterable[dict[str, Any]],
     grade: str,
@@ -439,8 +468,7 @@ def evaluate_grade(
     deduped = _deduplicate(decorated)
     fresh = [item for item in deduped if item.fresh]
 
-    price_rows = [item for item in decorated if item.row.get("price_rub") is not None]
-    latest_price = max(price_rows, key=lambda item: item.observed_at or datetime.min.replace(tzinfo=timezone.utc), default=None)
+    price = _consensus_price(decorated, current_time)
     limits = [item.row.get("limit_liters") for item in fresh if item.row.get("limit_liters") is not None]
     queue = _worst_queue(fresh, current_time)
 
@@ -550,7 +578,9 @@ def evaluate_grade(
         "confidence": confidence,
         "updated_at": newest.isoformat().replace("+00:00", "Z") if newest else None,
         "age_seconds": round((current_time - newest).total_seconds()) if newest else None,
-        "price_rub": latest_price.row.get("price_rub") if latest_price else None,
+        "price_rub": price["value"],
+        "price_sources": price["sources"],
+        "price_age_seconds": price["age_seconds"],
         "limit_liters": min(limits) if limits else None,
         "queue": queue,
         # Only reports that back the answer count: fourteen people confirming

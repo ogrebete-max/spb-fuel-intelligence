@@ -261,6 +261,7 @@ class StationRepository:
                 entry: dict[str, Any] = {"s": summary["status"]}
                 if summary["price_rub"] is not None:
                     entry["p"] = round(float(summary["price_rub"]), 2)
+                    entry["n"] = summary["price_sources"]
                 row[grade] = entry
             rows[station["id"]] = row
         return {"as_of": now.isoformat().replace("+00:00", "Z"), "stations": rows}

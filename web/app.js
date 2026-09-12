@@ -618,8 +618,10 @@ function gradeChips(station) {
     const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
     const selected = grade === state.grade ? ' selected' : '';
     // Six chips plus six prices do not fit a 375px phone; the price belongs to
-    // the grade the driver actually asked about.
-    const price = selected && item.p != null ? ` ${Math.round(item.p)}₽` : '';
+    // the grade the driver actually asked about.  A price nobody corroborates
+    // is marked, because a single feed can quote a branded blend.
+    const lonely = (item.n ?? 0) < 2;
+    const price = selected && item.p != null ? ` ${Math.round(item.p)}₽${lonely ? '?' : ''}` : '';
     return `<span class="grade-chip ${mark.tone}${selected}" title="${escapeHtml(GRADE_LABELS[grade])}: ${escapeHtml(STATUS[status]?.short || '')}">${mark.sign} ${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))}${price}</span>`;
   }).join('');
 }
@@ -645,7 +647,12 @@ function metaFor(station) {
   const parts = [];
   if (votes) parts.push(`${votes} ${plural(votes, 'источник', 'источника', 'источников')} проголосовали`);
   parts.push(formatAge(grade.age_seconds));
-  if (grade.price_rub != null) parts.push(`${grade.price_rub.toFixed(2)} ₽/л`);
+  if (grade.price_rub != null) {
+    const sources = grade.price_sources ?? 0;
+    parts.push(sources >= 2
+      ? `${grade.price_rub.toFixed(2)} ₽/л по ${sources} ${plural(sources, 'источнику', 'источникам', 'источникам')}`
+      : `${grade.price_rub.toFixed(2)} ₽/л — цена не подтверждена`);
+  }
   return parts.join(' · ');
 }
 
