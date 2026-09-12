@@ -255,6 +255,7 @@ function renderMeta() {
   const baseline = Number((stats.source_rows || {}).sber || 0);
   $('#snapshotCard').innerHTML = `<span class="pulse ${stale ? 'stale' : ''}"></span><span><strong>${title}</strong><small>${subtitle} · ${Number(stats.canonical_stations).toLocaleString('ru-RU')} карточек</small></span>`;
   const live = Object.keys(stats.source_rows || {}).length;
+  renderCollectorHealth();
   $('#identityNote').textContent = baseline
     ? `${live} источников в этом снимке; записи одной сети на одной точке объединены, остальные не склеиваются без достаточных признаков. Физический baseline Sber/2GIS: ${baseline.toLocaleString('ru-RU')} точек.`
     : 'Карточки не объединяются только по близости координат.';
@@ -264,6 +265,32 @@ function renderMeta() {
     refresh.disabled = true;
     refresh.title = 'Публичная версия обновляется GitHub Actions по расписанию.';
   }
+}
+
+// A source going quiet is the likeliest way this app starts lying, so a failure
+// is shown on the page rather than buried in a workflow log.
+function renderCollectorHealth() {
+  const banner = $('#collectorBanner');
+  const health = state.meta?.collectors;
+  if (!banner) return;
+  if (!health || !health.failed?.length) {
+    banner.hidden = true;
+    return;
+  }
+  const names = health.failed.map((item) => item.name).join(', ');
+  banner.hidden = false;
+  banner.innerHTML = `<strong>Не ответили источники: ${escapeHtml(String(health.failed.length))} из ${escapeHtml(String(health.total))}</strong>`
+    + `<span>${escapeHtml(names)}. Остальные ${escapeHtml(String(health.ok))} отработали — ответы построены на них.</span>`
+    + `<button type="button" id="collectorDetails">Подробнее</button>`;
+  $('#collectorDetails').addEventListener('click', showCollectorHealth);
+}
+
+function showCollectorHealth() {
+  const health = state.meta?.collectors || { failed: [], ok: 0, total: 0 };
+  const rows = health.failed.map((item) => `<div class="source-row"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.error || 'нет ответа')}</small></div>`).join('');
+  openDrawer(`<h2>Состояние источников</h2>
+    <p class="drawer-address">На последнем обновлении ответили ${health.ok} из ${health.total} каналов. Когда источник молчит, его голос просто не учитывается — ответы строятся на остальных, а возраст данных остаётся виден на карточке.</p>
+    ${rows ? `<h3 class="section-title">Не ответили</h3><div class="source-list">${rows}</div>` : '<div class="drawer-status" style="--status-color:#158257"><strong>Все источники ответили</strong><p>На последнем обновлении ни один канал не выпал.</p></div>'}`);
 }
 
 function bindControls() {

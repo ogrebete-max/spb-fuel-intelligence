@@ -332,3 +332,16 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 .vote-bar span { display: block; height: 100%; border-radius: 999px; background: #4a5b54; }
 .vote-row:has(.vote-side.yes) .vote-bar span { background: #158257; }
 .vote-row:has(.vote-side.no) .vote-bar span { background: #b8333a; }
+
+.collector-banner {
+  display: grid; gap: 4px; margin: 0 0 12px; padding: 12px 14px;
+  border-radius: 14px; border: 1px solid rgba(213, 138, 19, .35);
+  background: rgba(251, 238, 210, .75); color: #6b4405;
+}
+.collector-banner strong { font-size: 13px; }
+.collector-banner span { font-size: 12px; line-height: 1.4; }
+.collector-banner button {
+  justify-self: start; margin-top: 4px; border: 0; background: transparent;
+  color: #8a5405; font: inherit; font-size: 12px; font-weight: 700;
+  text-decoration: underline; cursor: pointer; padding: 0;
+}

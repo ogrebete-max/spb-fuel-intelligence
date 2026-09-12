@@ -6,3 +6,6 @@ site/
 data/live/
 data/stations.json
 snapshot-manifest.json
+
+# Stray captures from ad-hoc research must never land in the repository.
+*.scratch.html

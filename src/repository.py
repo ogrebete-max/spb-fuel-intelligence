@@ -73,7 +73,29 @@ class StationRepository:
             "stats": self.snapshot.get("stats"),
             "grades": GRADES,
             "history": self.history.get("stats", {"tracked_station_grades": 0, "transitions_this_update": 0}),
+            "collectors": self.collectors(),
             "notice": "Для ответа «сейчас» применяются жёсткие TTL: прямой статус — 30 мин, пользовательский сигнал — 45 мин. UNKNOWN никогда не становится NO.",
+        }
+
+    def collectors(self) -> dict[str, Any]:
+        """Which collectors answered on the last refresh, and which did not.
+
+        A source going quiet is the single most likely way this app starts
+        lying, so it is reported rather than left in a log.
+        """
+        path = self.snapshot_path.parent / "live" / "full-aoi-probe-results.json"
+        if not path.exists():
+            return {"total": 0, "ok": 0, "failed": []}
+        rows = json.loads(path.read_text(encoding="utf-8"))
+        failed = [
+            {"name": row.get("name"), "error": (row.get("error") or "")[:300]}
+            for row in rows if not row.get("ok")
+        ]
+        return {
+            "total": len(rows),
+            "ok": sum(1 for row in rows if row.get("ok")),
+            "failed": sorted(failed, key=lambda row: str(row["name"])),
+            "checked_at": max((row.get("captured_at") or "") for row in rows) or None,
         }
 
     def sources(self) -> dict[str, Any]:

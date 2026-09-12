@@ -53,6 +53,7 @@ from src.sources_crowd import (  # noqa: E402
     normalize_gdebenzin_net,
     normalize_tbank,
 )
+from src.sources_gdebenzi import normalize_gdebenzi  # noqa: E402
 from src.station_matcher import merge_stations  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -341,6 +342,7 @@ def build(raw_dir: Path) -> dict[str, Any]:
         ("gdebenzin-net", normalize_gdebenzin_net),
         ("gdebenzfuel", normalize_gdebenzfuel),
         ("tbank-fuel", normalize_tbank),
+        ("gdebenzi", normalize_gdebenzi),
     ):
         payload = read_json(raw_dir / f"{name}.json", {}) or {}
         add_rows(

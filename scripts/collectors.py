@@ -348,6 +348,21 @@ def collect_tbank() -> dict[str, Any]:
     return {"captured_at": _now(), "stations": list(merged.values())}
 
 
+
+def collect_gdebenzi() -> dict[str, Any]:
+    """Reports a queue in cars for more stations than any other feed.
+
+    Its robots.txt asks crawlers away from /api/; the collector exists because
+    the project owner decided to include it, and it polls on the same ten
+    minute cadence as everything else.
+    """
+    payload = _json(
+        "https://gdebenzi.ru/api/stations.php?bbox=29.50,59.60,31.10,60.35",
+        referer="https://gdebenzi.ru/",
+    )
+    return {"captured_at": _now(), "stations": payload.get("stations") or []}
+
+
 COLLECTORS = {
     "gdezapravka-full-aoi": collect_gdezapravka,
     "tofuel-full-aoi": collect_tofuel,
@@ -360,4 +375,5 @@ COLLECTORS = {
     "gdebenzin-net": collect_gdebenzin_net,
     "gdebenzfuel": collect_gdebenzfuel,
     "tbank-fuel": collect_tbank,
+    "gdebenzi": collect_gdebenzi,
 }
