@@ -140,7 +140,10 @@ select { color: white; border: 1px solid rgba(255,255,255,.18); background: #173
 .popup-open { border: 0; background: var(--brand-dark); color: white; padding: 7px 10px; border-radius: 8px; margin-top: 9px; cursor: pointer; }
 footer { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin: 0 clamp(18px,4vw,48px); padding: 24px 0 calc(38px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 footer button { border: 0; background: transparent; color: var(--brand); cursor: pointer; font-weight: 750; }
-.map-credit { white-space: nowrap; }
+/* This line grew when the Yandex attribution was added to it; with
+   nowrap it made the document 675px wide on a 375px screen, which is what
+   made the right edge slide away under a pinch. */
+.map-credit { white-space: normal; }
 .map-credit a { color: inherit; }
 .scrim { position: fixed; z-index: 900; inset: 0; background: rgba(6, 24, 18, .46); backdrop-filter: blur(3px); }
 .drawer { position: fixed; z-index: 1000; right: 0; top: 0; bottom: 0; width: min(540px, 100%); padding: calc(28px + env(safe-area-inset-top, 0px)) 28px calc(28px + env(safe-area-inset-bottom, 0px)); overflow: auto; background: var(--panel); box-shadow: -20px 0 60px rgba(5,25,18,.18); transform: translateX(102%); transition: transform .25s ease; }
@@ -418,3 +421,9 @@ body { touch-action: pan-y; -webkit-text-size-adjust: 100%; }
 .mark.yes { background: #dff3e6; color: #0f6b45; border-color: rgba(21,130,87,.35); }
 .mark.no { background: #f8e2e2; color: #8f2a30; border-color: rgba(184,51,58,.35); }
 .here-mine, .own-mark { font-size: 12px; font-weight: 700; color: #0f6b45; background: #dff3e6; border-radius: 8px; padding: 5px 8px; margin: 0; }
+
+/* Nothing may make the document wider than the screen. A single long line
+   sliding the whole layout sideways is indistinguishable from a broken app. */
+html, body { max-width: 100%; overflow-x: hidden; }
+.app-shell, main, footer, .hero, .control-panel, .results-head, .content-grid { max-width: 100%; min-width: 0; }
+.drawer { max-width: 100vw; }

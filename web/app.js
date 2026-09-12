@@ -300,13 +300,25 @@ function showCollectorHealth() {
 }
 
 function bindControls() {
-  // Safari fires these for a two-finger pinch on the page itself. In an
-  // installed app that zoom just breaks the layout; the map handles its own.
+  // Three separate guards, because each browser honours a different one:
+  // Safari's own gesture events, the raw two-finger touchmove, and the
+  // double-tap zoom. The map is excluded from all of them and keeps its
+  // own pinch and pan.
+  const outsideMap = (event) => !event.target.closest?.('#map');
   for (const name of ['gesturestart', 'gesturechange', 'gestureend']) {
     document.addEventListener(name, (event) => {
-      if (!event.target.closest?.('#map')) event.preventDefault();
+      if (outsideMap(event)) event.preventDefault();
     }, { passive: false });
   }
+  document.addEventListener('touchmove', (event) => {
+    if (event.touches.length > 1 && outsideMap(event)) event.preventDefault();
+  }, { passive: false });
+  let lastTap = 0;
+  document.addEventListener('touchend', (event) => {
+    const now = Date.now();
+    if (now - lastTap < 320 && outsideMap(event)) event.preventDefault();
+    lastTap = now;
+  }, { passive: false });
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     installPrompt = event;
