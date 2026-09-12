@@ -59,6 +59,11 @@ def main() -> int:
     build = repository_build_tag()
     index_html = index_html.replace('href="styles.css"', f'href="styles.css?v={build}"')
     index_html = index_html.replace('src="app.js"', f'src="app.js?v={build}"')
+    # The running page learns its own build so it can notice, from meta.json,
+    # that a newer one has been deployed and reload itself (an installed PWA
+    # left open on a phone otherwise keeps yesterday's code for days).
+    stamp = f'<script>window.SPBFI_BUILD = "{build}";</script>'
+    index_html = index_html.replace('<script src="config.js">', stamp + '\n  <script src="config.js">', 1)
     index_path.write_text(index_html, encoding="utf-8")
 
     repository = StationRepository(ROOT / "data" / "stations.json", ROOT / "data" / "history.json")
@@ -66,6 +71,7 @@ def main() -> int:
     meta = repository.meta()
     meta["mode"] = "static_github_pages"
     meta["static"] = True
+    meta["build"] = build
     data_dir = output / "static-data"
     write_json(data_dir / "meta.json", meta)
     write_json(data_dir / "sources.json", repository.sources())

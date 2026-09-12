@@ -539,6 +539,25 @@ def _second_opinion(rows: list[EvaluatedRow], status: str) -> dict[str, Any] | N
     }
 
 
+
+def _eyewitness_summary(rows: list[EvaluatedRow]) -> dict[str, Any] | None:
+    """The freshest report from someone in the group who stood at the pump.
+
+    Surfaced on its own because for the people this app is for, it is the one
+    line that outranks everything else on the card.
+    """
+    candidates = [item for item in rows if item.row.get("kind") == "eyewitness" and item.observed_at]
+    if not candidates:
+        return None
+    item = min(candidates, key=lambda row: row.age_seconds if row.age_seconds is not None else 10 ** 9)
+    return {
+        "seen": item.row.get("availability") in POSITIVE_SENSE,
+        "age_seconds": round(item.age_seconds) if item.age_seconds is not None else None,
+        "fresh": item.fresh,
+        "queue": item.row.get("queue"),
+    }
+
+
 def evaluate_grade(
     evidence: Iterable[dict[str, Any]],
     grade: str,
@@ -589,7 +608,7 @@ def evaluate_grade(
 
     if probability is None:
         status = "NO_FRESH_DATA"
-        reason = "Нет пригодного по времени grade-specific сигнала; UNKNOWN не считается отсутствием топлива."
+        reason = "За последние часы никто не сообщал об этой марке здесь. Это не значит, что топлива нет — просто нет свежих данных."
     elif probability >= 0.85:
         status = "LIMITED" if restricted_now else "CAN_REFUEL"
         reason = (
@@ -690,6 +709,7 @@ def evaluate_grade(
         "independent_agreeing_count": len(agreeing),
         "undated_only": undated_only,
         "yandex": _second_opinion(decorated, status),
+        "eyewitness": _eyewitness_summary(decorated),
         "fresh_provenance_count": len({item.cluster for item in fresh}),
         "fresh_evidence_count": len(fresh),
         "evidence_count": len(relevant),

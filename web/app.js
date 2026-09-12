@@ -34,6 +34,7 @@ const state = {
   staticMode: document.querySelector('meta[name="spbfi-static-site"]')?.content === 'true',
   gradesBrief: {},
   marks: {},
+  follow: false, watchId: null, accuracy: null,
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -235,6 +236,11 @@ function localizeNote(note) {
 async function bootstrap() {
   bindControls();
   state.marks = loadMarks();
+  // A phone in a car wants "рядом" from the first second, without hunting for a
+  // button. If permission was never granted the browser asks once; if it was
+  // refused earlier this fails silently and the city list stays.
+  const touchDevice = window.matchMedia('(pointer: coarse)').matches;
+  if (touchDevice && navigator.geolocation) startFollowing({ manual: false });
   try {
     state.meta = await api('/api/meta');
     renderMeta();
@@ -386,7 +392,8 @@ function bindControls() {
   $('#mapAreaButton').addEventListener('click', () => {
     const bounds = state.map.getBounds();
     state.bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()];
-    state.location = null;
+    // The area is a filter; where the user is stays known, so distances and
+    // the position dot survive the change.
     state.search = '';
     state.searchScope = 'map';
     state.searchLabel = 'Показываем АЗС в выбранной области карты.';
@@ -433,7 +440,8 @@ function renderSearchContext() {
   if (state.searchScope === 'place') {
     context.innerHTML = `<strong>Рядом с: ${escapeHtml(state.searchLabel)}</strong> · радиус ${state.radiusKm} км по прямой <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.searchScope === 'device') {
-    context.innerHTML = `<strong>Рядом с вашей позицией</strong> · радиус ${state.radiusKm} км по прямой <button type="button" data-clear-scope>Сбросить</button>`;
+    const acc = state.accuracy ? ` · точность ±${state.accuracy} м` : '';
+    context.innerHTML = `<strong>Рядом с вами</strong> · ближайшие сверху, список сам обновляется по мере движения${acc} <button type="button" data-clear-scope>Весь город</button>`;
   } else if (state.searchScope === 'map') {
     context.innerHTML = `<strong>${escapeHtml(state.searchLabel)}</strong> <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.search.trim()) {
@@ -445,7 +453,15 @@ function renderSearchContext() {
 }
 
 function clearSearchScope({ keepText = false, reload = true } = {}) {
+  // Leaving "рядом" means the whole city again: the watch stops with it, so
+  // the button, the dot and the list all agree on what mode this is.
+  if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
+  state.watchId = null;
+  state.follow = false;
+  document.body.classList.remove('following');
   state.location = null;
+  state.accuracy = null;
+  renderMe();
   state.bbox = null;
   state.searchScope = null;
   state.searchLabel = null;
@@ -522,7 +538,7 @@ async function findNearby() {
     $('#sortSelect').value = 'nearest_available';
     if (state.map) state.map.setView([place.location.lat, place.location.lon], 13);
     renderSearchContext();
-    await loadStations();
+    await loadStationsWideningRadius();
   } catch (error) {
     $('#searchContext').textContent = error.message;
   } finally {
@@ -531,42 +547,105 @@ async function findNearby() {
   }
 }
 
-function locate() {
-  if (!navigator.geolocation) return alert('Геолокация не поддерживается этим браузером.');
-  const button = $('#locateButton');
-  button.textContent = 'Определяем…';
-  navigator.geolocation.getCurrentPosition(({ coords }) => {
-    state.location = { lat: coords.latitude, lon: coords.longitude };
-    state.bbox = null;
-    state.search = '';
-    state.status = null;
-    state.timeline = null;
-    // A rectangle picked earlier on the map would otherwise still be filtering,
-    // which is how "Моя позиция" ended up showing nothing at all.
-    state.searchScope = 'device';
-    state.searchLabel = null;
-    state.radiusKm = 5;
-    $('#searchInput').value = '';
-    state.sort = 'nearest_available';
-    $('#sortSelect').value = 'nearest_available';
-    button.innerHTML = '<span aria-hidden="true">●</span> Моя позиция';
-    if (state.map) state.map.setView([coords.latitude, coords.longitude], 13);
-    renderSearchContext();
-    loadStationsWideningRadius();
-  }, () => {
-    button.innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
-    alert('Не удалось получить координаты. Разрешите геолокацию в браузере.');
-  }, { enableHighAccuracy: true, timeout: 10000 });
+// Five kilometres around a village may hold two stations and no answer; the
+// radius widens until there is something to choose from.
+const RADIUS_LADDER = [5, 10, 20];
+const MIN_NEARBY = 8;
+
+async function loadStationsWideningRadius() {
+  for (const km of RADIUS_LADDER) {
+    state.radiusKm = km;
+    await loadStations({ silent: km !== RADIUS_LADDER[0] });
+    if (state.stations.length >= MIN_NEARBY) break;
+  }
+  renderSearchContext();
 }
 
-async function loadStations() {
+// "Рядом" is a mode, not a button press. A navigator does not ask you to tap
+// "my position" every kilometre: once you allow location it follows you, keeps
+// the list sorted by what is closest, and re-queries as you move. iOS also hands
+// out a coarse cached fix first, so a single getCurrentPosition would happily
+// show the other end of the city; watchPosition keeps improving instead.
+const REQUERY_METRES = 150;
+
+function locate() {
+  if (state.follow) {
+    stopFollowing();
+    return;
+  }
+  startFollowing({ manual: true });
+}
+
+function startFollowing({ manual = false } = {}) {
+  if (!navigator.geolocation) {
+    if (manual) alert('Геолокация не поддерживается этим браузером.');
+    return;
+  }
+  const button = $('#locateButton');
+  button.innerHTML = '<span aria-hidden="true">◌</span> Определяем…';
+  state.follow = true;
+  document.body.classList.add('following');
+  const onFix = ({ coords }) => {
+    const here = { lat: coords.latitude, lon: coords.longitude };
+    const moved = !state.location || haversineKm(state.location, here) * 1000 > REQUERY_METRES;
+    const firstFix = !state.location;
+    state.location = here;
+    state.accuracy = Math.round(coords.accuracy || 0);
+    button.innerHTML = `<span aria-hidden="true">●</span> Слежу за вами${state.accuracy > 300 ? ' · грубо' : ''}`;
+    renderMe();
+    if (firstFix) {
+      state.bbox = null;
+      state.search = '';
+      state.status = null;
+      state.timeline = null;
+      state.searchScope = 'device';
+      state.searchLabel = null;
+      state.radiusKm = 5;
+      state.sort = 'nearest_available';
+      $('#searchInput').value = '';
+      $('#sortSelect').value = 'nearest_available';
+      if (state.map) state.map.setView([here.lat, here.lon], 13);
+      renderSearchContext();
+      loadStationsWideningRadius();
+      return;
+    }
+    if (moved && state.searchScope === 'device') {
+      loadStations({ silent: true });
+    }
+  };
+  const onError = (error) => {
+    state.follow = false;
+    document.body.classList.remove('following');
+    button.innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
+    if (manual) {
+      alert(error.code === 1
+        ? 'Доступ к геолокации запрещён. Разрешите его для этого сайта в настройках телефона, иначе «рядом» работать не будет.'
+        : 'Не удалось определить положение. Попробуйте ещё раз на открытом месте.');
+    }
+  };
+  // A cached fix within a minute appears instantly; the watch then refines it.
+  navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 });
+  state.watchId = navigator.geolocation.watchPosition(onFix, onError, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+}
+
+function stopFollowing() {
+  clearSearchScope({ keepText: false, reload: true });
+}
+
+async function loadStations({ silent = false } = {}) {
   const requestId = ++state.request;
-  $('#stationList').innerHTML = '<div class="loading-state">Собираем доказательства по АЗС…</div>';
+  if (!silent || !state.stations.length) {
+    $('#stationList').innerHTML = '<div class="loading-state">Собираем доказательства по АЗС…</div>';
+  }
   const params = new URLSearchParams({ grade: state.grade, area: state.area, sort: state.sort, limit: '500' });
   if (state.search.trim()) params.set('q', state.search.trim());
   if (state.status) params.set('status', state.status);
   if (state.timeline) params.set('timeline', state.timeline);
-  if (state.location) { params.set('lat', state.location.lat); params.set('lon', state.location.lon); if (state.searchScope) params.set('radius_km', state.radiusKm); }
+  if (state.location) {
+    params.set('lat', state.location.lat);
+    params.set('lon', state.location.lon);
+    if (state.searchScope === 'device' || state.searchScope === 'place') params.set('radius_km', state.radiusKm);
+  }
   if (state.bbox) params.set('bbox', state.bbox.join(','));
   try {
     const data = await api(`/api/stations?${params}`);
@@ -863,6 +942,19 @@ async function shareMark(stationId, grade, seen) {
   }
 }
 
+// The group's own fresh look at the pump outranks every feed; the card must say
+// so in plain words, not bury it in the vote list.
+function eyewitnessLine(grade) {
+  const seen = grade?.eyewitness;
+  if (!seen || !seen.fresh) return null;
+  const ago = seen.age_seconds != null ? formatAge(seen.age_seconds) : 'только что';
+  const queue = seen.queue ? `, очередь ${seen.queue} ${plural(Number(seen.queue), 'машина', 'машины', 'машин')}` : '';
+  return {
+    tone: seen.seen ? 'yes' : 'no',
+    text: `👁 Свои видели ${ago}: ${GRADE_LABELS[state.grade]} ${seen.seen ? 'есть' : 'нет'}${queue} — самая точная отметка`,
+  };
+}
+
 function markFor(stationId, grade) {
   return (state.marks || {})[stationId]?.[grade] || null;
 }
@@ -874,9 +966,14 @@ function markLine(stationId, grade) {
   return `Вы отметили ${ago}: ${GRADE_LABELS[grade]} ${mark.seen ? 'есть' : 'нет'}`;
 }
 
-function markButtons(stationId) {
-  return `<div class="mark-row">
-    <span>Вы на месте — что на колонке?</span>
+// A driver passing a station can confirm or refute it from the car window; a
+// person standing at the pump is just the closest case. Cards this near get
+// the buttons directly, so nobody has to hunt for "where do I report".
+const NEARBY_REPORT_METRES = 400;
+
+function markButtons(stationId, { compact = false } = {}) {
+  return `<div class="mark-row${compact ? ' compact' : ''}">
+    <span>${compact ? 'Вы рядом — подтвердите:' : 'Вы на месте — что на колонке?'}</span>
     <button type="button" class="mark yes" data-mark-station="${escapeHtml(stationId)}" data-mark-seen="1">${escapeHtml(GRADE_LABELS[state.grade])} есть</button>
     <button type="button" class="mark no" data-mark-station="${escapeHtml(stationId)}" data-mark-seen="0">${escapeHtml(GRADE_LABELS[state.grade])} нет</button>
   </div>`;
@@ -895,6 +992,12 @@ function bindMarkButtons(root) {
 // only question that matters there: what do we claim about *this* station.
 const AT_STATION_METRES = 220;
 
+// "Россия, Санкт-Петербург, Санкт-Петербург, Богатырский проспект, 23" is what
+// a feed says; a driver in the city only needs the street.
+function shortAddress(address) {
+  return String(address || '').replace(/^(?:(?:Россия|г\.?\s*Санкт-Петербург|Санкт-Петербург|Ленинградская область|Ленинградская обл\.?),\s*)+/i, '');
+}
+
 function formatDistance(km) {
   if (km == null) return '';
   return km < 1 ? `${Math.round(km * 1000)} м` : `${km.toLocaleString('ru-RU')} км`;
@@ -903,7 +1006,7 @@ function formatDistance(km) {
 function renderHerePanel() {
   const panel = $('#herePanel');
   if (!panel) return;
-  if (state.searchScope !== 'device' || !state.location || !state.stations.length) {
+  if (!state.location || !state.stations.length) {
     panel.hidden = true;
     return;
   }
@@ -931,6 +1034,7 @@ function renderHerePanel() {
     <strong>${escapeHtml(nearest.network)}</strong>
     <span class="here-address">${escapeHtml(nearest.address)}</span>
     <div class="here-grades">${rows}</div>
+    ${eyewitnessLine(grade) ? `<p class="here-mine group ${eyewitnessLine(grade).tone}">${escapeHtml(eyewitnessLine(grade).text)}</p>` : ''}
     ${mine ? `<p class="here-mine">✔ ${escapeHtml(mine)}</p>` : ''}
     <p class="here-note">Сверьте с колонками. Мы утверждаем это по ${(grade.votes || []).length} ${plural((grade.votes || []).length, 'источнику', 'источникам', 'источникам')}, самый свежий сигнал — ${escapeHtml(grade.undated_only ? 'без отметки времени' : formatAge(grade.age_seconds))}.</p>
     ${markButtons(nearest.id)}
@@ -973,7 +1077,7 @@ function renderStations({ append = false } = {}) {
     const card = node.querySelector('.station-card');
     card.style.setProperty('--status-color', DECISION_TONE[advice.decision] || STATUS[grade.status].color);
     node.querySelector('.network').textContent = station.network;
-    node.querySelector('.address').textContent = station.address;
+    node.querySelector('.address').textContent = shortAddress(station.address);
     node.querySelector('.grade-chips').innerHTML = gradeChips(station);
     node.querySelector('.verdict-text').textContent = advice.label || STATUS[grade.status].short;
     node.querySelector('.verdict-dot').style.background = RISK_TONE[advice.risk] || '#8a9691';
@@ -993,12 +1097,25 @@ function renderStations({ append = false } = {}) {
     const caution = advice.caution ? ` ${advice.caution}` : '';
     node.querySelector('.facts').textContent = facts + caution;
     node.querySelector('.meta-line').textContent = metaFor(station);
+    const witness = eyewitnessLine(grade);
+    if (witness) {
+      const own = document.createElement('span');
+      own.className = `own-mark group ${witness.tone}`;
+      own.textContent = witness.text;
+      node.querySelector('.card-main').insertBefore(own, node.querySelector('.facts'));
+    }
     const mine = markLine(station.id, state.grade);
-    if (mine) {
+    if (mine && !witness) {
       const own = document.createElement('span');
       own.className = 'own-mark';
       own.textContent = `✔ ${mine}`;
       node.querySelector('.card-main').insertBefore(own, node.querySelector('.meta-line'));
+    }
+    if (state.location && station.distance_km != null && station.distance_km * 1000 <= NEARBY_REPORT_METRES) {
+      const row = document.createElement('div');
+      row.innerHTML = markButtons(station.id, { compact: true });
+      node.querySelector('.card-main').appendChild(row.firstElementChild);
+      bindMarkButtons(node);
     }
     const second = yandexLine(grade);
     if (second && second.agrees === false) {
@@ -1050,7 +1167,7 @@ function initMap() {
 }
 
 function renderMe() {
-  if (!state.map || !state.location || state.searchScope !== 'device') {
+  if (!state.map || !state.location) {
     if (state.meLayer) { state.meLayer.remove(); state.meLayer = null; }
     return;
   }
@@ -1230,6 +1347,12 @@ async function pollForNewSnapshot() {
   try {
     staticCache.delete('static-data/meta.json');
     const meta = await api('/api/meta');
+    // A newer build is live: reload rather than run old code against new data.
+    // Only when the tab is visible, so a phone in a pocket does not flicker.
+    if (meta.build && window.SPBFI_BUILD && meta.build !== window.SPBFI_BUILD && !document.hidden) {
+      location.reload();
+      return;
+    }
     if (meta.snapshot_at && meta.snapshot_at !== state.meta?.snapshot_at) {
       staticCache.clear();
       state.meta = meta;
