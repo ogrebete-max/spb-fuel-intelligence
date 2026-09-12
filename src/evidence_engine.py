@@ -690,6 +690,9 @@ def travel_advice(evaluated: dict[str, Any], timeline: dict[str, Any] | None = N
         "label": GO_LABELS[decision],
         "risk": risk,
         "risk_text": risk_text,
+        # Worth putting on the card only when it warns about something the
+        # summary does not already say; "нет свежих данных" says it twice.
+        "caution": risk_text if risk != "low" and status not in {"NO_FRESH_DATA", "CONFIRMED_NO", "LIKELY_NOT"} else None,
         "wait_text": wait_text,
         "summary": ", ".join(parts) if parts else None,
     }

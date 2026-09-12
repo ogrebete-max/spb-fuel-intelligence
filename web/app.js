@@ -634,19 +634,21 @@ const GRADE_MARK = {
 const RISK_TONE = { low: '#158257', medium: '#d58a13', high: '#b8333a' };
 const DECISION_TONE = { GO: '#158257', GO_WITH_WAIT: '#77a827', RISKY: '#d58a13', UNKNOWN: '#8a9691', NO: '#b8333a' };
 
+// Chips answer one question — which grades this station has — so they carry no
+// price. Rounding it to whole roubles printed "71₽" beside a footer reading
+// "70,90 ₽/л", and two different numbers for one price is what made the card
+// look wrong. The price is stated once, exactly, with its source count.
 function gradeChips(station) {
   const brief = (state.gradesBrief || {})[station.id] || {};
   return Object.keys(GRADE_LABELS).map((grade) => {
-    const item = brief[grade] || {};
-    const status = grade === state.grade ? station.grade.status : (item.s || 'NO_FRESH_DATA');
+    const status = grade === state.grade
+      ? station.grade.status
+      : (brief[grade]?.s || 'NO_FRESH_DATA');
     const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
     const selected = grade === state.grade ? ' selected' : '';
-    // Six chips plus six prices do not fit a 375px phone; the price belongs to
-    // the grade the driver actually asked about.  A price nobody corroborates
-    // is marked, because a single feed can quote a branded blend.
-    const lonely = (item.n ?? 0) < 2;
-    const price = selected && item.p != null ? ` ${Math.round(item.p)}₽${lonely ? '?' : ''}` : '';
-    return `<span class="grade-chip ${mark.tone}${selected}" title="${escapeHtml(GRADE_LABELS[grade])}: ${escapeHtml(STATUS[status]?.short || '')}">${mark.sign} ${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))}${price}</span>`;
+    const label = GRADE_LABELS[grade].replace('АИ-', '');
+    const hint = `${GRADE_LABELS[grade]}: ${STATUS[status]?.short || ''}`;
+    return `<span class="grade-chip ${mark.tone}${selected}" title="${escapeHtml(hint)}">${mark.sign} ${escapeHtml(label)}</span>`;
   }).join('');
 }
 
@@ -673,9 +675,10 @@ function metaFor(station) {
   parts.push(formatAge(grade.age_seconds));
   if (grade.price_rub != null) {
     const sources = grade.price_sources ?? 0;
+    const value = `${grade.price_rub.toFixed(2).replace('.', ',')} ₽/л`;
     parts.push(sources >= 2
-      ? `${grade.price_rub.toFixed(2)} ₽/л по ${sources} ${plural(sources, 'источнику', 'источникам', 'источникам')}`
-      : `${grade.price_rub.toFixed(2)} ₽/л — цена не подтверждена`);
+      ? `${GRADE_LABELS[state.grade]} ${value} по ${sources} ${plural(sources, 'источнику', 'источникам', 'источникам')}`
+      : `${GRADE_LABELS[state.grade]} ${value} — цена не подтверждена`);
   }
   return parts.join(' · ');
 }
@@ -755,7 +758,11 @@ function renderStations({ append = false } = {}) {
       badge.textContent = temporal.text;
       badge.dataset.tone = temporal.tone;
     }
-    node.querySelector('.facts').textContent = factsFor(station);
+    const facts = factsFor(station);
+    // "Держится 1 мин" is good news and a warning at once; the warning has to
+    // be on the card, not hidden in the drawer.
+    const caution = advice.caution ? ` ${advice.caution}` : '';
+    node.querySelector('.facts').textContent = facts + caution;
     node.querySelector('.meta-line').textContent = metaFor(station);
     const distance = node.querySelector('.distance');
     distance.textContent = station.distance_km != null ? `${station.distance_km.toLocaleString('ru-RU')} км` : '';
