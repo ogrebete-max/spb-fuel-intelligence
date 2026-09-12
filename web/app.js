@@ -37,6 +37,7 @@ const state = {
   gradesBrief: {},
   marks: {},
   follow: false, watchId: null, accuracy: null,
+  groupMarks: {}, stationInfo: {},
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -372,7 +373,7 @@ function bindControls() {
     state.view = button.dataset.view;
     $$('[data-view]').forEach((item) => item.classList.toggle('active', item === button));
     $('#contentGrid').classList.toggle('map-mode', state.view === 'map');
-    if (state.map) setTimeout(() => state.map.invalidateSize(), 80);
+    if (state.map) setTimeout(() => { state.map.invalidateSize(); renderMarkers(); }, 80);
   });
   let searchTimer;
   $('#searchInput').addEventListener('input', (event) => {
@@ -611,6 +612,7 @@ function startFollowing({ manual = false } = {}) {
       if (state.map) state.map.setView([here.lat, here.lon], 13);
       renderSearchContext();
       loadStationsWideningRadius();
+      renderGroupFeed();
       return;
     }
     if (moved && state.searchScope === 'device') {
@@ -890,10 +892,10 @@ function loadMarks() {
   }
 }
 
-function saveMark(stationId, grade, seen) {
+function saveMark(stationId, grade, seen, queue = null, { render = true } = {}) {
   const marks = loadMarks();
   marks[stationId] = marks[stationId] || {};
-  marks[stationId][grade] = { seen, at: Date.now() };
+  marks[stationId][grade] = { seen, at: Date.now(), queue };
   try {
     localStorage.setItem(MARK_STORE, JSON.stringify(marks));
   } catch {
@@ -902,10 +904,13 @@ function saveMark(stationId, grade, seen) {
   state.marks = marks;
   state.groupMarks = state.groupMarks || {};
   state.groupMarks[stationId] = state.groupMarks[stationId] || {};
-  state.groupMarks[stationId][grade] = { seen, at: Date.now(), queue: null, people: [deviceId()] };
-  renderStations();
-  renderHerePanel();
-  shareMark(stationId, grade, seen);
+  state.groupMarks[stationId][grade] = { seen, at: Date.now(), queue, people: [deviceId()] };
+  if (render) {
+    renderStations();
+    renderHerePanel();
+    renderGroupFeed();
+  }
+  shareMark(stationId, grade, seen, queue);
 }
 
 // Sharing is optional. With no endpoint configured the mark stays on this
@@ -922,14 +927,14 @@ function deviceId() {
   return id;
 }
 
-async function shareMark(stationId, grade, seen) {
+async function shareMark(stationId, grade, seen, queue = null) {
   const endpoint = window.SPBFI_REPORT_ENDPOINT;
   if (!endpoint) return;
   const place = state.stations.find((item) => item.id === stationId)?.location;
   const send = async (key) => fetch(`${endpoint.replace(/\/$/, '')}/report`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Group-Key': key } : {}) },
-    body: JSON.stringify({ station: stationId, grade, seen, who: deviceId(), lat: place?.lat, lon: place?.lon }),
+    body: JSON.stringify({ station: stationId, grade, seen, who: deviceId(), lat: place?.lat, lon: place?.lon, ...(queue != null ? { queue } : {}) }),
   });
   try {
     let key = localStorage.getItem(GROUP_KEY) || '';
@@ -975,12 +980,82 @@ async function pollGroupMarks() {
         current.people = [...people];
       }
     }
+    // What this device filed stays visible even before the worker echoes it
+    // back (or if the shared word was wrong and it never will).
+    for (const [stationId, grades] of Object.entries(loadMarks())) {
+      for (const [grade, mine] of Object.entries(grades)) {
+        if (mine.at < cutoff) continue;
+        const slot = (marks[stationId] = marks[stationId] || {});
+        if (!slot[grade] || slot[grade].at < mine.at) {
+          slot[grade] = { seen: mine.seen, at: mine.at, queue: mine.queue ?? null, people: [deviceId()] };
+        }
+      }
+    }
     const changed = JSON.stringify(marks) !== JSON.stringify(state.groupMarks || {});
     state.groupMarks = marks;
     if (changed && state.stations.length) renderStations();
+    renderGroupFeed();
   } catch {
     // Offline or the worker is down; the pipeline's copy still arrives.
+    renderGroupFeed();
   }
+}
+
+// Name and place for a station that may not be in the loaded list: the
+// details file already exists for every station, so one small fetch per
+// reported station is enough.
+async function stationInfo(id) {
+  if (state.stationInfo[id]) return state.stationInfo[id];
+  const local = state.stations.find((item) => item.id === id);
+  if (local) {
+    state.stationInfo[id] = { network: local.network, address: local.address, lat: local.location.lat, lon: local.location.lon };
+    return state.stationInfo[id];
+  }
+  try {
+    const station = await api(`/api/stations/${encodeURIComponent(id)}`);
+    state.stationInfo[id] = { network: station.network, address: station.address, lat: Number(station.location.lat), lon: Number(station.location.lon) };
+  } catch {
+    state.stationInfo[id] = { network: 'АЗС', address: '' };
+  }
+  return state.stationInfo[id];
+}
+
+// What the group has seen, at the top of the page, whichever district the
+// reader is in: the one block that does not depend on filters or the list.
+async function renderGroupFeed() {
+  const box = $('#groupFeed');
+  if (!box) return;
+  const now = Date.now();
+  const order = Object.keys(GRADE_LABELS);
+  const entries = Object.entries(state.groupMarks || {}).map(([stationId, grades]) => {
+    const items = Object.entries(grades)
+      .filter(([grade, mark]) => GRADE_LABELS[grade] && now - mark.at <= GROUP_MARK_TTL_MS)
+      .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+    if (!items.length) return null;
+    const latest = Math.max(...items.map(([, mark]) => mark.at));
+    const queue = items.map(([, mark]) => mark.queue).find((value) => value != null);
+    const people = new Set(items.flatMap(([, mark]) => mark.people || [])).size;
+    return { stationId, items, latest, queue, people };
+  }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
+  if (!entries.length) {
+    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.</div>`;
+    return;
+  }
+  await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
+  const cards = entries.map((entry) => {
+    const info = state.stationInfo[entry.stationId] || {};
+    const distance = state.location && info.lat != null ? formatDistance(haversineKm(state.location, { lat: info.lat, lon: info.lon })) : '';
+    const grades = entry.items.map(([grade, mark]) => `<span class="feed-grade ${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))} ${mark.seen ? '✓' : '✗'}</span>`).join('');
+    const queue = queueWords(entry.queue);
+    const meta = [formatAge((now - entry.latest) / 1000), entry.people > 1 ? `${entry.people} ${plural(entry.people, 'человек', 'человека', 'человек')}` : null, distance || null].filter(Boolean).join(' · ');
+    return `<button type="button" class="feed-item" data-feed-station="${escapeHtml(entry.stationId)}">
+      <span class="feed-title"><strong>${escapeHtml(info.network || 'АЗС')}</strong><span class="feed-meta">${escapeHtml(meta)}</span></span>
+      <span class="feed-address">${escapeHtml(shortAddress(info.address || ''))}</span>
+      <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
+    </button>`;
+  }).join('');
+  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small></div><div class="feed-list">${cards}</div>`;
+  box.querySelectorAll('[data-feed-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.feedStation)));
 }
 
 function groupMarkFor(stationId, grade) {
@@ -1013,7 +1088,7 @@ function eyewitnessLine(grade, stationId) {
     return null;
   }
   const ago = ageSeconds != null ? formatAge(ageSeconds) : 'только что';
-  const queueText = queue ? `, очередь ${queue} ${plural(Number(queue), 'машина', 'машины', 'машин')}` : '';
+  const queueText = queue != null && queue !== '' ? `, очередь: ${queueWords(queue)}` : '';
   const crowd = people > 1 ? ` (${people} ${plural(people, 'человек', 'человека', 'человек')})` : '';
   return {
     tone: seen ? 'yes' : 'no',
@@ -1043,6 +1118,70 @@ function markButtons(stationId, { compact = false } = {}) {
     <button type="button" class="mark yes" data-mark-station="${escapeHtml(stationId)}" data-mark-seen="1">${escapeHtml(GRADE_LABELS[state.grade])} есть</button>
     <button type="button" class="mark no" data-mark-station="${escapeHtml(stationId)}" data-mark-seen="0">${escapeHtml(GRADE_LABELS[state.grade])} нет</button>
   </div>`;
+}
+
+// Standing at a station a person sees every pump at once, so the drawer
+// asks about every grade and the queue together and sends it in one go.
+const QUEUE_CHOICES = [[0, 'нет очереди'], [3, 'до 5 машин'], [12, '5–20 машин'], [30, 'больше 20']];
+
+function queueWords(cars) {
+  if (cars == null || cars === '') return null;
+  const n = Number(cars);
+  if (n === 0) return 'нет';
+  if (n <= 5) return 'до 5 машин';
+  if (n <= 20) return '5–20 машин';
+  return 'больше 20 машин';
+}
+
+function markComposer(stationId) {
+  const rows = Object.keys(GRADE_LABELS).map((grade) => `<div class="compose-row">
+      <b>${escapeHtml(GRADE_LABELS[grade])}</b>
+      <button type="button" class="mark yes" data-compose-grade="${grade}" data-compose-seen="1">есть</button>
+      <button type="button" class="mark no" data-compose-grade="${grade}" data-compose-seen="0">нет</button>
+    </div>`).join('');
+  const queue = QUEUE_CHOICES.map(([cars, label]) => `<button type="button" class="queue-chip" data-compose-queue="${cars}">${label}</button>`).join('');
+  return `<div class="mark-composer" data-compose-station="${escapeHtml(stationId)}">
+    <div class="compose-grades">${rows}</div>
+    <div class="compose-queue"><span>Очередь:</span>${queue}</div>
+    <button type="button" class="compose-send" disabled>Отправить своим</button>
+  </div>`;
+}
+
+function bindComposer(root) {
+  const box = root.querySelector('.mark-composer');
+  if (!box) return;
+  const chosen = {};
+  let queue = null;
+  const send = box.querySelector('.compose-send');
+  box.querySelectorAll('[data-compose-grade]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const grade = button.dataset.composeGrade;
+      const seen = button.dataset.composeSeen === '1';
+      chosen[grade] = seen;
+      button.parentElement.querySelectorAll('[data-compose-grade]').forEach((item) => item.classList.toggle('selected', item === button));
+      send.disabled = !Object.keys(chosen).length;
+    });
+  });
+  box.querySelectorAll('[data-compose-queue]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      queue = Number(button.dataset.composeQueue);
+      box.querySelectorAll('[data-compose-queue]').forEach((item) => item.classList.toggle('selected', item === button));
+    });
+  });
+  send.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const stationId = box.dataset.composeStation;
+    const grades = Object.keys(chosen);
+    grades.forEach((grade) => saveMark(stationId, grade, chosen[grade], queue, { render: false }));
+    renderStations();
+    renderHerePanel();
+    renderGroupFeed();
+    const summary = grades.map((grade) => `${GRADE_LABELS[grade].replace('АИ-', '')} ${chosen[grade] ? '✓' : '✗'}`).join(', ');
+    const queueText = queue != null ? `, очередь: ${queueWords(queue)}` : '';
+    box.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(summary)}${escapeHtml(queueText)}. У всех это уже наверху, в «Свои сообщают».</span>`;
+  });
 }
 
 function bindMarkButtons(root) {
@@ -1238,7 +1377,7 @@ function initMap() {
     maxZoom: 18
   }).addTo(state.map);
   state.markers = L.layerGroup().addTo(state.map);
-  state.map.on('moveend', () => { $('#mapAreaButton').style.display = 'block'; });
+  state.map.on('moveend', () => { $('#mapAreaButton').style.display = 'block'; renderMarkers(); });
 }
 
 function renderMe() {
@@ -1254,15 +1393,44 @@ function renderMe() {
   }).addTo(state.map);
 }
 
+// From this zoom in, a pin carries the network and every grade coloured by
+// status, so the map answers "what is there" without a tap — the thing
+// drivers like about Yandex's pins, here with our statuses behind it.
+const LABEL_ZOOM = 12;
+
+function shortNetwork(name) {
+  return String(name || 'АЗС').split(',')[0].replace(/\s*АЗС\s*$/i, '').trim().slice(0, 16) || 'АЗС';
+}
+
+function pinLabel(station) {
+  const brief = (state.gradesBrief || {})[station.id] || {};
+  const grades = Object.keys(GRADE_LABELS).map((grade) => {
+    const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
+    const tone = (GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA).tone;
+    return `<i class="${tone}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))}</i>`;
+  }).join('');
+  const queue = station.grade.queue?.label ? `<em>очередь: ${escapeHtml(station.grade.queue.label)}</em>` : '';
+  const witness = eyewitnessLine(station.grade, station.id);
+  const eye = witness ? `<em class="pin-eye ${witness.tone}">👁 свои: ${witness.tone === 'yes' ? 'есть' : 'нет'}</em>` : '';
+  return `<span class="pin-label"><b>${escapeHtml(shortNetwork(station.network))}</b><span class="pin-grades">${grades}</span>${eye || queue}</span>`;
+}
+
 function renderMarkers() {
   if (!state.map || !state.markers) return;
   renderMe();
   state.markers.clearLayers();
+  const labelled = state.map.getZoom() >= LABEL_ZOOM;
+  const bounds = labelled ? state.map.getBounds().pad(0.3) : null;
   state.stations.forEach((station) => {
     const status = STATUS[station.grade.status];
-    const icon = L.divIcon({ className: '', html: `<div class="fuel-marker" style="--marker:${status.color}"></div>`, iconSize: [20, 20], iconAnchor: [10, 20] });
+    const withLabel = labelled && bounds.contains([station.location.lat, station.location.lon]);
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="fuel-pin${withLabel ? ' labelled' : ''}" style="--marker:${status.color}"><span class="fuel-marker"></span>${withLabel ? pinLabel(station) : ''}</div>`,
+      iconSize: [20, 20], iconAnchor: [10, 20],
+    });
     const marker = L.marker([station.location.lat, station.location.lon], { icon });
-    marker.bindPopup(`<div class="popup-title">${escapeHtml(station.network)}</div><div>${escapeHtml(station.address)}</div><div class="popup-status" style="--popup-color:${status.color}">${escapeHtml(station.grade.label)}</div><button class="popup-open" onclick="window.openFuelStation('${station.id}')">Почему?</button>`);
+    marker.bindPopup(`<div class="popup-title">${escapeHtml(station.network)}</div><div>${escapeHtml(shortAddress(station.address))}</div><div class="popup-status" style="--popup-color:${status.color}">${escapeHtml(station.grade.label)}</div><button class="popup-open" onclick="window.openFuelStation('${station.id}')">Открыть и отметить</button>`);
     marker.addTo(state.markers);
   });
 }
@@ -1281,6 +1449,9 @@ async function openStation(id) {
     const lat = Number(station.location.lat);
     const lon = Number(station.location.lon);
     const routeUrl = `https://yandex.ru/maps/?rtext=~${lat},${lon}&rtt=auto`;
+    // Yandex's traffic layer is the one thing we cannot reproduce: a red
+    // approach road is a queue nobody has typed in yet.
+    const trafficUrl = `https://yandex.ru/maps/?l=trf&ll=${lon},${lat}&z=16`;
     const gradeCells = Object.entries(station.grades).filter(([grade]) => GRADE_LABELS[grade]).map(([grade, value]) => `<div class="grade-cell" style="--cell-color:${STATUS[value.status].color}"><b>${GRADE_LABELS[grade]}</b><small>${STATUS[value.status].short}</small></div>`).join('');
     const timeline = selected.timeline || {};
     const transition = timeline.last_transition;
@@ -1295,14 +1466,14 @@ async function openStation(id) {
     $('#drawerContent').innerHTML = `
       <h2>${escapeHtml(station.network || 'АЗС')}</h2>
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
-      <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
+      <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><a href="${trafficUrl}" target="_blank" rel="noopener noreferrer">Пробки у АЗС ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="here-panel drawer-mark">
         <span class="here-kicker">Для своих</span>
         <strong>Видите эту АЗС своими глазами?</strong>
         ${eyewitnessLine(selected, station.id) ? `<p class="here-mine group ${eyewitnessLine(selected, station.id).tone}">${escapeHtml(eyewitnessLine(selected, station.id).text)}</p>` : ''}
         ${markLine(station.id, state.grade) ? `<p class="here-mine">✔ ${escapeHtml(markLine(station.id, state.grade))}</p>` : ''}
-        ${markButtons(station.id)}
-        <p class="here-note">Отметка сразу появится у всех, кто пользуется приложением, и весит больше любой ленты. Живёт 45 минут.</p>
+        ${markComposer(station.id)}
+        <p class="here-note">Отметьте, что видите на колонках, и очередь. Отметка сразу появится у всех наверху в «Свои сообщают» и весит больше любой ленты. Живёт 45 минут.</p>
       </div>
       <div class="drawer-status" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}</strong><p>${escapeHtml(selected.reason)}</p></div>
       ${yandexPanel(selected)}
@@ -1315,6 +1486,7 @@ async function openStation(id) {
       <h3 class="section-title">Связанные идентификаторы</h3>
       <div class="evidence-meta">${station.source_refs.map((ref) => `${escapeHtml(ref.source)}:${escapeHtml(ref.station_id)}`).join('<br>')}</div>`;
     bindMarkButtons($('#drawerContent'));
+    bindComposer($('#drawerContent'));
     $('#copyCoords').addEventListener('click', async (event) => {
       try {
         await navigator.clipboard.writeText(`${lat}, ${lon}`);

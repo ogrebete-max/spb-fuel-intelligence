@@ -455,3 +455,50 @@ body.following #locateButton { background: var(--accent, #1f7a4d); color: #fff; 
 .mark-sent { display: block; font-weight: 600; color: #1f7a4d; }
 .drawer-mark { margin: 14px 0; }
 .drawer-mark .mark-row { margin-top: 10px; }
+
+/* ---- "Свои сообщают" feed ---- */
+.group-feed { margin: 14px 0 6px; }
+.feed-empty { padding: 12px 16px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 14px; background: rgba(255,255,255,.5); }
+.feed-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 8px; font-weight: 800; font-size: 16px; color: var(--brand-dark, #0d3328); }
+.feed-head small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.feed-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.feed-item { display: grid; gap: 4px; text-align: left; padding: 12px 14px; border: 2px solid #1f7a4d; border-radius: 14px; background: #eef8f1; cursor: pointer; font: inherit; color: var(--ink); }
+.feed-title { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.feed-title strong { font-size: 16px; }
+.feed-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.feed-address { font-size: 13px; color: var(--muted); }
+.feed-grades { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; align-items: center; }
+.feed-grade { padding: 3px 9px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+.feed-grade.yes { background: #1f7a4d; color: #fff; }
+.feed-grade.no { background: #b8333a; color: #fff; }
+.feed-queue { font-size: 13px; font-weight: 600; color: #8a5405; }
+
+/* ---- composer in the drawer ---- */
+.mark-composer { margin-top: 10px; display: grid; gap: 8px; }
+.compose-row { display: grid; grid-template-columns: 64px 1fr 1fr; gap: 6px; align-items: center; }
+.compose-row b { font-size: 15px; }
+.compose-row .mark { min-height: 40px; opacity: .75; }
+.compose-row .mark.selected { opacity: 1; outline: 3px solid currentColor; outline-offset: -3px; font-weight: 800; }
+.compose-queue { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.queue-chip { padding: 8px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.queue-chip.selected { background: #fbeed2; border-color: #d58a13; color: #8a5405; font-weight: 700; }
+.compose-send { min-height: 46px; border: 0; border-radius: 12px; background: #1f7a4d; color: #fff; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; }
+.compose-send:disabled { background: #c9d3ce; cursor: default; }
+
+/* ---- labelled map pins ---- */
+.fuel-pin { position: relative; width: 20px; height: 20px; }
+.fuel-pin .fuel-marker { position: absolute; left: 1px; top: 0; display: block; }
+.pin-label { position: absolute; left: 24px; top: -6px; display: grid; gap: 2px; padding: 4px 8px; border-radius: 10px; background: rgba(255,255,255,.96); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; font-size: 12px; line-height: 1.2; pointer-events: none; }
+.pin-label b { font-size: 12px; color: var(--ink); }
+.pin-grades { display: flex; gap: 4px; }
+.pin-grades i { font-style: normal; font-weight: 800; font-size: 12px; }
+.pin-grades i.yes { color: #158257; }
+.pin-grades i.likely { color: #5f8f1f; }
+.pin-grades i.limited { color: #b8720c; }
+.pin-grades i.conflict { color: #6a4fc0; }
+.pin-grades i.no { color: #b8333a; text-decoration: line-through; }
+.pin-grades i.unknown { color: #9aa5a0; }
+.pin-label em { font-style: normal; font-size: 11px; color: #8a5405; }
+.pin-label em.pin-eye.yes { color: #1f7a4d; font-weight: 700; }
+.pin-label em.pin-eye.no { color: #b8333a; font-weight: 700; }
+.leaflet-marker-icon:hover .pin-label { z-index: 5; }
