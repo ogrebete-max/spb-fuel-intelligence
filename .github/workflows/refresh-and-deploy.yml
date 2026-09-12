@@ -86,10 +86,21 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
+      # Every slot in this run uploads a Pages artifact, and deploy-pages
+      # refuses to act when it finds more than one artifact named
+      # "github-pages" in the same run.  Packing and uploading it directly is
+      # what upload-pages-artifact does anyway, and it can overwrite.
+      - name: Package the site
+        run: tar --dereference --hard-dereference -cf "${RUNNER_TEMP}/artifact.tar" -C site .
+
       - name: Upload the site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          path: site
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          overwrite: true
+          if-no-files-found: error
 
       - name: Deploy to GitHub Pages
         id: deploy
