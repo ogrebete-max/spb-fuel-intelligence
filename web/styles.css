@@ -357,3 +357,20 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 .yandex-panel.disagree { border-color: rgba(184,51,58,.38); background: rgba(248,226,226,.5); }
 .yandex-panel.disagree strong { color: #b8333a; }
 .yandex-flag { display: block; font-size: 12px; font-weight: 650; color: #8f2a30; background: rgba(248,226,226,.7); border-radius: 8px; padding: 5px 8px; }
+
+/* Installed on a home screen the app should behave like an app: no pinch zoom
+   of the whole page, no rubber-band scroll past the edges. The map keeps its
+   own gestures because it sets touch-action itself. */
+html, body { overscroll-behavior: none; }
+body { touch-action: pan-x pan-y; }
+
+/* Where the driver is standing, so "рядом" is something you can see. */
+.me-marker {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #1b6ef3; border: 3px solid #fff;
+  box-shadow: 0 0 0 3px rgba(27,110,243,.3), 0 2px 6px rgba(0,0,0,.35);
+}
+
+/* In map view the list is hidden, which also hid the explanation of why the
+   map is empty. An empty result must always be able to say why. */
+.content-grid.map-mode .station-list:has(.empty-state) { display: block; max-height: none; }

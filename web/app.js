@@ -29,7 +29,7 @@ const KIND_LABELS = {
 
 const state = {
   grade: 'AI95', area: 'all', view: 'list', search: '', sort: 'go',
-  status: null, timeline: null, location: null, bbox: null, meta: null, stations: [], visible: 0, map: null,
+  status: null, timeline: null, location: null, bbox: null, meta: null, stations: [], visible: 0, map: null, meLayer: null,
   markers: null, request: 0,
   staticMode: document.querySelector('meta[name="spbfi-static-site"]')?.content === 'true',
   gradesBrief: {},
@@ -298,6 +298,13 @@ function showCollectorHealth() {
 }
 
 function bindControls() {
+  // Safari fires these for a two-finger pinch on the page itself. In an
+  // installed app that zoom just breaks the layout; the map handles its own.
+  for (const name of ['gesturestart', 'gesturechange', 'gestureend']) {
+    document.addEventListener(name, (event) => {
+      if (!event.target.closest?.('#map')) event.preventDefault();
+    }, { passive: false });
+  }
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     installPrompt = event;
@@ -483,7 +490,7 @@ async function geocodePlace(query) {
 
 async function findNearby() {
   const query = $('#searchInput').value.trim();
-  if (query.length < 3) return alert('Введите адрес или название места: например, «ул. Уточкина 3» или «МЦ на Уточкина».');
+  if (query.length < 3) return alert('Введите адрес, посёлок или название АЗС — например, «Невский проспект», «Мурино» или «Газпромнефть».');
   const button = $('#nearbySearchButton');
   button.disabled = true;
   button.textContent = 'Ищем место…';
@@ -518,6 +525,10 @@ function locate() {
     state.location = { lat: coords.latitude, lon: coords.longitude };
     state.bbox = null;
     state.search = '';
+    state.status = null;
+    state.timeline = null;
+    // A rectangle picked earlier on the map would otherwise still be filtering,
+    // which is how "Моя позиция" ended up showing nothing at all.
     state.searchScope = 'device';
     state.searchLabel = null;
     state.radiusKm = 5;
@@ -857,8 +868,22 @@ function initMap() {
   state.map.on('moveend', () => { $('#mapAreaButton').style.display = 'block'; });
 }
 
+function renderMe() {
+  if (!state.map || !state.location || state.searchScope !== 'device') {
+    if (state.meLayer) { state.meLayer.remove(); state.meLayer = null; }
+    return;
+  }
+  if (state.meLayer) state.meLayer.remove();
+  state.meLayer = L.marker([state.location.lat, state.location.lon], {
+    icon: L.divIcon({ className: '', html: '<div class="me-marker"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+    interactive: false,
+    zIndexOffset: 1000,
+  }).addTo(state.map);
+}
+
 function renderMarkers() {
   if (!state.map || !state.markers) return;
+  renderMe();
   state.markers.clearLayers();
   state.stations.forEach((station) => {
     const status = STATUS[station.grade.status];

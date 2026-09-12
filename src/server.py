@@ -27,12 +27,6 @@ REFRESH_SCRIPT = ROOT / "scripts" / "refresh_live.py"
 REFRESH_COOLDOWN_SECONDS = 4 * 60
 GEOCODE_ENDPOINT = "https://nominatim.openstreetmap.org/search"
 AOI = {"west": 29.50, "south": 59.60, "east": 31.10, "north": 60.35}
-# Small, transparent safety net for the first local release.  It is used only
-# when the public geocoder is unavailable on the user's network; it never
-# pretends to be a precise house-level geocoding result.
-LOCAL_PLACE_FALLBACKS = {
-    "уточкина": {"label": "ул. Уточкина, Приморский район (приблизительный центр улицы)", "lat": 60.0084, "lon": 30.2570},
-}
 
 
 def _number(value: str | None, *, integer: bool = False):
@@ -101,11 +95,6 @@ class AppHandler(BaseHTTPRequestHandler):
                 with urlopen(request, timeout=12) as response:
                     rows = json.loads(response.read().decode("utf-8"))
             except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-                fallback = next((value for token, value in LOCAL_PLACE_FALLBACKS.items() if token in cache_key), None)
-                if fallback:
-                    result = {"query": normalized, "label": fallback["label"], "location": {"lat": fallback["lat"], "lon": fallback["lon"]}, "precision": "street_approximate"}
-                    cls.geocode_cache[cache_key] = result
-                    return result
                 raise RuntimeError("Сервис поиска места временно недоступен. Переместите карту и нажмите «Искать в этой области».") from exc
             finally:
                 cls.geocode_last_monotonic = time.monotonic()

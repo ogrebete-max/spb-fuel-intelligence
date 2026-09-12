@@ -69,6 +69,28 @@ jobs:
             echo "no stored history yet; starting from an empty timeline"
           fi
 
+      # Each slot starts from a clean checkout, so without this every source
+      # would be refetched every ten minutes no matter how slowly its data
+      # actually changes. Only the throttled payloads are carried over; the
+      # rest are cheap single requests and are always fetched fresh.
+      - name: Restore slowly-changing captures
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/live/yandex-maps.json
+            data/live/lukoil-search.json
+            data/live/rosneft-stations.json
+            data/live/tatneft-azs.json
+            data/live/tatneft-fuel-types.json
+            data/live/teboil-official.json
+            data/live/kirishi-official.json
+            data/live/benzinradar-full-aoi.json
+            data/live/gdebenzfuel.json
+            data/live/tbank-fuel.json
+            data/live/telegram-benzinspb78.json
+          key: live-captures-${{ github.run_id }}-${{ matrix.slot }}
+          restore-keys: live-captures-
+
       - name: Fetch public sources, rebuild snapshot and history
         run: python scripts/refresh_live.py
 

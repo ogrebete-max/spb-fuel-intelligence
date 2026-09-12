@@ -53,6 +53,55 @@ ENDPOINTS = (
 # like a broken collector, so an empty payload is reported separately.
 MIN_BYTES = 200
 
+# Nobody is served by asking a source for data faster than that data changes.
+# Yandex signals are two hours old at the median, and one pass over it costs a
+# hundred and ten page requests, so polling it every ten minutes would mean
+# fifteen thousand requests a day to learn nothing new. Anything not listed
+# here is a single cheap request and is refreshed every run.
+MIN_INTERVAL_SECONDS = {
+    "yandex-maps": 30 * 60,
+    "gdebenzfuel": 20 * 60,
+    "tbank-fuel": 20 * 60,
+    "telegram-benzinspb78": 15 * 60,
+    "lukoil-search": 6 * 3600,
+    "rosneft-stations": 3600,
+    "tatneft-azs": 3600,
+    "tatneft-fuel-types": 12 * 3600,
+    "teboil-official": 6 * 3600,
+    "kirishi-official": 3600,
+    "benzinradar-full-aoi": 3600,
+}
+
+
+def _seconds_since_capture(name: str) -> float | None:
+    """Age of the stored payload for one source, or None when there is none."""
+    target = OUT_DIR / f"{name}.json"
+    if not target.exists():
+        return None
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    stamp = payload.get("captured_at") if isinstance(payload, dict) else None
+    if stamp:
+        try:
+            captured = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+        except ValueError:
+            captured = None
+        if captured:
+            return (datetime.now(timezone.utc) - captured).total_seconds()
+    return max(0.0, datetime.now(timezone.utc).timestamp() - target.stat().st_mtime)
+
+
+def _skip_result(name: str, age: float) -> dict[str, Any]:
+    target = OUT_DIR / f"{name}.json"
+    return {
+        "name": name, "ok": True, "http_status": "cached", "skipped": True,
+        "bytes": target.stat().st_size if target.exists() else 0,
+        "captured_at": now_iso(), "elapsed_ms": 0, "age_seconds": round(age),
+        "error": None,
+    }
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -136,18 +185,32 @@ def main() -> int:
     args = parser.parse_args()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+
+    def due(name: str) -> bool:
+        interval = MIN_INTERVAL_SECONDS.get(name)
+        if not interval:
+            return True
+        age = _seconds_since_capture(name)
+        if age is None or age >= interval:
+            return True
+        skipped.append(_skip_result(name, age))
+        return False
+
     with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = [pool.submit(fetch_one, *item) for item in ENDPOINTS]
-        futures += [pool.submit(run_collector, name) for name in COLLECTORS]
-        futures.append(pool.submit(collect_gpn))
+        futures = [pool.submit(fetch_one, *item) for item in ENDPOINTS if due(item[0])]
+        futures += [pool.submit(run_collector, name) for name in COLLECTORS if due(name)]
+        if due("gpn-official"):
+            futures.append(pool.submit(collect_gpn))
         for future in as_completed(futures):
             rows.append(future.result())
+    rows.extend(skipped)
     rows.sort(key=lambda item: item["name"])
     (OUT_DIR / "full-aoi-probe-results.json").write_text(
         json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     for row in rows:
-        mark = "ok  " if row["ok"] else "FAIL"
+        mark = "kept" if row.get("skipped") else "ok  " if row["ok"] else "FAIL"
         detail = "" if row["ok"] else "  " + " ".join(str(row["error"]).split())[:600]
         print(f"{mark} {row['name']:26} http={row['http_status']!s:>18} {row['bytes']:>9} B {row['elapsed_ms']:>6} ms{detail}")
     success = sum(1 for row in rows if row["ok"])
