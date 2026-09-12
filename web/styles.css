@@ -450,3 +450,8 @@ body.following #locateButton { background: var(--accent, #1f7a4d); color: #fff; 
 .here-mine.group { font-weight: 600; }
 .here-mine.group.yes { color: #1f7a4d; }
 .here-mine.group.no { color: #a52a2a; }
+
+.mark-link { display: block; margin-top: 8px; font-size: 13px; color: var(--brand); text-decoration: underline dotted; }
+.mark-sent { display: block; font-weight: 600; color: #1f7a4d; }
+.drawer-mark { margin: 14px 0; }
+.drawer-mark .mark-row { margin-top: 10px; }

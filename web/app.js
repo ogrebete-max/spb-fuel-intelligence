@@ -7,7 +7,9 @@ const STATUS = {
   CONFIRMED_NO: { short: 'Подтверждено нет', color: '#b8333a' },
   NO_FRESH_DATA: { short: 'Нет свежих данных', color: '#8a9691' },
 };
-const GRADE_LABELS = { AI92: 'АИ-92', AI95: 'АИ-95', AI98: 'АИ-98', AI100: 'АИ-100', DT: 'ДТ', LPG: 'Газ' };
+// Propane is deliberately absent: nobody in this group drives on it, and a
+// "Газ" chip only invited gas pumps into the list.
+const GRADE_LABELS = { AI92: 'АИ-92', AI95: 'АИ-95', AI98: 'АИ-98', AI100: 'АИ-100', DT: 'ДТ' };
 const QUEUE_LABELS = {
   lt5: 'до 5 авто', less_than_5: 'до 5 авто',
   '5_20': '5–20 авто', from_5_to_20: '5–20 авто',
@@ -898,6 +900,9 @@ function saveMark(stationId, grade, seen) {
     // Private mode or a full quota: the mark simply is not kept.
   }
   state.marks = marks;
+  state.groupMarks = state.groupMarks || {};
+  state.groupMarks[stationId] = state.groupMarks[stationId] || {};
+  state.groupMarks[stationId][grade] = { seen, at: Date.now(), queue: null, people: [deviceId()] };
   renderStations();
   renderHerePanel();
   shareMark(stationId, grade, seen);
@@ -944,16 +949,75 @@ async function shareMark(stationId, grade, seen) {
   }
 }
 
+// Marks the group filed in the last 45 minutes, read straight from the
+// worker. The pipeline folds the same reports into the vote ten minutes
+// later; reading them here means a mark is visible to everyone at once.
+const GROUP_MARK_TTL_MS = 45 * 60 * 1000;
+
+async function pollGroupMarks() {
+  const endpoint = window.SPBFI_REPORT_ENDPOINT;
+  if (!endpoint) return;
+  try {
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}/reports`, { cache: 'no-store' });
+    if (!response.ok) return;
+    const payload = await response.json();
+    const cutoff = Date.now() - GROUP_MARK_TTL_MS;
+    const marks = {};
+    for (const report of payload.reports || []) {
+      if (!report || report.at < cutoff || !report.station || !report.grade) continue;
+      const slot = (marks[report.station] = marks[report.station] || {});
+      const current = slot[report.grade];
+      const people = new Set(current?.people || []);
+      people.add(report.who || '?');
+      if (!current || report.at > current.at) {
+        slot[report.grade] = { seen: !!report.seen, at: report.at, queue: report.queue, people: [...people] };
+      } else {
+        current.people = [...people];
+      }
+    }
+    const changed = JSON.stringify(marks) !== JSON.stringify(state.groupMarks || {});
+    state.groupMarks = marks;
+    if (changed && state.stations.length) renderStations();
+  } catch {
+    // Offline or the worker is down; the pipeline's copy still arrives.
+  }
+}
+
+function groupMarkFor(stationId, grade) {
+  const mark = (state.groupMarks || {})[stationId]?.[grade];
+  if (!mark || Date.now() - mark.at > GROUP_MARK_TTL_MS) return null;
+  return mark;
+}
+
 // The group's own fresh look at the pump outranks every feed; the card must say
-// so in plain words, not bury it in the vote list.
-function eyewitnessLine(grade) {
-  const seen = grade?.eyewitness;
-  if (!seen || !seen.fresh) return null;
-  const ago = seen.age_seconds != null ? formatAge(seen.age_seconds) : 'только что';
-  const queue = seen.queue ? `, очередь ${seen.queue} ${plural(Number(seen.queue), 'машина', 'машины', 'машин')}` : '';
+// so in plain words, not bury it in the vote list. A live mark from the worker
+// wins over the pipeline's copy when it is newer.
+function eyewitnessLine(grade, stationId) {
+  const live = stationId ? groupMarkFor(stationId, state.grade) : null;
+  const piped = grade?.eyewitness;
+  const liveAge = live ? (Date.now() - live.at) / 1000 : null;
+  let seen;
+  let ageSeconds;
+  let people = 1;
+  let queue = null;
+  if (live && (!piped || !piped.fresh || liveAge <= (piped.age_seconds ?? Infinity))) {
+    seen = live.seen;
+    ageSeconds = liveAge;
+    people = live.people.length;
+    queue = live.queue;
+  } else if (piped && piped.fresh) {
+    seen = piped.seen;
+    ageSeconds = piped.age_seconds;
+    queue = piped.queue;
+  } else {
+    return null;
+  }
+  const ago = ageSeconds != null ? formatAge(ageSeconds) : 'только что';
+  const queueText = queue ? `, очередь ${queue} ${plural(Number(queue), 'машина', 'машины', 'машин')}` : '';
+  const crowd = people > 1 ? ` (${people} ${plural(people, 'человек', 'человека', 'человек')})` : '';
   return {
-    tone: seen.seen ? 'yes' : 'no',
-    text: `👁 Свои видели ${ago}: ${GRADE_LABELS[state.grade]} ${seen.seen ? 'есть' : 'нет'}${queue} — самая точная отметка`,
+    tone: seen ? 'yes' : 'no',
+    text: `👁 Свои видели ${ago}${crowd}: ${GRADE_LABELS[state.grade]} ${seen ? 'есть' : 'нет'}${queueText} — самая точная отметка`,
   };
 }
 
@@ -983,8 +1047,12 @@ function markButtons(stationId, { compact = false } = {}) {
 
 function bindMarkButtons(root) {
   root.querySelectorAll('[data-mark-station]').forEach((button) => {
-    button.addEventListener('click', () => {
-      saveMark(button.dataset.markStation, state.grade, button.dataset.markSeen === '1');
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const seen = button.dataset.markSeen === '1';
+      const row = button.closest('.mark-row');
+      if (row) row.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(GRADE_LABELS[state.grade])} ${seen ? 'есть' : 'нет'}. Они увидят это сразу.</span>`;
+      saveMark(button.dataset.markStation, state.grade, seen);
     });
   });
 }
@@ -1036,7 +1104,7 @@ function renderHerePanel() {
     <strong>${escapeHtml(nearest.network)}</strong>
     <span class="here-address">${escapeHtml(nearest.address)}</span>
     <div class="here-grades">${rows}</div>
-    ${eyewitnessLine(grade) ? `<p class="here-mine group ${eyewitnessLine(grade).tone}">${escapeHtml(eyewitnessLine(grade).text)}</p>` : ''}
+    ${eyewitnessLine(grade, nearest.id) ? `<p class="here-mine group ${eyewitnessLine(grade, nearest.id).tone}">${escapeHtml(eyewitnessLine(grade, nearest.id).text)}</p>` : ''}
     ${mine ? `<p class="here-mine">✔ ${escapeHtml(mine)}</p>` : ''}
     <p class="here-note">Сверьте с колонками. Мы утверждаем это по ${(grade.votes || []).length} ${plural((grade.votes || []).length, 'источнику', 'источникам', 'источникам')}, самый свежий сигнал — ${escapeHtml(grade.undated_only ? 'без отметки времени' : formatAge(grade.age_seconds))}.</p>
     ${markButtons(nearest.id)}
@@ -1099,7 +1167,7 @@ function renderStations({ append = false } = {}) {
     const caution = advice.caution ? ` ${advice.caution}` : '';
     node.querySelector('.facts').textContent = facts + caution;
     node.querySelector('.meta-line').textContent = metaFor(station);
-    const witness = eyewitnessLine(grade);
+    const witness = eyewitnessLine(grade, station.id);
     if (witness) {
       const own = document.createElement('span');
       own.className = `own-mark group ${witness.tone}`;
@@ -1118,6 +1186,11 @@ function renderStations({ append = false } = {}) {
       row.innerHTML = markButtons(station.id, { compact: true });
       node.querySelector('.card-main').appendChild(row.firstElementChild);
       bindMarkButtons(node);
+    } else {
+      const link = document.createElement('span');
+      link.className = 'mark-link';
+      link.textContent = 'Видите эту АЗС? Отметить для своих →';
+      node.querySelector('.card-main').appendChild(link);
     }
     const second = yandexLine(grade);
     if (second && second.agrees === false) {
@@ -1208,7 +1281,7 @@ async function openStation(id) {
     const lat = Number(station.location.lat);
     const lon = Number(station.location.lon);
     const routeUrl = `https://yandex.ru/maps/?rtext=~${lat},${lon}&rtt=auto`;
-    const gradeCells = Object.entries(station.grades).map(([grade, value]) => `<div class="grade-cell" style="--cell-color:${STATUS[value.status].color}"><b>${GRADE_LABELS[grade]}</b><small>${STATUS[value.status].short}</small></div>`).join('');
+    const gradeCells = Object.entries(station.grades).filter(([grade]) => GRADE_LABELS[grade]).map(([grade, value]) => `<div class="grade-cell" style="--cell-color:${STATUS[value.status].color}"><b>${GRADE_LABELS[grade]}</b><small>${STATUS[value.status].short}</small></div>`).join('');
     const timeline = selected.timeline || {};
     const transition = timeline.last_transition;
     const confidenceLabels = { high: 'высокая', medium: 'средняя', low: 'низкая' };
@@ -1223,6 +1296,14 @@ async function openStation(id) {
       <h2>${escapeHtml(station.network || 'АЗС')}</h2>
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
       <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
+      <div class="here-panel drawer-mark">
+        <span class="here-kicker">Для своих</span>
+        <strong>Видите эту АЗС своими глазами?</strong>
+        ${eyewitnessLine(selected, station.id) ? `<p class="here-mine group ${eyewitnessLine(selected, station.id).tone}">${escapeHtml(eyewitnessLine(selected, station.id).text)}</p>` : ''}
+        ${markLine(station.id, state.grade) ? `<p class="here-mine">✔ ${escapeHtml(markLine(station.id, state.grade))}</p>` : ''}
+        ${markButtons(station.id)}
+        <p class="here-note">Отметка сразу появится у всех, кто пользуется приложением, и весит больше любой ленты. Живёт 45 минут.</p>
+      </div>
       <div class="drawer-status" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}</strong><p>${escapeHtml(selected.reason)}</p></div>
       ${yandexPanel(selected)}
       ${votePanel(selected)}
@@ -1233,6 +1314,7 @@ async function openStation(id) {
       <div class="evidence-list">${evidence}</div>
       <h3 class="section-title">Связанные идентификаторы</h3>
       <div class="evidence-meta">${station.source_refs.map((ref) => `${escapeHtml(ref.source)}:${escapeHtml(ref.station_id)}`).join('<br>')}</div>`;
+    bindMarkButtons($('#drawerContent'));
     $('#copyCoords').addEventListener('click', async (event) => {
       try {
         await navigator.clipboard.writeText(`${lat}, ${lon}`);
@@ -1370,8 +1452,10 @@ async function pollForNewSnapshot() {
 }
 
 setInterval(pollForNewSnapshot, SNAPSHOT_POLL_MS);
+setInterval(pollGroupMarks, 60000);
+pollGroupMarks();
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) pollForNewSnapshot();
+  if (!document.hidden) { pollForNewSnapshot(); pollGroupMarks(); }
 });
 
 if ('serviceWorker' in navigator) {
