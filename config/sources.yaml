@@ -569,3 +569,98 @@ sources:
     polling: "16 requests per refresh, one per second"
     collector_ready: true
     reason: "The only verified source that reports a queue for individual stations. Data belongs to Yandex; the licence allows personal non-commercial use and requires written permission for redistribution. Disable with SPBFI_DISABLE_YANDEX=1."
+
+  - id: gdebenzin24
+    priority: 29
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://gdebenzin24.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://gdebenzin24.ru/api/nearby?lat=59.95&lon=30.30&radius_km=60"
+    auth: "none"
+    geo_query: "bounding box or radius"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "per-grade status with its own timestamp, consensus percentage, voter count and a car count for the queue"
+    fields: [station_id, coordinates, address, brand, grade, status, queue, confirmations, last_report_at, price]
+    upstream: "own driver community"
+    independence: "own driver community"
+    polling: "10 minutes"
+    collector_ready: true
+    reason: "robots.txt: Allow: / — the API path is not disallowed. Verified live; agreement with the other communities is close to chance, so it counts as a separate voice."
+
+  - id: gde_benzin
+    priority: 30
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://gde-benzin.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://gde-benzin.ru/api/stations?bbox={south},{west},{north},{east}"
+    auth: "none"
+    geo_query: "bounding box or radius"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "per-grade availability that separates human confirmations from parser imports"
+    fields: [station_id, coordinates, address, brand, grade, status, queue, confirmations, last_report_at, price]
+    upstream: "own driver community; rows built only by its parser are not counted as independent"
+    independence: "own driver community; rows built only by its parser are not counted as independent"
+    polling: "10 minutes"
+    collector_ready: true
+    reason: "robots.txt: Allow: / — the API path is not disallowed. Verified live; agreement with the other communities is close to chance, so it counts as a separate voice."
+
+  - id: gdebenzin_net
+    priority: 31
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://gdebenzin.net/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://gdebenzin.net/api/comments?lat1={south}&lon1={west}&lat2={north}&lon2={east}"
+    auth: "none"
+    geo_query: "bounding box or radius"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "the freshest queue feed found: car count, waiting minutes and a queue trend"
+    fields: [station_id, coordinates, address, brand, grade, status, queue, confirmations, last_report_at, price]
+    upstream: "own driver community"
+    independence: "own driver community"
+    polling: "10 minutes"
+    collector_ready: true
+    reason: "robots.txt: Allow: / — the API path is not disallowed. Verified live; agreement with the other communities is close to chance, so it counts as a separate voice."
+
+  - id: gdebenzfuel
+    priority: 32
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://gdebenzfuel.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://gdebenzfuel.ru/api/v1/stations?minLat={south}&maxLat={north}&minLon={west}&maxLon={east}"
+    auth: "none"
+    geo_query: "bounding box or radius"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "per-grade availability with report count, agreement and an explicit conflict flag; truncates at 500 rows so the area is walked in quadrants"
+    fields: [station_id, coordinates, address, brand, grade, status, queue, confirmations, last_report_at, price]
+    upstream: "own driver community for availability; its prices are relayed from the shared russiabase feed and are parked in that cluster"
+    independence: "own driver community for availability; its prices are relayed from the shared russiabase feed and are parked in that cluster"
+    polling: "10 minutes"
+    collector_ready: true
+    reason: "robots.txt: Allow: / — the API path is not disallowed. Verified live; agreement with the other communities is close to chance, so it counts as a separate voice."
+
+  - id: tbank_fuel_map
+    priority: 33
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://toplivo.tbank.ru/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://toplivo.tbank.ru/api/v1/stations?minLat={south}&maxLat={north}&minLon={west}&maxLon={east}"
+    auth: "none"
+    geo_query: "bounding box or radius"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "per-grade status inferred from card payments, with a confidence level and the last transaction time"
+    fields: [station_id, coordinates, address, brand, grade, status, queue, confirmations, last_report_at, price]
+    upstream: "card payments seen by a bank other than Sber; measured agreement with Sber is 51%, so it is a separate upstream"
+    independence: "card payments seen by a bank other than Sber; measured agreement with Sber is 51%, so it is a separate upstream"
+    polling: "10 minutes"
+    collector_ready: true
+    reason: "robots.txt: no robots.txt served. Verified live; agreement with the other communities is close to chance, so it counts as a separate voice."

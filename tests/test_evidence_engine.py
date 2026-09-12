@@ -74,8 +74,19 @@ class EvidenceEngineTests(unittest.TestCase):
         ], "AI95", now=NOW)
         self.assertEqual(result["status"], "CONFLICT")
 
-    def test_official_stock_is_confirmation(self):
+    def test_one_official_reading_alone_is_not_the_strongest_verdict(self):
+        # Checking real stations showed the network's own stock feed claiming
+        # fuel that was not being sold, so a single uncorroborated voice — however
+        # authoritative — stops short of "стоит ехать".
         result = evaluate_grade([row("AVAILABLE", kind="official_stock", cluster="official")], "AI95", now=NOW)
+        self.assertEqual(result["status"], "LIKELY_AVAILABLE")
+        self.assertGreater(result["probability"], 0.65)
+
+    def test_a_second_agreeing_voice_reaches_the_strongest_verdict(self):
+        result = evaluate_grade([
+            row("AVAILABLE", kind="official_stock", cluster="official"),
+            row("AVAILABLE", kind="crowd_report", cluster="yandex-crowd"),
+        ], "AI95", now=NOW)
         self.assertEqual(result["status"], "CAN_REFUEL")
 
     def test_two_independent_crowd_clusters_confirm(self):

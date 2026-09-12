@@ -278,6 +278,76 @@ def collect_yandex() -> dict[str, Any]:
             "stations": list(stations.values())}
 
 
+def _tiles(steps_lat: int, steps_lon: int) -> list[tuple[float, float, float, float]]:
+    lat_step = (AOI["north"] - AOI["south"]) / steps_lat
+    lon_step = (AOI["east"] - AOI["west"]) / steps_lon
+    return [
+        (AOI["south"] + row * lat_step, AOI["west"] + col * lon_step,
+         AOI["south"] + (row + 1) * lat_step, AOI["west"] + (col + 1) * lon_step)
+        for row in range(steps_lat) for col in range(steps_lon)
+    ]
+
+
+def collect_gdebenzin24() -> dict[str, Any]:
+    """One radius call covers the whole area; per-grade statuses carry their own time."""
+    payload = _json(
+        "https://gdebenzin24.ru/api/nearby?lat=59.95&lon=30.30&radius_km=60",
+        referer="https://gdebenzin24.ru/",
+    )
+    return {"captured_at": _now(), "stations": payload.get("stations") or []}
+
+
+def collect_gde_benzin() -> dict[str, Any]:
+    """Separates human confirmations from parser imports, which matters for weight."""
+    payload = _json(
+        "https://gde-benzin.ru/api/stations?bbox=59.60,29.50,60.35,31.10",
+        referer="https://gde-benzin.ru/",
+    )
+    return {"captured_at": _now(), "stations": payload.get("stations") or []}
+
+
+def collect_gdebenzin_net() -> dict[str, Any]:
+    """The freshest queue feed found: explicit car counts and a waiting trend."""
+    payload = _json(
+        "https://gdebenzin.net/api/comments?lat1=59.60&lon1=29.50&lat2=60.35&lon2=31.10",
+        referer="https://gdebenzin.net/",
+    )
+    rows = payload if isinstance(payload, list) else payload.get("stations") or []
+    return {"captured_at": _now(), "stations": rows}
+
+
+def collect_gdebenzfuel() -> dict[str, Any]:
+    """Truncates at 500 rows, so the area is walked in quadrants."""
+    merged: dict[str, dict[str, Any]] = {}
+    truncated = 0
+    for south, west, north, east in _tiles(3, 3):
+        url = (
+            "https://gdebenzfuel.ru/api/v1/stations"
+            f"?minLat={south:.4f}&maxLat={north:.4f}&minLon={west:.4f}&maxLon={east:.4f}"
+        )
+        payload = _json(url, referer="https://gdebenzfuel.ru/")
+        rows = payload if isinstance(payload, list) else payload.get("stations") or []
+        if len(rows) >= 500:
+            truncated += 1
+        for row in rows:
+            merged[str(row.get("id"))] = row
+    return {"captured_at": _now(), "truncated_tiles": truncated, "stations": list(merged.values())}
+
+
+def collect_tbank() -> dict[str, Any]:
+    """Payment activity from a bank other than Sber; truncates at 300 rows."""
+    merged: dict[str, dict[str, Any]] = {}
+    for south, west, north, east in _tiles(3, 3):
+        url = (
+            "https://toplivo.tbank.ru/api/v1/stations"
+            f"?minLat={south:.4f}&maxLat={north:.4f}&minLon={west:.4f}&maxLon={east:.4f}"
+        )
+        payload = _json(url, referer="https://toplivo.tbank.ru/")
+        for row in payload.get("payload") or []:
+            merged[str(row.get("id"))] = row
+    return {"captured_at": _now(), "stations": list(merged.values())}
+
+
 COLLECTORS = {
     "gdezapravka-full-aoi": collect_gdezapravka,
     "tofuel-full-aoi": collect_tofuel,
@@ -285,4 +355,9 @@ COLLECTORS = {
     "kirishi-official": collect_kirishi,
     "telegram-benzinspb78": collect_telegram,
     "yandex-maps": collect_yandex,
+    "gdebenzin24": collect_gdebenzin24,
+    "gde-benzin": collect_gde_benzin,
+    "gdebenzin-net": collect_gdebenzin_net,
+    "gdebenzfuel": collect_gdebenzfuel,
+    "tbank-fuel": collect_tbank,
 }

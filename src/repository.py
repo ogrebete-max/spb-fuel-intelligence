@@ -23,6 +23,9 @@ SOURCE_COUNT_KEYS = {
     "benzin_live_analogue": "benzin-live-analogue",
     "telegram_benzinspb78": "telegram-benzinspb78",
     "yandex_maps_fuel": "yandex-maps",
+    "gde_benzin": "gde-benzin",
+    "gdebenzin_net": "gdebenzin-net",
+    "tbank_fuel_map": "tbank-fuel",
 }
 
 

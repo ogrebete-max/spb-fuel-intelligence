@@ -46,6 +46,13 @@ from src.sources_live import (  # noqa: E402
     normalize_tofuel,
     normalize_yandex,
 )
+from src.sources_crowd import (  # noqa: E402
+    normalize_gde_benzin,
+    normalize_gdebenzfuel,
+    normalize_gdebenzin24,
+    normalize_gdebenzin_net,
+    normalize_tbank,
+)
 from src.station_matcher import merge_stations  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -325,6 +332,22 @@ def build(raw_dir: Path) -> dict[str, Any]:
         [row for item in yandex.get("stations", []) for row in normalize_yandex(item)],
         yandex.get("captured_at") or snapshot_at,
     )
+
+    # Five driver communities that report queues.  They were measured against
+    # each other and agree no more than chance, so each is its own cluster.
+    for name, normalize in (
+        ("gdebenzin24", normalize_gdebenzin24),
+        ("gde-benzin", normalize_gde_benzin),
+        ("gdebenzin-net", normalize_gdebenzin_net),
+        ("gdebenzfuel", normalize_gdebenzfuel),
+        ("tbank-fuel", normalize_tbank),
+    ):
+        payload = read_json(raw_dir / f"{name}.json", {}) or {}
+        add_rows(
+            rows, counts,
+            [row for item in payload.get("stations", []) for row in normalize(item)],
+            payload.get("captured_at") or snapshot_at,
+        )
 
     benzinradar = read_json(raw_dir / "benzinradar-full-aoi.json", []) or []
     add_rows(rows, counts, normalize_benzinradar(benzinradar, time_for("benzinradar-full-aoi")), time_for("benzinradar-full-aoi"))

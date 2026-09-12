@@ -177,6 +177,7 @@ def probability_available(rows: list[EvaluatedRow]) -> tuple[float | None, list[
         total += contribution
         breakdown.append({
             "source": item.row.get("source"),
+            "cluster": item.cluster,
             "kind": item.row.get("kind"),
             "availability": item.row.get("availability"),
             "age_seconds": round(item.age_seconds) if item.age_seconds is not None else None,
@@ -185,6 +186,15 @@ def probability_available(rows: list[EvaluatedRow]) -> tuple[float | None, list[
         })
     if not breakdown:
         return None, []
+    # One voice is one observation, however authoritative.  Shrinking the
+    # log-odds toward 50% when nobody corroborates keeps a lone reading out of
+    # "стоит ехать" and reserves confidence for agreement.
+    # Corroboration means voices agreeing with the answer, not voices present.
+    # Counting all of them would let an opposing vote raise confidence, because
+    # it made the crowd look bigger.
+    leading = 1 if total >= 0 else -1
+    agreeing = sum(1 for row in breakdown if (row["direction"] > 0) == (leading > 0))
+    total *= {0: 0.65, 1: 0.65, 2: 0.85}.get(agreeing, 1.0)
     probability = 1.0 / (1.0 + math.exp(-total))
     breakdown.sort(key=lambda row: -row["weight"])
     return probability, breakdown
@@ -583,7 +593,7 @@ def evaluate_station(
 GO_LABELS = {
     "GO": "Стоит ехать",
     "GO_WITH_WAIT": "Ехать можно, но с очередью",
-    "RISKY": "Можно попробовать",
+    "RISKY": "Скорее всего, есть",
     "NO": "Ехать не стоит",
     "UNKNOWN": "Непонятно",
 }
@@ -625,11 +635,12 @@ def travel_advice(evaluated: dict[str, Any], timeline: dict[str, Any] | None = N
         if cars_from is not None and cars_from >= 50:
             risk = "high"
             risk_text = "Очередь больше 50 машин: пока достоите, топливо может закончиться."
-        decision = "GO"
-        if queue:
+        # The wording follows the combined probability, so a 79% answer never
+        # reads the same as a 98% one.
+        chance = evaluated.get("probability")
+        decision = "GO" if chance is None or chance >= 0.85 else "RISKY"
+        if queue and decision == "GO":
             decision = "GO_WITH_WAIT" if (cars_from or 0) < 50 else "RISKY"
-        if status == "LIKELY_AVAILABLE" and trust < 50:
-            decision = "RISKY"
 
     parts = []
     if held_for is not None and status not in {"NO_FRESH_DATA", "CONFIRMED_NO", "LIKELY_NOT"}:
