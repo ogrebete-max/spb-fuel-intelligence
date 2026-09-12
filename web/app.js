@@ -1399,7 +1399,8 @@ function renderMe() {
 const LABEL_ZOOM = 12;
 
 function shortNetwork(name) {
-  return String(name || 'АЗС').split(',')[0].replace(/\s*АЗС\s*$/i, '').trim().slice(0, 16) || 'АЗС';
+  const head = String(name || '').split(',')[0].replace(/\s*АЗС\s*$/i, '').trim().slice(0, 16);
+  return !head || /^(other|прочие|независимая)/i.test(head) ? 'АЗС' : head;
 }
 
 function pinLabel(station) {
