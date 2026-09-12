@@ -37,9 +37,10 @@ jobs:
     steps:
       - name: Hold this slot
         if: matrix.slot != 0
-        # A slot costs about two minutes of work, so eight minutes of waiting
-        # keeps the published snapshot about ten minutes apart.
-        run: sleep 480
+        # A slot now costs about four minutes of work, most of it the Yandex
+        # grid at one request a second, so six minutes of waiting keeps the
+        # published snapshot about ten minutes apart.
+        run: sleep 360
 
       - name: Check out repository
         uses: actions/checkout@v5

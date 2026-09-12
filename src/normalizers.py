@@ -24,7 +24,27 @@ ALLOWED_AVAILABILITY = {
 }
 
 
-def canonical_grade(value: Any) -> str | None:
+# A branded grade is a different product at a different price: a station that
+# has G-95 but no plain 95 does not have 95, and its price is not the 95 price.
+# Yandex Maps shows them as separate chips for exactly this reason.
+PREMIUM_MARKERS = (
+    "g-", "g ", "экто", "ecto", "pulsar", "пульсар", "atum", "атум",
+    "ultimate", "ултимейт", "taneco", "taneko", "танеко", "опти", "opti",
+    "evro", "евро", "premium", "премиум", "+", "_gpn",
+)
+
+
+def is_premium_grade(value: Any) -> bool:
+    raw = str(value or "").strip().lower().replace("ё", "е")
+    if not raw:
+        return False
+    compact = re.sub(r"\s+", " ", raw)
+    return any(marker in compact for marker in PREMIUM_MARKERS)
+
+
+def canonical_grade(value: Any, *, allow_premium: bool = False) -> str | None:
+    if not allow_premium and is_premium_grade(value):
+        return None
     raw = str(value or "").strip().lower().replace("ё", "е")
     compact = re.sub(r"[\s_+\-]", "", raw)
     if re.search(r"(?:^|[^0-9])92(?:[^0-9]|$)", raw) or compact in {"ai92", "аи92", "a92", "92"}:

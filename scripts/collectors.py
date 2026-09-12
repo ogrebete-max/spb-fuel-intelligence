@@ -11,7 +11,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import html
 import json
+import os
 import re
+import time
 from typing import Any
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -186,10 +188,101 @@ def collect_telegram() -> dict[str, Any]:
     return {"captured_at": _now(), "channel": TELEGRAM_CHANNEL, "posts": list(posts.values())}
 
 
+# Yandex Maps renders the fuel block into the page itself, so the public search
+# result page carries per-grade availability, a queue size and how many driver
+# signals arrived in the last hour.  No key, no session, no protection is
+# involved; the paths used here are the ones yandex.ru/robots.txt allows.
+#
+# This is the only source found that reports a queue for individual stations,
+# which is the half of the decision the project was missing.  It is fetched
+# gently: one request a second, an honest browser User-Agent, a dozen requests
+# per refresh, and the whole collector can be switched off with
+# SPBFI_DISABLE_YANDEX=1 without touching anything else.
+YANDEX_VIEWS = (
+    (29.70, 59.66), (29.81, 59.66), (29.93, 59.66), (30.04, 59.66),
+    (30.16, 59.66), (30.27, 59.66), (30.39, 59.66), (30.50, 59.66),
+    (30.62, 59.66), (30.73, 59.66), (30.85, 59.66), (29.70, 59.71),
+    (29.81, 59.71), (29.93, 59.71), (30.04, 59.71), (30.16, 59.71),
+    (30.27, 59.71), (30.39, 59.71), (30.50, 59.71), (30.62, 59.71),
+    (30.73, 59.71), (30.85, 59.71), (29.70, 59.77), (29.81, 59.77),
+    (29.93, 59.77), (30.04, 59.77), (30.16, 59.77), (30.27, 59.77),
+    (30.39, 59.77), (30.50, 59.77), (30.62, 59.77), (30.73, 59.77),
+    (30.85, 59.77), (29.70, 59.82), (29.81, 59.82), (29.93, 59.82),
+    (30.04, 59.82), (30.16, 59.82), (30.27, 59.82), (30.39, 59.82),
+    (30.50, 59.82), (30.62, 59.82), (30.73, 59.82), (30.85, 59.82),
+    (29.70, 59.88), (29.81, 59.88), (29.93, 59.88), (30.04, 59.88),
+    (30.16, 59.88), (30.27, 59.88), (30.39, 59.88), (30.50, 59.88),
+    (30.62, 59.88), (30.73, 59.88), (30.85, 59.88), (29.70, 59.93),
+    (29.81, 59.93), (29.93, 59.93), (30.04, 59.93), (30.16, 59.93),
+    (30.27, 59.93), (30.39, 59.93), (30.50, 59.93), (30.62, 59.93),
+    (30.73, 59.93), (30.85, 59.93), (29.70, 59.99), (29.81, 59.99),
+    (29.93, 59.99), (30.04, 59.99), (30.16, 59.99), (30.27, 59.99),
+    (30.39, 59.99), (30.50, 59.99), (30.62, 59.99), (30.73, 59.99),
+    (30.85, 59.99), (29.70, 60.04), (29.81, 60.04), (29.93, 60.04),
+    (30.04, 60.04), (30.16, 60.04), (30.27, 60.04), (30.39, 60.04),
+    (30.50, 60.04), (30.62, 60.04), (30.73, 60.04), (30.85, 60.04),
+    (29.70, 60.10), (29.81, 60.10), (29.93, 60.10), (30.04, 60.10),
+    (30.16, 60.10), (30.27, 60.10), (30.39, 60.10), (30.50, 60.10),
+    (30.62, 60.10), (30.73, 60.10), (30.85, 60.10), (29.70, 60.15),
+    (29.81, 60.15), (29.93, 60.15), (30.04, 60.15), (30.16, 60.15),
+    (30.27, 60.15), (30.39, 60.15), (30.50, 60.15), (30.62, 60.15),
+    (30.73, 60.15), (30.85, 60.15),
+)
+YANDEX_STATE = re.compile(r'<script type="application/json" class="state-view">(.*?)</script>', re.S)
+
+
+def collect_yandex() -> dict[str, Any]:
+    if os.environ.get("SPBFI_DISABLE_YANDEX") == "1":
+        raise RuntimeError("disabled by SPBFI_DISABLE_YANDEX")
+    stations: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for index, (lon, lat) in enumerate(YANDEX_VIEWS):
+        if index:
+            time.sleep(1.0)
+        url = (
+            "https://yandex.ru/maps/2/saint-petersburg/search/"
+            f"{quote('АЗС')}/?ll={lon:.4f}%2C{lat:.4f}&z=14"
+        )
+        try:
+            page = _fetch(url, accept="text/html", timeout=45).decode("utf-8", "replace")
+        except Exception as exc:
+            errors.append(f"{lon},{lat}: {type(exc).__name__}: {exc}")
+            continue
+        match = YANDEX_STATE.search(page)
+        if not match:
+            errors.append(f"{lon},{lat}: fuel block missing")
+            continue
+        try:
+            state = json.loads(html.unescape(match.group(1)))
+        except json.JSONDecodeError as exc:
+            errors.append(f"{lon},{lat}: {exc}")
+            continue
+        for stack in state.get("stack", []):
+            for item in (stack.get("results") or {}).get("items") or []:
+                coordinates = item.get("coordinates") or []
+                availability = item.get("fuelAvailability")
+                if len(coordinates) != 2 or not availability:
+                    continue
+                key = str(item.get("id") or f"{coordinates[0]:.5f},{coordinates[1]:.5f}")
+                stations[key] = {
+                    "id": key,
+                    "title": item.get("title"),
+                    "address": item.get("address"),
+                    "lon": coordinates[0],
+                    "lat": coordinates[1],
+                    "availability": availability,
+                }
+    if not stations:
+        raise RuntimeError("; ".join(errors) or "no stations returned")
+    return {"captured_at": _now(), "views": len(YANDEX_VIEWS), "errors": errors,
+            "stations": list(stations.values())}
+
+
 COLLECTORS = {
     "gdezapravka-full-aoi": collect_gdezapravka,
     "tofuel-full-aoi": collect_tofuel,
     "teboil-official": collect_teboil,
     "kirishi-official": collect_kirishi,
     "telegram-benzinspb78": collect_telegram,
+    "yandex-maps": collect_yandex,
 }

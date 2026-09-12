@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 from src.normalizers import (  # noqa: E402
     ALLOWED_AVAILABILITY,
     canonical_grade,
+    is_premium_grade,
     normalize_fixture,
     normalize_gazpromneft,
 )
@@ -35,10 +36,18 @@ def evidence(name: str) -> list[dict]:
 class GradeTests(unittest.TestCase):
     def test_grade_aliases(self) -> None:
         self.assertEqual(canonical_grade("АИ-92"), "AI92")
-        self.assertEqual(canonical_grade("G-95"), "AI95")
-        self.assertEqual(canonical_grade("АИ 98 ЭКТО"), "AI98")
-        self.assertEqual(canonical_grade("100+"), "AI100")
         self.assertEqual(canonical_grade("ДТл"), "DT")
+        self.assertEqual(canonical_grade("diesel"), "DT")
+        self.assertEqual(canonical_grade("ГАЗ"), "LPG")
+
+    def test_a_branded_grade_does_not_answer_for_the_plain_one(self) -> None:
+        # G-95 is a different product at a different price. Treating it as 95
+        # made the app claim 95 at stations selling only the premium blend, and
+        # show the premium price as the 95 price.
+        for branded in ("G-95", "АИ 98 ЭКТО", "100+", "ai95_pulsar", "AI95_TANEKO", "DT_GPN"):
+            self.assertIsNone(canonical_grade(branded), branded)
+            self.assertTrue(is_premium_grade(branded), branded)
+        self.assertEqual(canonical_grade("G-95", allow_premium=True), "AI95")
 
 
 class SemanticsTests(unittest.TestCase):
@@ -58,24 +67,21 @@ class SemanticsTests(unittest.TestCase):
 
     def test_gazpromneft_empty_rest_array_is_unknown(self) -> None:
         body = load("gazpromneft")["body"]
+        # Index 0 is the plain 95; index 3 is the branded G-95.
         body["fuel_detail"]["data"][0]["rest"] = []
-        item = next(e for e in normalize_gazpromneft(body)[0]["evidence"] if e["grade"] == "AI95")
-        # The second AI95 variant is explicitly unavailable, so the aggregate
-        # remains a real negative rather than becoming UNKNOWN.
-        self.assertEqual(item["availability"], "NOT_AVAILABLE")
-
-        body["fuel_detail"]["data"][3]["rest"] = []
         item = next(e for e in normalize_gazpromneft(body)[0]["evidence"] if e["grade"] == "AI95")
         self.assertEqual(item["availability"], "UNKNOWN")
         self.assertIsNone(item["raw_status"])
 
-    def test_gazpromneft_any_available_variant_wins_and_sets_price(self) -> None:
+    def test_gazpromneft_branded_stock_never_answers_for_the_plain_grade(self) -> None:
         body = load("gazpromneft")["body"]
         body["fuel_detail"]["data"][3]["rest"]["avail"] = True
         items = [e for e in normalize_gazpromneft(body)[0]["evidence"] if e["grade"] == "AI95"]
         self.assertEqual(len(items), 1)
-        self.assertEqual(items[0]["availability"], "AVAILABLE")
-        self.assertEqual(items[0]["price_rub"], 72.52)
+        # Only G-95 is in stock, so plain 95 stays unavailable and keeps its own
+        # price rather than inheriting the premium one.
+        self.assertEqual(items[0]["availability"], "NOT_AVAILABLE")
+        self.assertNotEqual(items[0]["price_rub"], 72.52)
 
     def test_lukoil_and_teboil_catalog_never_becomes_stock(self) -> None:
         self.assertTrue(evidence("lukoil"))

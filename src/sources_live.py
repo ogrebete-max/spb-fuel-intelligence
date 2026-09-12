@@ -286,3 +286,58 @@ def parse_moscow_file_time(value: Any) -> str | None:
     except ValueError:
         return None
     return moscow.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+# Yandex Maps publishes the crowd signal this project was missing: a per-grade
+# verdict, a queue size and how many drivers reported in the last hour.  It is
+# its own community, so it is an independent provenance cluster — but it is
+# still a crowd signal, never an official stock reading.
+YANDEX_AVAILABILITY = {
+    "IN_STOCK": "AVAILABLE",
+    "OUT_OF_STOCK": "NOT_AVAILABLE",
+    # "UNCERTAIN" means their own signals disagree.  Absence of certainty is
+    # not a negative, so it stays UNKNOWN rather than becoming a vote.
+    "UNCERTAIN": "UNKNOWN",
+    "UNKNOWN": "UNKNOWN",
+}
+YANDEX_GRADES = {
+    "AI92": "AI92", "AI95": "AI95", "AI98": "AI98", "AI100": "AI100",
+    "DIESEL": "DT", "GAS": "LPG", "PROPANE": "LPG",
+}
+YANDEX_QUEUE = {"LOW": None, "MEDIUM": "5_20", "HIGH": "20_50"}
+
+
+def normalize_yandex(station: dict[str, Any]) -> list[dict[str, Any]]:
+    availability = station.get("availability") or {}
+    if station.get("lat") is None or station.get("lon") is None:
+        return []
+    rec = _station(
+        "yandex-maps", station.get("id"), station.get("title"),
+        station.get("address"), station["lat"], station["lon"],
+    )
+    observed = availability.get("lastSignalTimestamp")
+    signals = availability.get("signalsCountPerHour")
+    queue = YANDEX_QUEUE.get(str(availability.get("queueStatus")))
+    limit = None
+    limit_text = re.search(r"(\d+)", str(availability.get("localizedFuelLimit") or ""))
+    if limit_text:
+        limit = limit_text.group(1)
+
+    # A branded grade ("95+") is a separate product; it must not answer for the
+    # plain one, or a station selling only premium would look like it has 95.
+    plain = {
+        YANDEX_GRADES[item["fuelType"]]: item
+        for item in availability.get("fuel") or []
+        if item.get("fuelType") in YANDEX_GRADES
+    }
+    for grade, item in plain.items():
+        status = YANDEX_AVAILABILITY.get(str(item.get("status")), "UNKNOWN")
+        rec["evidence"].append(_evidence(
+            grade, status, "crowd_status", "yandex-crowd",
+            observed_at=observed, limit=limit,
+            queue=queue if status in {"AVAILABLE", "LIMITED"} else None,
+            confidence={"confirmations": signals, "station_status": availability.get("status")},
+            independent=True, raw_status=item.get("status"),
+            note="Driver reports collected by Yandex Maps, not an official stock reading.",
+        ))
+    return [rec]

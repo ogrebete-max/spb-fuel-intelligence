@@ -550,3 +550,22 @@ sources:
     polling: "10 minutes, six pages back"
     collector_ready: true
     reason: "Six pages returned 103 structured station cards; only positive availability is published, so it never produces a negative."
+
+  - id: yandex_maps_fuel
+    priority: 28
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://yandex.ru/maps/2/saint-petersburg/search/%D0%90%D0%97%D0%A1/"
+    access: "public search page; the fuel block is rendered into the HTML"
+    endpoints:
+      - "GET https://yandex.ru/maps/2/saint-petersburg/search/АЗС/?ll={lon},{lat}&z=14"
+    auth: "none; no key, no session, no signed parameters"
+    geo_query: "grid of map centres; the page returns up to 25 stations per view"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "driver reports: per-grade status, queue size, signals per hour, last signal time"
+    fields: [station_id, coordinates, address, brand, grade, status, queue, signals_per_hour, last_signal_at, fuel_limit]
+    upstream: "Yandex Maps and Navigator users"
+    independence: "own crowd community, separate from the map aggregators"
+    polling: "16 requests per refresh, one per second"
+    collector_ready: true
+    reason: "The only verified source that reports a queue for individual stations. Data belongs to Yandex; the licence allows personal non-commercial use and requires written permission for redistribution. Disable with SPBFI_DISABLE_YANDEX=1."

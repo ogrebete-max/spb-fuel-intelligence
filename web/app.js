@@ -20,7 +20,7 @@ const AVAILABILITY_LABELS = {
   LIMITED: 'Ограничение', QUEUE: 'Очередь', UNKNOWN: 'Неизвестно',
 };
 const KIND_LABELS = {
-  official_stock: 'официальный остаток', official_relay: 'официальный остаток через ретранслятор', realtime_status: 'текущий статус', crowd_report: 'сообщение водителя',
+  official_stock: 'официальный остаток', crowd_status_yandex: 'отметки в Яндекс Картах', official_relay: 'официальный остаток через ретранслятор', realtime_status: 'текущий статус', crowd_report: 'сообщение водителя',
   crowd_status: 'сообщения водителей', parsed_status: 'распознанный статус', aggregated_status: 'агрегированный статус',
   imported_status: 'импортированный статус', payment_projection: 'прогноз по платежам', payment_prediction: 'прогноз по активности',
   network_claim_aggregated: 'сводный сигнал сети', undated_crowd_summary: 'недатированный сигнал', price: 'цена',
@@ -225,6 +225,7 @@ function localizeNote(note) {
   if (/does not state current stock/i.test(value)) return 'Официальная лента цен; текущий остаток она не сообщает.';
   if (/Configured assortment/i.test(value)) return 'Штатный ассортимент, а не текущий остаток.';
   if (/republished by the channel/i.test(value)) return 'Подтверждения водителей из канала, а не официальное чтение остатка.';
+  if (/collected by Yandex Maps/i.test(value)) return 'Отметки водителей в Яндекс Картах, а не официальное чтение остатка.';
   if (/not proof of a specific grade/i.test(value)) return 'Платёж не доказывает наличие конкретной марки топлива.';
   if (/provenance is separate from availability/i.test(value)) return 'Источник цены не подтверждает наличие топлива.';
   return value;
@@ -527,6 +528,26 @@ function renderStatusStrip(counts, timelineCounts = {}) {
 
 const TRUST_COLORS = { high: '#158257', moderate: '#d58a13', low: '#b8333a', conflict: '#7856c7', none: '#8a9691' };
 
+function votePanel(grade) {
+  const votes = grade.votes || [];
+  if (!votes.length) return '';
+  const chance = grade.probability_percent;
+  const rows = votes.map((vote) => {
+    const positive = vote.direction > 0;
+    const share = Math.round(Math.min(100, (vote.weight / 1.2) * 100));
+    return `<div class="vote-row">
+      <span class="vote-side ${positive ? 'yes' : 'no'}">${positive ? 'за' : 'против'}</span>
+      <span class="vote-name">${escapeHtml(vote.source || '')}<small>${escapeHtml(KIND_LABELS[vote.kind] || vote.kind || '')} · ${escapeHtml(formatAge(vote.age_seconds))}</small></span>
+      <span class="vote-bar"><span style="width:${Math.max(6, share)}%"></span></span>
+    </div>`;
+  }).join('');
+  return `<div class="vote-panel">
+    <div class="trust-head"><span class="trust-kicker">Как считался ответ</span><strong>${chance}% за то, что топливо есть</strong></div>
+    <p>Голоса всех свежих источников, взвешенные по типу сигнала, его возрасту и числу подтверждений. Копии одного и того же upstream считаются один раз.</p>
+    <div class="vote-list">${rows}</div>
+  </div>`;
+}
+
 function trustPanel(grade) {
   const score = Number(grade.trust_score || 0);
   const tier = grade.trust_tier || 'none';
@@ -589,12 +610,21 @@ function factsFor(station) {
 
 function metaFor(station) {
   const grade = station.grade;
-  const parts = [formatAge(grade.age_seconds)];
-  const sources = grade.fresh_source_count ?? grade.fresh_provenance_count ?? 0;
-  if (sources) parts.push(`${sources} ${sources === 1 ? 'источник' : 'ист.'}`);
-  if (grade.trust_score) parts.push(`достоверность ${grade.trust_score}%`);
+  const votes = (grade.votes || []).length;
+  const parts = [];
+  if (votes) parts.push(`${votes} ${plural(votes, 'источник', 'источника', 'источников')} проголосовали`);
+  parts.push(formatAge(grade.age_seconds));
   if (grade.price_rub != null) parts.push(`${grade.price_rub.toFixed(2)} ₽/л`);
   return parts.join(' · ');
+}
+
+function plural(count, one, few, many) {
+  const tail = count % 10;
+  const hundred = count % 100;
+  if (hundred >= 11 && hundred <= 14) return many;
+  if (tail === 1) return one;
+  if (tail >= 2 && tail <= 4) return few;
+  return many;
 }
 
 
@@ -653,7 +683,9 @@ function renderStations({ append = false } = {}) {
     node.querySelector('.grade-chips').innerHTML = gradeChips(station);
     node.querySelector('.verdict-text').textContent = advice.label || STATUS[grade.status].short;
     node.querySelector('.verdict-dot').style.background = RISK_TONE[advice.risk] || '#8a9691';
-    node.querySelector('.wait').textContent = advice.wait_text ? `· стоять ${advice.wait_text}` : '';
+    const chance = grade.probability_percent;
+    const waitText = advice.wait_text ? ` · стоять ${advice.wait_text}` : '';
+    node.querySelector('.wait').textContent = (chance != null ? ` · ${chance}% за наличие` : '') + waitText;
     const temporal = timelineBadge(grade.timeline);
     if (temporal) {
       const badge = node.querySelector('.timeline-badge');
@@ -743,6 +775,7 @@ async function openStation(id) {
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
       <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="drawer-status" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}</strong><p>${escapeHtml(selected.reason)}</p></div>
+      ${votePanel(selected)}
       ${trustPanel(selected)}
       ${timelinePanel}
       <div class="grade-matrix">${gradeCells}</div>

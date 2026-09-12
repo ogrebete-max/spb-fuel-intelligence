@@ -31,13 +31,12 @@ class EvidenceEngineTests(unittest.TestCase):
         result = evaluate_grade([row("AVAILABLE", age_minutes=5 * 60)], "AI95", now=NOW)
         self.assertEqual(result["status"], "NO_FRESH_DATA")
 
-    def test_official_relay_answers_like_the_source_but_scores_lower(self):
+    def test_official_relay_votes_slightly_below_the_direct_source(self):
         direct = evaluate_grade([row("AVAILABLE", kind="official_stock", cluster="gazpromneft-official")], "AI95", now=NOW)
         relay = evaluate_grade([row("AVAILABLE", kind="official_relay", cluster="gazpromneft-official")], "AI95", now=NOW)
-        self.assertEqual(relay["status"], "CAN_REFUEL")
-        self.assertIn("Ретранслятор", relay["reason"])
+        self.assertIn(relay["status"], {"CAN_REFUEL", "LIKELY_AVAILABLE"})
+        self.assertLess(relay["probability"], direct["probability"])
         self.assertLessEqual(relay["trust_score"], 90)
-        self.assertLess(relay["trust_score"], direct["trust_score"])
 
     def test_a_relay_and_its_source_are_not_two_confirmations(self):
         result = evaluate_grade([
@@ -47,13 +46,26 @@ class EvidenceEngineTests(unittest.TestCase):
         self.assertEqual(result["independent_agreeing_count"], 1)
         self.assertEqual(result["fresh_provenance_count"], 1)
 
-    def test_a_weak_opposing_signal_is_a_footnote_not_a_conflict(self):
-        result = evaluate_grade([
+    def test_a_weak_opposing_signal_is_outvoted_not_ignored(self):
+        with_opposition = evaluate_grade([
             row("AVAILABLE", kind="official_stock", cluster="gazpromneft-official"),
             row("LIKELY_NOT", kind="payment_prediction", cluster="mixed-bank-payments", independent=False),
         ], "AI95", now=NOW)
-        self.assertEqual(result["status"], "CAN_REFUEL")
-        self.assertEqual(result["disagreement"]["side"], "negative")
+        alone = evaluate_grade(
+            [row("AVAILABLE", kind="official_stock", cluster="gazpromneft-official")], "AI95", now=NOW)
+        self.assertIn(with_opposition["status"], {"CAN_REFUEL", "LIKELY_AVAILABLE"})
+        self.assertEqual(with_opposition["disagreement"]["side"], "negative")
+        # The minority does not win, but it does move the answer.
+        self.assertLess(with_opposition["probability"], alone["probability"])
+
+    def test_several_fresh_negatives_outvote_one_official_positive(self):
+        result = evaluate_grade([
+            row("AVAILABLE", kind="official_stock", cluster="gazpromneft-official"),
+            row("NOT_AVAILABLE", kind="crowd_status", cluster="yandex-crowd"),
+            row("NOT_AVAILABLE", kind="crowd_report", cluster="telegram-benzinspb78"),
+            row("NOT_AVAILABLE", kind="crowd_status", cluster="gdezapravka-crowd"),
+        ], "AI95", now=NOW)
+        self.assertNotIn(result["status"], {"CAN_REFUEL", "LIKELY_AVAILABLE"})
 
     def test_comparable_opposing_signals_still_conflict(self):
         result = evaluate_grade([

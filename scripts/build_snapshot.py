@@ -44,6 +44,7 @@ from src.sources_live import (  # noqa: E402
     normalize_teboil_live,
     normalize_telegram_post,
     normalize_tofuel,
+    normalize_yandex,
 )
 from src.station_matcher import merge_stations  # noqa: E402
 
@@ -316,6 +317,13 @@ def build(raw_dir: Path) -> dict[str, Any]:
         rows, counts,
         [row for item in rosneft.get("stations", []) for row in normalize_rosneft_live(item, updated=rosneft_updated)],
         time_for("rosneft-stations"),
+    )
+
+    yandex = read_json(raw_dir / "yandex-maps.json", {}) or {}
+    add_rows(
+        rows, counts,
+        [row for item in yandex.get("stations", []) for row in normalize_yandex(item)],
+        yandex.get("captured_at") or snapshot_at,
     )
 
     benzinradar = read_json(raw_dir / "benzinradar-full-aoi.json", []) or []

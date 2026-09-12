@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import math
 from typing import Any, Iterable
 
 
@@ -106,6 +107,88 @@ def _trust_score(
     parts.append(f"независимых источников: {independent_clusters}")
     parts.append(f"свежих записей: {len(fresh)}")
     return score, tier, "; ".join(parts)
+
+
+# Every source gets a vote, weighted by what kind of signal it is, how fresh it
+# is and how many people stand behind it.  The votes are summed in log-odds and
+# turned back into a probability, so eight weak agreeing sources can outweigh
+# one strong one, and one strong source cannot silence a fresh crowd entirely.
+# This replaces the old cascade, where whichever side had the strongest single
+# row won outright and the other side became a footnote.
+KIND_VOTE_WEIGHT = {
+    "official_stock": 1.0,
+    "official_relay": 0.8,
+    "crowd_report": 0.7,
+    "crowd_status": 0.6,
+    "parsed_status": 0.55,
+    "aggregated_status": 0.45,
+    "imported_status": 0.4,
+    "network_claim_aggregated": 0.4,
+    "stale_or_crowd_status": 0.35,
+    "payment_projection": 0.25,
+    "payment_prediction": 0.2,
+    "undated_crowd_summary": 0.2,
+}
+# Scales one unit of weight into log-odds.  A single official reading lands
+# around 0.85; two independent crowd confirmations around 0.8.
+VOTE_SCALE = 1.9
+POSITIVE_DIRECTION = {"AVAILABLE": 1.0, "LIKELY": 0.8, "LIMITED": 0.7, "QUEUE": 0.7}
+NEGATIVE_DIRECTION = {"NOT_AVAILABLE": -1.0, "LIKELY_NOT": -0.8}
+
+
+def _vote(item: EvaluatedRow) -> tuple[float, float]:
+    """Return (direction, weight) for one fresh evidence row."""
+    availability = str(item.row.get("availability") or "")
+    direction = POSITIVE_DIRECTION.get(availability, NEGATIVE_DIRECTION.get(availability, 0.0))
+    if not direction:
+        return 0.0, 0.0
+    kind = str(item.row.get("kind") or "")
+    weight = KIND_VOTE_WEIGHT.get(kind, 0.3)
+    ttl = TTL_SECONDS.get(kind, 2 * 60 * 60)
+    spent = min(1.0, (item.age_seconds or 0) / ttl) if ttl else 1.0
+    # A signal at the very edge of its TTL is worth less than a fresh one, but
+    # never nothing — it is still the only thing anyone reported.
+    weight *= 1.0 - 0.6 * spent
+    confidence = item.row.get("confidence")
+    if isinstance(confidence, dict):
+        reports = 0
+        for key in CONFIRMATION_KEYS:
+            value = confidence.get(key)
+            if isinstance(value, (int, float)) and value > reports:
+                reports = int(value)
+        if reports > 1:
+            weight *= min(1.6, 1.0 + 0.18 * math.log(reports))
+        if confidence.get("on_site"):
+            weight *= 1.15
+    if item.row.get("independent") is True:
+        weight *= 1.15
+    return direction, weight
+
+
+def probability_available(rows: list[EvaluatedRow]) -> tuple[float | None, list[dict[str, Any]]]:
+    """Combine every fresh vote into P(this grade is available right now)."""
+    breakdown: list[dict[str, Any]] = []
+    total = 0.0
+    for item in rows:
+        direction, weight = _vote(item)
+        if not weight:
+            continue
+        contribution = direction * weight * VOTE_SCALE
+        total += contribution
+        breakdown.append({
+            "source": item.row.get("source"),
+            "kind": item.row.get("kind"),
+            "availability": item.row.get("availability"),
+            "age_seconds": round(item.age_seconds) if item.age_seconds is not None else None,
+            "weight": round(weight, 3),
+            "direction": direction,
+        })
+    if not breakdown:
+        return None, []
+    probability = 1.0 / (1.0 + math.exp(-total))
+    breakdown.sort(key=lambda row: -row["weight"])
+    return probability, breakdown
+
 
 
 @dataclass(frozen=True)
@@ -361,63 +444,63 @@ def evaluate_grade(
     ]
     official_positive = [item for item in positives if item.row.get("kind") == "official_stock"]
     official_negative = [item for item in negatives if item.row.get("kind") == "official_stock"]
-    # A relay carries the network's own stock feed one hop removed.  Its content
-    # is official, only its delivery is not, so it answers like the direct
-    # source but says so and never scores as high.
+    # A relay carries the network's own stock feed one hop removed: official in
+    # content, not in delivery, so it votes slightly below the direct source.
     relay_positive = [item for item in positives if item.row.get("kind") == "official_relay"]
     relay_negative = [item for item in negatives if item.row.get("kind") == "official_relay"]
 
     independent_positive = {item.cluster for item in positives if item.row.get("independent") is True}
     independent_negative = {item.cluster for item in negatives if item.row.get("independent") is True}
 
-    # With a dozen aggregators on one card a single weak negative would turn
-    # almost every station into "данные расходятся".  Opposing signals are only
-    # a real conflict when they carry comparable weight; a clearly weaker one
-    # is reported as a disagreement instead of erasing the answer.
+    # Statuses come from the combined probability, not from whichever single
+    # row is strongest: a dozen sources disagreeing should read as "расходятся",
+    # and one official reading should not erase a fresh crowd.
+    probability, vote_breakdown = probability_available(fresh)
+    restricted_now = bool(restricted)
     disagreement: dict[str, Any] | None = None
-    if positives and negatives and not (official_positive and official_negative):
-        best_positive = max(item.strength for item in positives)
-        best_negative = max(item.strength for item in negatives)
-        if best_positive - best_negative >= DECISIVE_STRENGTH_GAP:
-            disagreement = {"side": "negative", "count": len(negatives), "strength": best_negative}
-            negatives, independent_negative, official_negative = [], set(), []
-        elif best_negative - best_positive >= DECISIVE_STRENGTH_GAP:
-            disagreement = {"side": "positive", "count": len(positives), "strength": best_positive}
-            positives, independent_positive, official_positive = [], set(), []
+    if positives and negatives:
+        weaker = "negative" if probability is not None and probability >= 0.5 else "positive"
+        disagreement = {
+            "side": weaker,
+            "count": len(negatives if weaker == "negative" else positives),
+        }
 
-    if (positives and negatives) or (official_positive and official_negative):
-        status = "CONFLICT"
-        reason = "Свежие источники с разным provenance дают противоположные сигналы."
-    elif restricted:
-        status = "LIMITED"
-        reason = "Есть свежий сигнал об очереди или лимите отпуска."
-    elif official_positive:
-        status = "CAN_REFUEL"
-        reason = "Официальный station-level источник сообщил доступный остаток."
-    elif official_negative:
-        status = "CONFIRMED_NO"
-        reason = "Официальный station-level источник сообщил отсутствие остатка."
-    elif relay_positive:
-        status = "CAN_REFUEL"
-        reason = "Ретранслятор официальной ленты сети сообщил доступный остаток."
-    elif relay_negative:
-        status = "CONFIRMED_NO"
-        reason = "Ретранслятор официальной ленты сети сообщил отсутствие остатка."
-    elif len(independent_positive) >= 2:
-        status = "CAN_REFUEL"
-        reason = "Наличие подтверждено двумя независимыми свежими provenance-кластерами."
-    elif len(independent_negative) >= 2:
-        status = "CONFIRMED_NO"
-        reason = "Отсутствие подтверждено двумя независимыми свежими provenance-кластерами."
-    elif positives:
-        status = "LIKELY_AVAILABLE"
-        reason = "Есть свежий положительный сигнал, но его недостаточно для строгого подтверждения."
-    elif negatives:
-        status = "LIKELY_NOT"
-        reason = "Есть свежий отрицательный сигнал, но нет достаточного независимого подтверждения."
-    else:
+    if probability is None:
         status = "NO_FRESH_DATA"
         reason = "Нет пригодного по времени grade-specific сигнала; UNKNOWN не считается отсутствием топлива."
+    elif probability >= 0.85:
+        status = "LIMITED" if restricted_now else "CAN_REFUEL"
+        reason = (
+            "Свежие источники почти единодушны: топливо есть."
+            if not restricted_now else
+            "Топливо есть, но сообщают об очереди или лимите отпуска."
+        )
+    elif probability >= 0.6:
+        status = "LIMITED" if restricted_now else "LIKELY_AVAILABLE"
+        reason = (
+            "Больше источников за наличие, чем против, но единодушия нет."
+            if not restricted_now else
+            "Скорее есть, при этом сообщают об очереди или лимите."
+        )
+    elif probability > 0.4:
+        # "Расходятся" must mean sources actually disagree.  A lone weak signal
+        # lands in the same probability band but is thin evidence, not a
+        # conflict, and saying otherwise would be misleading.
+        if positives and negatives:
+            status = "CONFLICT"
+            reason = "Источники расходятся примерно поровну — ехать наугад."
+        elif positives:
+            status = "LIKELY_AVAILABLE"
+            reason = "За наличие есть только один слабый сигнал."
+        else:
+            status = "LIKELY_NOT"
+            reason = "Против наличия есть только один слабый сигнал."
+    elif probability > 0.15:
+        status = "LIKELY_NOT"
+        reason = "Больше источников за отсутствие, чем за наличие."
+    else:
+        status = "CONFIRMED_NO"
+        reason = "Свежие источники почти единодушны: этой марки нет."
 
     newest = max((item.observed_at for item in fresh if item.observed_at), default=None)
     agreeing = independent_positive if status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"} else independent_negative
@@ -427,8 +510,8 @@ def evaluate_grade(
         trust_score = min(trust_score, 90)
         trust_tier = "conflict" if status == "CONFLICT" else "high" if trust_score >= 75 else "moderate" if trust_score >= 45 else "low"
     if disagreement:
-        side = "отрицательный" if disagreement["side"] == "negative" else "положительный"
-        reason += f" Более слабый {side} сигнал ({disagreement['count']} шт.) учтён, но не перевесил."
+        side = "против" if disagreement["side"] == "negative" else "за наличие"
+        reason += f" В меньшинстве оказались {disagreement['count']} источн. {side}."
         trust_score = max(1, round(trust_score * 0.85))
         trust_tier = "conflict" if status == "CONFLICT" else "high" if trust_score >= 75 else "moderate" if trust_score >= 45 else "low"
         trust_reason += "; есть более слабый противоположный сигнал"
@@ -464,6 +547,9 @@ def evaluate_grade(
         # "нет" must not be shown as fourteen confirmations of "есть".
         "confirmations": _confirmation_count(_supporting(status, positives, negatives, restricted, fresh)),
         "ttl_seconds": ttl_seconds,
+        "probability": round(probability, 3) if probability is not None else None,
+        "probability_percent": round(probability * 100) if probability is not None else None,
+        "votes": vote_breakdown,
         "trust_score": trust_score,
         "trust_tier": trust_tier,
         "trust_label": TRUST_LABELS[trust_tier],

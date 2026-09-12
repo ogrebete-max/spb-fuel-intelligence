@@ -22,6 +22,7 @@ SOURCE_COUNT_KEYS = {
     "benzinradar_analogue": "benzinradar-analogue",
     "benzin_live_analogue": "benzin-live-analogue",
     "telegram_benzinspb78": "telegram-benzinspb78",
+    "yandex_maps_fuel": "yandex-maps",
 }
 
 
