@@ -55,6 +55,7 @@ from src.sources_crowd import (  # noqa: E402
 )
 from src.sources_eyewitness import normalize_eyewitness  # noqa: E402
 from src.sources_gdebenzi import normalize_gdebenzi  # noqa: E402
+from src.station_filters import drop_gas_only  # noqa: E402
 from src.station_matcher import merge_stations  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -416,6 +417,8 @@ def build(raw_dir: Path) -> dict[str, Any]:
         station for station in canonical
         if {ref["source"] for ref in station.get("source_refs", [])} != {"own-eyewitness"}
     ]
+    # Gas pumps are not where anyone here is going to refuel.
+    canonical = drop_gas_only(canonical)
     evidence_count = sum(len(station.get("evidence", [])) for station in canonical)
     mode = "live_http_snapshot" if raw_dir.name.lower() == "live" else "phase0_snapshot"
     return {
