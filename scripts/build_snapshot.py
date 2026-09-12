@@ -408,6 +408,14 @@ def build(raw_dir: Path) -> dict[str, Any]:
         add_rows(rows, counts, fixture_rows, fixture_time)
 
     canonical = merge_stations(rows)
+    # A report is about a station somebody is standing at.  When its coordinates
+    # match nothing we know, it must not invent a forecourt out of one tap — a
+    # stray GPS fix would otherwise become a station with an eyewitness behind
+    # it and nothing else.
+    canonical = [
+        station for station in canonical
+        if {ref["source"] for ref in station.get("source_refs", [])} != {"own-eyewitness"}
+    ]
     evidence_count = sum(len(station.get("evidence", [])) for station in canonical)
     mode = "live_http_snapshot" if raw_dir.name.lower() == "live" else "phase0_snapshot"
     return {
