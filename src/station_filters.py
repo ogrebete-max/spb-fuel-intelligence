@@ -23,7 +23,7 @@ from typing import Any
 # rows of petrol grades for these too, so no amount of that evidence keeps them.
 GAS_PUMP = re.compile(
     r"агзс|агнкс|газозаправ|газомотор|газов(?:ая|ой|ые) заправ|пропан|метан"
-    r"|\bкпг\b|\bспг\b|\blpg\b|\bcng\b",
+    r"|\bкпг\b|\bспг\b|\blpg\b|\bcng\b|газов(?:ых|ые) (?:баллон|технолог)|газсервис|трансгаз|газon|газ \d+",
     re.IGNORECASE,
 )
 # A brand that sells gas but also runs ordinary forecourts; evidence decides.
@@ -35,7 +35,7 @@ GAS_BRAND = re.compile(
 # "Сургутнефтегаз" is an oil company, not a gas pump.
 NOT_GAS = ("нефтегаз",)
 DEFINITE = {"AVAILABLE", "NOT_AVAILABLE", "LIMITED", "QUEUE", "CONFLICT", "LIKELY", "LIKELY_NOT"}
-LIQUID_FUEL_SOURCES_REQUIRED = 2
+LIQUID_FUEL_SOURCES_REQUIRED = 3
 
 
 def _name(station: dict[str, Any]) -> str:

@@ -32,7 +32,7 @@ class GasOnlyStations(unittest.TestCase):
 
     def test_gas_network_forecourt_with_real_petrol_reports_stays(self):
         self.assertFalse(is_gas_only(station(
-            "Митекс", ("AI95", "AVAILABLE", "benzonavt"), ("AI92", "AVAILABLE", "gdebenzin24"),
+            "Митекс", ("AI95", "AVAILABLE", "benzonavt"), ("AI92", "AVAILABLE", "gdebenzin24"), ("DT", "AVAILABLE", "tbank-fuel"),
         )))
 
     def test_oil_company_name_containing_gaz_is_not_a_gas_pump(self):
