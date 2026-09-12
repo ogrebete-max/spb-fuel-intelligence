@@ -33,6 +33,7 @@ const state = {
   markers: null, request: 0,
   staticMode: document.querySelector('meta[name="spbfi-static-site"]')?.content === 'true',
   gradesBrief: {},
+  marks: {},
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -233,6 +234,7 @@ function localizeNote(note) {
 
 async function bootstrap() {
   bindControls();
+  state.marks = loadMarks();
   try {
     state.meta = await api('/api/meta');
     renderMeta();
@@ -770,8 +772,125 @@ function resetFilters() {
   loadStations();
 }
 
+// Confirming from the forecourt is the one observation nobody else has: the
+// driver is looking at the pump. It is kept on this device — the published site
+// is a static file and has nowhere to send it — and it outranks every remote
+// source for the person who made it, because they saw it themselves.
+const MARK_STORE = 'spbfi-marks-v1';
+const MARK_TTL_MS = 3 * 3600 * 1000;
+
+function loadMarks() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(MARK_STORE) || '{}');
+    const now = Date.now();
+    for (const [station, grades] of Object.entries(raw)) {
+      for (const [grade, mark] of Object.entries(grades)) {
+        if (now - mark.at > MARK_TTL_MS) delete grades[grade];
+      }
+      if (!Object.keys(grades).length) delete raw[station];
+    }
+    return raw;
+  } catch {
+    return {};
+  }
+}
+
+function saveMark(stationId, grade, seen) {
+  const marks = loadMarks();
+  marks[stationId] = marks[stationId] || {};
+  marks[stationId][grade] = { seen, at: Date.now() };
+  try {
+    localStorage.setItem(MARK_STORE, JSON.stringify(marks));
+  } catch {
+    // Private mode or a full quota: the mark simply is not kept.
+  }
+  state.marks = marks;
+  renderStations();
+  renderHerePanel();
+}
+
+function markFor(stationId, grade) {
+  return (state.marks || {})[stationId]?.[grade] || null;
+}
+
+function markLine(stationId, grade) {
+  const mark = markFor(stationId, grade);
+  if (!mark) return null;
+  const ago = formatAge((Date.now() - mark.at) / 1000);
+  return `Вы отметили ${ago}: ${GRADE_LABELS[grade]} ${mark.seen ? 'есть' : 'нет'}`;
+}
+
+function markButtons(stationId) {
+  return `<div class="mark-row">
+    <span>Вы на месте — что на колонке?</span>
+    <button type="button" class="mark yes" data-mark-station="${escapeHtml(stationId)}" data-mark-seen="1">${escapeHtml(GRADE_LABELS[state.grade])} есть</button>
+    <button type="button" class="mark no" data-mark-station="${escapeHtml(stationId)}" data-mark-seen="0">${escapeHtml(GRADE_LABELS[state.grade])} нет</button>
+  </div>`;
+}
+
+function bindMarkButtons(root) {
+  root.querySelectorAll('[data-mark-station]').forEach((button) => {
+    button.addEventListener('click', () => {
+      saveMark(button.dataset.markStation, state.grade, button.dataset.markSeen === '1');
+    });
+  });
+}
+
+// Standing at the pump is the one moment when a driver can check us against
+// reality. Within this distance the app stops listing options and answers the
+// only question that matters there: what do we claim about *this* station.
+const AT_STATION_METRES = 220;
+
+function formatDistance(km) {
+  if (km == null) return '';
+  return km < 1 ? `${Math.round(km * 1000)} м` : `${km.toLocaleString('ru-RU')} км`;
+}
+
+function renderHerePanel() {
+  const panel = $('#herePanel');
+  if (!panel) return;
+  if (state.searchScope !== 'device' || !state.location || !state.stations.length) {
+    panel.hidden = true;
+    return;
+  }
+  const nearest = state.stations
+    .filter((item) => item.distance_km != null)
+    .sort((a, b) => a.distance_km - b.distance_km)[0];
+  if (!nearest || nearest.distance_km * 1000 > AT_STATION_METRES) {
+    panel.hidden = true;
+    return;
+  }
+  const brief = (state.gradesBrief || {})[nearest.id] || {};
+  const rows = Object.keys(GRADE_LABELS).map((grade) => {
+    const status = grade === state.grade ? nearest.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
+    const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
+    return `<div class="here-grade ${mark.tone}">
+      <b>${escapeHtml(GRADE_LABELS[grade])}</b>
+      <span>${mark.sign} ${escapeHtml(STATUS[status].short)}</span>
+    </div>`;
+  }).join('');
+  const grade = nearest.grade;
+  const mine = markLine(nearest.id, state.grade);
+  panel.hidden = false;
+  panel.innerHTML = `
+    <span class="here-kicker">Вы сейчас на этой АЗС · ${escapeHtml(formatDistance(nearest.distance_km))}</span>
+    <strong>${escapeHtml(nearest.network)}</strong>
+    <span class="here-address">${escapeHtml(nearest.address)}</span>
+    <div class="here-grades">${rows}</div>
+    ${mine ? `<p class="here-mine">✔ ${escapeHtml(mine)}</p>` : ''}
+    <p class="here-note">Сверьте с колонками. Мы утверждаем это по ${(grade.votes || []).length} ${plural((grade.votes || []).length, 'источнику', 'источникам', 'источникам')}, самый свежий сигнал — ${escapeHtml(grade.undated_only ? 'без отметки времени' : formatAge(grade.age_seconds))}.</p>
+    ${markButtons(nearest.id)}
+    <div class="here-actions">
+      <button type="button" id="hereDetails">Почему такой ответ</button>
+      <a href="https://t.me/s/benzinspb78" target="_blank" rel="noopener noreferrer">Сообщить всем в чат ↗</a>
+    </div>`;
+  $('#hereDetails').addEventListener('click', () => openStation(nearest.id));
+  bindMarkButtons(panel);
+}
+
 function renderStations({ append = false } = {}) {
   const list = $('#stationList');
+  renderHerePanel();
   if (!state.stations.length) {
     // Say which filter emptied the list, otherwise a stray map area or status
     // chip looks like a broken application.
@@ -820,6 +939,13 @@ function renderStations({ append = false } = {}) {
     const caution = advice.caution ? ` ${advice.caution}` : '';
     node.querySelector('.facts').textContent = facts + caution;
     node.querySelector('.meta-line').textContent = metaFor(station);
+    const mine = markLine(station.id, state.grade);
+    if (mine) {
+      const own = document.createElement('span');
+      own.className = 'own-mark';
+      own.textContent = `✔ ${mine}`;
+      node.querySelector('.card-main').insertBefore(own, node.querySelector('.meta-line'));
+    }
     const second = yandexLine(grade);
     if (second && second.agrees === false) {
       const note = document.createElement('span');
@@ -828,7 +954,7 @@ function renderStations({ append = false } = {}) {
       node.querySelector('.card-main').insertBefore(note, node.querySelector('.meta-line'));
     }
     const distance = node.querySelector('.distance');
-    distance.textContent = station.distance_km != null ? `${station.distance_km.toLocaleString('ru-RU')} км` : '';
+    distance.textContent = formatDistance(station.distance_km);
     // Straight line, not the drive: around water and interchanges the road can
     // be far longer, and saying "км" without that is misleading.
     if (station.distance_km != null) distance.title = 'по прямой, дорога может быть заметно длиннее';
