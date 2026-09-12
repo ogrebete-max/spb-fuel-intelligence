@@ -807,6 +807,48 @@ function saveMark(stationId, grade, seen) {
   state.marks = marks;
   renderStations();
   renderHerePanel();
+  shareMark(stationId, grade, seen);
+}
+
+// Sharing is optional. With no endpoint configured the mark stays on this
+// device and everything else works exactly as before.
+const DEVICE_ID = 'spbfi-device-v1';
+const GROUP_KEY = 'spbfi-group-key-v1';
+
+function deviceId() {
+  let id = localStorage.getItem(DEVICE_ID);
+  if (!id) {
+    id = Math.random().toString(36).slice(2, 10);
+    try { localStorage.setItem(DEVICE_ID, id); } catch { /* nothing to keep it in */ }
+  }
+  return id;
+}
+
+async function shareMark(stationId, grade, seen) {
+  const endpoint = window.SPBFI_REPORT_ENDPOINT;
+  if (!endpoint) return;
+  const place = state.stations.find((item) => item.id === stationId)?.location;
+  const send = async (key) => fetch(`${endpoint.replace(/\/$/, '')}/report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Group-Key': key } : {}) },
+    body: JSON.stringify({ station: stationId, grade, seen, who: deviceId(), lat: place?.lat, lon: place?.lon }),
+  });
+  try {
+    let key = localStorage.getItem(GROUP_KEY) || '';
+    let response = await send(key);
+    if (response.status === 403) {
+      const asked = prompt('Введите слово для своих, чтобы отметка была видна остальным:');
+      if (!asked) return;
+      try { localStorage.setItem(GROUP_KEY, asked); } catch { /* nothing to keep it in */ }
+      response = await send(asked);
+      if (response.status === 403) {
+        localStorage.removeItem(GROUP_KEY);
+        alert('Слово не подошло — отметка осталась только на этом устройстве.');
+      }
+    }
+  } catch {
+    // Offline or the worker is down: the local mark is already saved.
+  }
 }
 
 function markFor(stationId, grade) {

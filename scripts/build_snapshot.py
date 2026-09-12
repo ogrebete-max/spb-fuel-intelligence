@@ -53,6 +53,7 @@ from src.sources_crowd import (  # noqa: E402
     normalize_gdebenzin_net,
     normalize_tbank,
 )
+from src.sources_eyewitness import normalize_eyewitness  # noqa: E402
 from src.sources_gdebenzi import normalize_gdebenzi  # noqa: E402
 from src.station_matcher import merge_stations  # noqa: E402
 
@@ -350,6 +351,13 @@ def build(raw_dir: Path) -> dict[str, Any]:
             [row for item in payload.get("stations", []) for row in normalize(item)],
             payload.get("captured_at") or snapshot_at,
         )
+
+    own = read_json(raw_dir / "own-reports.json", {}) or {}
+    add_rows(
+        rows, counts,
+        [row for item in own.get("reports", []) for row in normalize_eyewitness(item)],
+        own.get("captured_at") or snapshot_at,
+    )
 
     benzinradar = read_json(raw_dir / "benzinradar-full-aoi.json", []) or []
     add_rows(rows, counts, normalize_benzinradar(benzinradar, time_for("benzinradar-full-aoi")), time_for("benzinradar-full-aoi"))

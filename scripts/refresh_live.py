@@ -160,6 +160,10 @@ def run_collector(name: str) -> dict[str, Any]:
         return _result(name, started, ok=size >= MIN_BYTES, status=200, size=size,
                        error=None if size >= MIN_BYTES else "empty payload")
     except Exception as exc:  # a single upstream must not abort the refresh
+        # An optional collector that has not been set up is not a failure, and
+        # must not sit in the health banner looking like a broken source.
+        if "no reports endpoint configured" in str(exc):
+            return _result(name, started, ok=True, status="off", size=0, error=None) | {"disabled": True}
         return _result(name, started, ok=False, status=0,
                        size=target.stat().st_size if target.exists() else 0, error=f"{type(exc).__name__}: {exc}")
 
@@ -210,7 +214,7 @@ def main() -> int:
         json.dumps(rows, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     for row in rows:
-        mark = "kept" if row.get("skipped") else "ok  " if row["ok"] else "FAIL"
+        mark = "off " if row.get("disabled") else "kept" if row.get("skipped") else "ok  " if row["ok"] else "FAIL"
         detail = "" if row["ok"] else "  " + " ".join(str(row["error"]).split())[:600]
         print(f"{mark} {row['name']:26} http={row['http_status']!s:>18} {row['bytes']:>9} B {row['elapsed_ms']:>6} ms{detail}")
     success = sum(1 for row in rows if row["ok"])

@@ -664,3 +664,23 @@ sources:
     polling: "10 minutes"
     collector_ready: true
     reason: "robots.txt: no robots.txt served. Verified live; agreement with the other communities is close to chance, so it counts as a separate voice."
+
+  - id: own_eyewitness
+    priority: 35
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://github.com/ogrebete-max/spb-fuel-intelligence/blob/main/docs/eyewitness-reports.md"
+    access: "own Cloudflare Worker; optional, off until configured in web/config.js"
+    endpoints:
+      - "POST {worker}/report"
+      - "GET {worker}/reports"
+    auth: "optional shared word for the group"
+    geo_query: "the report carries the forecourt coordinates"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "someone standing at the pump says the grade is there or is not"
+    fields: [coordinates, grade, seen, reported_at, device, queue]
+    upstream: "people using this app"
+    independence: "the only source where the observer is known to have looked at the forecourt"
+    polling: "every run"
+    collector_ready: true
+    reason: "Weighed above every remote feed, expires in 45 minutes, and a repeat report from the same device replaces the earlier one instead of stacking into a fake crowd."

@@ -33,6 +33,9 @@ NON_STATUS_KINDS = {"price", "catalog_price", "catalog_fuel", "catalog_or_stale"
 TTL_SECONDS = {
     # This product answers “can I refuel now?”.  A five-hour-old report is
     # useful history but not a current station-level answer.
+    # Someone looked at the pump. Still perishable: a station can empty in half
+    # an hour, and an hour-old sighting must not answer for "сейчас".
+    "eyewitness": 45 * 60,
     "official_stock": 30 * 60,
     "official_relay": 30 * 60,
     "realtime_status": 30 * 60,
@@ -53,6 +56,7 @@ TTL_SECONDS = {
 DECISIVE_STRENGTH_GAP = 25
 
 KIND_STRENGTH = {
+    "eyewitness": 110,
     "official_stock": 100,
     "official_relay": 85,
     "realtime_status": 80,
@@ -116,6 +120,8 @@ def _trust_score(
 # This replaces the old cascade, where whichever side had the strongest single
 # row won outright and the other side became a footnote.
 KIND_VOTE_WEIGHT = {
+    # Nothing beats having been there; everything else is somebody's inference.
+    "eyewitness": 1.3,
     "official_stock": 1.0,
     "official_relay": 0.8,
     "crowd_report": 0.7,

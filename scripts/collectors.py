@@ -16,7 +16,10 @@ import re
 import time
 from typing import Any
 from urllib.parse import quote
+from pathlib import Path
 from urllib.request import Request, urlopen
+
+ROOT_WEB = Path(__file__).resolve().parents[1] / "web"
 
 
 AOI = {"west": 29.50, "south": 59.60, "east": 31.10, "north": 60.35}
@@ -363,6 +366,28 @@ def collect_gdebenzi() -> dict[str, Any]:
     return {"captured_at": _now(), "stations": payload.get("stations") or []}
 
 
+
+def _report_endpoint() -> str | None:
+    """The reports Worker address, taken from the single place it is configured."""
+    override = os.environ.get("SPBFI_REPORT_ENDPOINT")
+    if override:
+        return override.strip() or None
+    config = ROOT_WEB / "config.js"
+    if not config.exists():
+        return None
+    match = re.search(r"SPBFI_REPORT_ENDPOINT\s*=\s*['\"]([^'\"]+)['\"]", config.read_text(encoding="utf-8"))
+    return match.group(1) if match else None
+
+
+def collect_own_reports() -> dict[str, Any]:
+    """Read back what people using this app reported from the forecourt."""
+    endpoint = _report_endpoint()
+    if not endpoint:
+        raise RuntimeError("no reports endpoint configured (web/config.js)")
+    payload = _json(endpoint.rstrip("/") + "/reports", timeout=20)
+    return {"captured_at": _now(), "reports": payload.get("reports") or []}
+
+
 COLLECTORS = {
     "gdezapravka-full-aoi": collect_gdezapravka,
     "tofuel-full-aoi": collect_tofuel,
@@ -376,4 +401,5 @@ COLLECTORS = {
     "gdebenzfuel": collect_gdebenzfuel,
     "tbank-fuel": collect_tbank,
     "gdebenzi": collect_gdebenzi,
+    "own-reports": collect_own_reports,
 }

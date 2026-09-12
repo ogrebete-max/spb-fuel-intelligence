@@ -26,6 +26,7 @@ SOURCE_COUNT_KEYS = {
     "gde_benzin": "gde-benzin",
     "gdebenzin_net": "gdebenzin-net",
     "tbank_fuel_map": "tbank-fuel",
+    "own_eyewitness": "own-eyewitness",
 }
 
 
@@ -91,9 +92,11 @@ class StationRepository:
             {"name": row.get("name"), "error": (row.get("error") or "")[:300]}
             for row in rows if not row.get("ok")
         ]
+        # A collector that is switched off was never expected to answer.
+        live = [row for row in rows if not row.get("disabled")]
         return {
-            "total": len(rows),
-            "ok": sum(1 for row in rows if row.get("ok")),
+            "total": len(live),
+            "ok": sum(1 for row in live if row.get("ok")),
             "failed": sorted(failed, key=lambda row: str(row["name"])),
             "checked_at": max((row.get("captured_at") or "") for row in rows) or None,
         }
