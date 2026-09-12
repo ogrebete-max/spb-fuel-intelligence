@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .evidence_engine import evaluate_grade, evaluate_station, parse_time
+from .evidence_engine import evaluate_grade, evaluate_station, parse_time, travel_advice
 from .history import load_history, timeline_for
 from .station_matcher import haversine_km
 
@@ -138,6 +138,7 @@ class StationRepository:
             evaluated = evaluate_grade(station.get("evidence", []), grade, now=now)
             temporal = timeline_for(self.history, station, grade, now=now, current_status=evaluated["status"])
             evaluated["timeline"] = temporal
+            evaluated["advice"] = travel_advice(evaluated, temporal)
             all_statuses[evaluated["status"]] += 1
             if temporal.get("appeared_recent"):
                 timeline_counts["appeared"] += 1
@@ -170,7 +171,24 @@ class StationRepository:
             "CAN_REFUEL": 0, "LIMITED": 0, "LIKELY_AVAILABLE": 0,
             "CONFLICT": 1, "NO_FRESH_DATA": 2, "LIKELY_NOT": 3, "CONFIRMED_NO": 3,
         }
-        if sort == "nearest_available" and center:
+        # "Куда ехать" ranks by the actual decision: can it serve me, how
+        # confident is that, how long is the queue, and only then distance.
+        def go_rank(item: dict[str, Any]) -> tuple:
+            grade_result = item["grade"]
+            advice = grade_result.get("advice") or {}
+            decision_order = {"GO": 0, "GO_WITH_WAIT": 1, "RISKY": 2, "UNKNOWN": 3, "NO": 4}
+            queue = grade_result.get("queue") or {}
+            return (
+                decision_order.get(advice.get("decision"), 3),
+                {"low": 0, "medium": 1, "high": 2}.get(advice.get("risk"), 2),
+                queue.get("cars_from") if queue.get("cars_from") is not None else 0,
+                -(grade_result.get("trust_score") or 0),
+                item["distance_km"] if item["distance_km"] is not None else 0,
+            )
+
+        if sort == "go":
+            result.sort(key=go_rank)
+        elif sort == "nearest_available" and center:
             result.sort(key=lambda item: (serves_now[item["grade"]["status"]], item["distance_km"]))
         elif sort == "distance" and center:
             result.sort(key=lambda item: (item["distance_km"], priority[item["grade"]["status"]]))
@@ -198,6 +216,28 @@ class StationRepository:
             "timeline_counts": dict(timeline_counts),
             "stations": result[offset : offset + limit],
         }
+
+    def grades_brief(self, *, as_of: str | None = None) -> dict[str, Any]:
+        """Status of every grade for every station, in one pass.
+
+        The card shows all grades at once, but computing that inside a
+        per-grade query would evaluate the whole snapshot six times over.
+        """
+        self._ensure_current()
+        now = self._as_of(as_of)
+        rows: dict[str, dict[str, Any]] = {}
+        for station in self.stations:
+            evidence = station.get("evidence", [])
+            row: dict[str, Any] = {}
+            for grade in GRADES:
+                summary = evaluate_grade(evidence, grade, now=now)
+                # Short keys and no nulls: this file is downloaded by a phone.
+                entry: dict[str, Any] = {"s": summary["status"]}
+                if summary["price_rub"] is not None:
+                    entry["p"] = round(float(summary["price_rub"]), 2)
+                row[grade] = entry
+            rows[station["id"]] = row
+        return {"as_of": now.isoformat().replace("+00:00", "Z"), "stations": rows}
 
     def detail(self, station_id: str, *, as_of: str | None = None) -> dict[str, Any] | None:
         self._ensure_current()

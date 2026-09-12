@@ -36,8 +36,8 @@
       <section class="hero" aria-labelledby="heroTitle">
         <div>
           <p class="eyebrow">Не просто «есть или нет»</p>
-          <h1 id="heroTitle">Где можно заправиться <em>сейчас</em></h1>
-          <p class="hero-copy">Статус отдельно по каждой марке, момент появления, длительность наличия, ограничения и понятное объяснение источников.</p>
+          <h1 id="heroTitle">Где заправиться <em>сейчас</em></h1>
+          <p class="hero-copy">Все марки сразу, очередь и сколько стоять, как давно появилось топливо и насколько сигналу можно верить.</p>
         </div>
         <div class="snapshot-stack">
           <div class="snapshot-card" id="snapshotCard" aria-live="polite">
@@ -77,8 +77,9 @@
           </label>
           <button id="nearbySearchButton" class="nearby-search-button" type="button">⌖ Найти рядом</button>
           <select id="sortSelect" aria-label="Сортировка">
-            <option value="status">Сначала доступные</option>
+            <option value="go">Куда ехать</option>
             <option value="nearest_available">Ближайшие доступные</option>
+            <option value="status">Сначала доступные</option>
             <option value="freshness">Самые свежие</option>
             <option value="appeared">Недавно появилось</option>
             <option value="price">По цене</option>
@@ -130,15 +131,13 @@
   <template id="stationTemplate">
     <article class="station-card">
       <button class="card-main">
-        <span class="status-dot"></span>
-        <span class="card-copy">
-          <span class="card-topline"><strong class="network"></strong><span class="distance"></span></span>
-          <span class="address"></span>
-          <span class="status-label"></span>
-          <span class="timeline-badge" hidden></span>
-          <span class="facts"></span>
-        </span>
-        <span class="chevron">›</span>
+        <span class="card-topline"><strong class="network"></strong><span class="distance"></span></span>
+        <span class="address"></span>
+        <span class="grade-chips"></span>
+        <span class="verdict"><span class="verdict-dot"></span><span class="verdict-text"></span><span class="wait"></span></span>
+        <span class="facts"></span>
+        <span class="timeline-badge" hidden></span>
+        <span class="meta-line"></span>
       </button>
     </article>
   </template>

@@ -226,6 +226,103 @@ def _public_row(item: EvaluatedRow) -> dict[str, Any]:
     return row
 
 
+# A queue is the second half of the decision: a driver needs to know whether to
+# go, and how long the wait will be once there.  Sources spell it as a bucket
+# ("20_50"), a car count ("12"), a bare "reported", or an object with a validity
+# window, so everything is folded into one shape with an explicit car range.
+QUEUE_BUCKETS: dict[str, tuple[int, int | None, str]] = {
+    "lt5": (1, 5, "до 5 машин"),
+    "less_than_5": (1, 5, "до 5 машин"),
+    "5_20": (5, 20, "5–20 машин"),
+    "from_5_to_20": (5, 20, "5–20 машин"),
+    "20_50": (20, 50, "20–50 машин"),
+    "from_20_to_50": (20, 50, "20–50 машин"),
+    "gt50": (50, None, "больше 50 машин"),
+    "more_than_50": (50, None, "больше 50 машин"),
+    "high": (20, None, "большая"),
+    "low": (1, 5, "небольшая"),
+    "small": (1, 5, "небольшая"),
+    "medium": (5, 20, "средняя"),
+    "none": (0, 0, "без очереди"),
+    "no_queue": (0, 0, "без очереди"),
+}
+# One car takes roughly a minute and a half at a single dispenser; stations have
+# several, so the estimate is deliberately given as a range and labelled as one.
+SECONDS_PER_CAR = 90
+EMPTY_QUEUE_WORDS = {"", "0", "false", "no", "none", "no_queue"}
+
+
+def _queue_shape(value: Any, now: datetime | None = None) -> dict[str, Any] | None:
+    """Turn any source's queue field into {cars_from, cars_to, label, wait}."""
+    valid_until = None
+    if isinstance(value, dict):
+        valid_until = parse_time(value.get("until"))
+        value = value.get("size") or value.get("label") or value.get("value")
+    if valid_until and now and valid_until < now:
+        return None
+    text = str(value or "").strip().lower()
+    if text in EMPTY_QUEUE_WORDS:
+        return None
+    bucket = QUEUE_BUCKETS.get(text)
+    if bucket is None and text.isdigit():
+        cars = int(text)
+        bucket = (cars, cars, f"около {cars} " + ("машины" if cars < 5 else "машин"))
+    if bucket is None:
+        # "reported" and anything unrecognised: a queue exists, size unknown.
+        return {"cars_from": None, "cars_to": None, "label": "очередь есть, размер неизвестен",
+                "wait_from_minutes": None, "wait_to_minutes": None, "raw": text}
+    cars_from, cars_to, label = bucket
+    if cars_from == 0 and cars_to == 0:
+        return None
+    return {
+        "cars_from": cars_from,
+        "cars_to": cars_to,
+        "label": label,
+        "wait_from_minutes": round(cars_from * SECONDS_PER_CAR / 60) if cars_from else None,
+        "wait_to_minutes": round(cars_to * SECONDS_PER_CAR / 60) if cars_to else None,
+        "raw": text,
+    }
+
+
+def _worst_queue(rows: list[EvaluatedRow], now: datetime) -> dict[str, Any] | None:
+    """Report the heaviest fresh queue, not an average that hides a bad one."""
+    shapes = []
+    for item in rows:
+        shape = _queue_shape(item.row.get("queue"), now)
+        if shape:
+            shape = dict(shape)
+            shape["source"] = item.row.get("source")
+            shape["observed_at"] = item.observed_at.isoformat().replace("+00:00", "Z") if item.observed_at else None
+            shape["age_seconds"] = round(item.age_seconds) if item.age_seconds is not None else None
+            shapes.append(shape)
+    if not shapes:
+        return None
+    return max(shapes, key=lambda item: (item["cars_from"] is not None, item["cars_from"] or 0))
+
+
+CONFIRMATION_KEYS = ("confirmations", "fresh_reports", "reports", "reportsInWindow", "votes_yes")
+
+
+def _confirmation_count(rows: list[EvaluatedRow]) -> int:
+    """How many human reports stand behind the answer.
+
+    Not every source publishes a report count; one that agrees without a number
+    still counts as one voice, so the figure is never lower than the number of
+    agreeing fresh sources.
+    """
+    total = 0
+    for item in rows:
+        confidence = item.row.get("confidence")
+        best = 0
+        if isinstance(confidence, dict):
+            for key in CONFIRMATION_KEYS:
+                value = confidence.get(key)
+                if isinstance(value, (int, float)) and value > best:
+                    best = int(value)
+        total += max(best, 1)
+    return total
+
+
 def _has_known_queue(row: dict[str, Any], now: datetime | None = None) -> bool:
     queue = row.get("queue")
     if isinstance(queue, dict):
@@ -252,7 +349,7 @@ def evaluate_grade(
     price_rows = [item for item in decorated if item.row.get("price_rub") is not None]
     latest_price = max(price_rows, key=lambda item: item.observed_at or datetime.min.replace(tzinfo=timezone.utc), default=None)
     limits = [item.row.get("limit_liters") for item in fresh if item.row.get("limit_liters") is not None]
-    queues = [item.row.get("queue") for item in fresh if _has_known_queue(item.row, current_time)]
+    queue = _worst_queue(fresh, current_time)
 
     positives = [item for item in fresh if item.row.get("availability") in POSITIVE]
     negatives = [item for item in fresh if item.row.get("availability") in NEGATIVE]
@@ -362,7 +459,10 @@ def evaluate_grade(
         "age_seconds": round((current_time - newest).total_seconds()) if newest else None,
         "price_rub": latest_price.row.get("price_rub") if latest_price else None,
         "limit_liters": min(limits) if limits else None,
-        "queue": queues[0] if queues else None,
+        "queue": queue,
+        # Only reports that back the answer count: fourteen people confirming
+        # "нет" must not be shown as fourteen confirmations of "есть".
+        "confirmations": _confirmation_count(_supporting(status, positives, negatives, restricted, fresh)),
         "ttl_seconds": ttl_seconds,
         "trust_score": trust_score,
         "trust_tier": trust_tier,
@@ -389,3 +489,115 @@ def evaluate_station(
     result["grades"] = {grade: evaluate_grade(station.get("evidence", []), grade, now=now) for grade in grades}
     result["evidence_total"] = len(station.get("evidence", []))
     return result
+
+
+# The product question is not "what is the status", it is "do I drive there, and
+# how long will I stand".  This turns the evidence into that answer, and says
+# out loud which parts are an estimate.
+GO_LABELS = {
+    "GO": "Стоит ехать",
+    "GO_WITH_WAIT": "Ехать можно, но с очередью",
+    "RISKY": "Можно попробовать",
+    "NO": "Ехать не стоит",
+    "UNKNOWN": "Непонятно",
+}
+
+
+def travel_advice(evaluated: dict[str, Any], timeline: dict[str, Any] | None = None) -> dict[str, Any]:
+    status = evaluated.get("status")
+    queue = evaluated.get("queue") or {}
+    limit = evaluated.get("limit_liters")
+    trust = int(evaluated.get("trust_score") or 0)
+    held_for = (timeline or {}).get("duration_seconds")
+    cars_from = queue.get("cars_from")
+
+    wait_text = None
+    if queue:
+        if queue.get("wait_from_minutes") is not None and queue.get("wait_to_minutes") is not None:
+            wait_text = f"≈{queue['wait_from_minutes']}–{queue['wait_to_minutes']} мин"
+        elif queue.get("wait_from_minutes") is not None:
+            wait_text = f"от {queue['wait_from_minutes']} мин"
+        else:
+            wait_text = "время неизвестно"
+
+    if status in {"CONFIRMED_NO", "LIKELY_NOT"}:
+        decision, risk, risk_text = "NO", "high", "Свежие источники говорят, что этой марки здесь нет."
+    elif status == "NO_FRESH_DATA":
+        decision, risk, risk_text = "UNKNOWN", "high", "Нет свежего сигнала — ехать наугад."
+    elif status == "CONFLICT":
+        decision, risk, risk_text = "RISKY", "high", "Источники расходятся: одни видят топливо, другие нет."
+    else:
+        # Available in some form.  How likely is it to still be there on arrival?
+        if held_for is not None and held_for >= 2 * 3600:
+            risk, risk_text = "low", "Наличие держится больше двух часов — шанс застать топливо высокий."
+        elif held_for is not None and held_for < 20 * 60:
+            risk, risk_text = "medium", "Топливо появилось только что: сигнал свежий, но такой запас разбирают быстро."
+        elif trust >= 70:
+            risk, risk_text = "low", "Свежее подтверждение от сильного источника."
+        else:
+            risk, risk_text = "medium", "Подтверждение есть, но слабое — данные могут отставать."
+        if cars_from is not None and cars_from >= 50:
+            risk = "high"
+            risk_text = "Очередь больше 50 машин: пока достоите, топливо может закончиться."
+        decision = "GO"
+        if queue:
+            decision = "GO_WITH_WAIT" if (cars_from or 0) < 50 else "RISKY"
+        if status == "LIKELY_AVAILABLE" and trust < 50:
+            decision = "RISKY"
+
+    parts = []
+    if held_for is not None and status not in {"NO_FRESH_DATA", "CONFIRMED_NO", "LIKELY_NOT"}:
+        parts.append(f"держится {_human_duration(held_for)}")
+    if queue:
+        parts.append(f"очередь: {queue['label']}" + (f" ({wait_text})" if wait_text and wait_text != "время неизвестно" else ""))
+    elif status in {"CAN_REFUEL", "LIKELY_AVAILABLE"}:
+        parts.append("об очереди никто не сообщал")
+    if limit:
+        parts.append(f"лимит {limit:g} л")
+    confirmations = int(evaluated.get("confirmations") or 0)
+    if confirmations:
+        parts.append(f"{confirmations} {_plural(confirmations, 'подтверждение', 'подтверждения', 'подтверждений')}")
+
+    return {
+        "decision": decision,
+        "label": GO_LABELS[decision],
+        "risk": risk,
+        "risk_text": risk_text,
+        "wait_text": wait_text,
+        "summary": ", ".join(parts) if parts else None,
+    }
+
+
+def _human_duration(seconds: float) -> str:
+    if seconds < 3600:
+        return f"{max(1, round(seconds / 60))} мин"
+    if seconds < 86400:
+        return f"{round(seconds / 3600)} ч"
+    return f"{round(seconds / 86400)} дн."
+
+
+def _plural(count: int, one: str, few: str, many: str) -> str:
+    tail, hundred = count % 10, count % 100
+    if 11 <= hundred <= 14 or tail == 0 or tail >= 5:
+        return many
+    return one if tail == 1 else few
+
+
+def _supporting(
+    status: str,
+    positives: list[EvaluatedRow],
+    negatives: list[EvaluatedRow],
+    restricted: list[EvaluatedRow],
+    fresh: list[EvaluatedRow],
+) -> list[EvaluatedRow]:
+    """The fresh rows that actually back the published verdict."""
+    if status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"}:
+        chosen = positives + restricted
+    elif status in {"CONFIRMED_NO", "LIKELY_NOT"}:
+        chosen = negatives
+    else:
+        chosen = fresh
+    unique: dict[int, EvaluatedRow] = {}
+    for item in chosen:
+        unique[id(item)] = item
+    return list(unique.values())

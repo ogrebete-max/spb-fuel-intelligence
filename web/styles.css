@@ -244,3 +244,77 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 .install-steps li { line-height: 1.5; }
 
 .status-chip[disabled] { opacity: .42; cursor: default; }
+
+/* Card rebuilt around one question: do I drive there, and how long do I wait. */
+.station-card {
+  /* The decision colour now lives on the card edge; the old dot/chevron grid
+     columns are gone. */
+  border-left: 4px solid var(--status-color);
+}
+.station-card .card-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding: 15px 16px;
+  text-align: left;
+}
+.station-card .card-topline { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.station-card .address { white-space: normal; }
+.station-card .facts, .station-card .meta-line, .station-card .timeline-badge { margin-top: 0; }
+.card-topline { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.grade-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+.grade-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  border-radius: 8px; padding: 3px 7px; font-size: 12px; font-weight: 700;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.grade-chip.yes { background: #dff3e6; color: #0f6b45; }
+.grade-chip.likely { background: #eaf4d6; color: #46660f; }
+.grade-chip.limited { background: #fbeed2; color: #8a5405; }
+.grade-chip.conflict { background: #ece5fb; color: #4c3a8e; }
+.grade-chip.no { background: #f8e2e2; color: #8f2a30; }
+.grade-chip.unknown { background: rgba(13, 51, 40, .06); color: #6d7a74; }
+.grade-chip.selected { border-color: currentColor; }
+.verdict { display: flex; align-items: center; gap: 7px; font-weight: 750; font-size: 14px; }
+.verdict-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.wait { font-weight: 600; color: #6d7a74; font-size: 13px; }
+.meta-line { font-size: 12px; color: #8a9691; }
+.station-card .facts { font-size: 13px; color: #4a5b54; line-height: 1.4; }
+
+/* On a phone the answer has to be on the first screen, not a screen and a half
+   down past a magazine headline and a full filter panel. */
+@media (max-width: 620px) {
+  .hero { padding: 10px 0 12px; gap: 12px; }
+  .hero .eyebrow, .hero .hero-copy { display: none; }
+  h1 { font-size: 27px; line-height: 1.08; letter-spacing: -.02em; }
+  .snapshot-stack { grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+  .snapshot-card { width: auto; min-width: 0; padding: 9px 11px; }
+  .snapshot-card strong { font-size: 12px; }
+  .snapshot-card small { font-size: 10px; }
+  .refresh-button { margin: 0; white-space: nowrap; font-size: 12px; }
+
+  .control-panel { padding: 12px; border-radius: 18px; }
+  .location-row, .search-row { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+  .location-row { align-items: center; }
+  .compact { width: auto; flex: 1 1 100%; min-width: 0; }
+  .compact button { padding: 9px 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .locate-button { width: 100%; flex: 1 1 100%; padding: 9px 11px; font-size: 12px; justify-content: center; }
+  .grade-chip { font-size: 11px; padding: 3px 6px; }
+  .grade-row { margin-top: 12px; padding-top: 12px; }
+  .field-label { display: none; }
+  .grade-picker button { padding: 10px 2px; font-size: 13px; font-weight: 800; }
+  .search-row { margin-top: 10px; }
+  .search-box { flex: 1 1 55%; min-width: 0; }
+  .nearby-search-button { width: auto; flex: 1 1 38%; min-height: 40px; padding-inline: 8px; font-size: 12px; white-space: nowrap; }
+  select { width: auto; flex: 1 1 100%; font-size: 13px; padding-block: 9px; }
+  .search-context { margin-top: 9px; font-size: 11px; }
+
+  .results-head { margin: 16px 0 10px; }
+  .results-head h2 { font-size: 20px; }
+  .results-head .eyebrow { display: none; }
+  .identity-note { display: none; }
+  .status-strip { margin-bottom: 10px; }
+  .station-card .card-main { padding: 13px 13px; gap: 6px; }
+  .network { font-size: 14px; }
+  .address { font-size: 11px; }
+}

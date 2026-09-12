@@ -28,10 +28,11 @@ const KIND_LABELS = {
 };
 
 const state = {
-  grade: 'AI95', area: 'all', view: 'list', search: '', sort: 'status',
+  grade: 'AI95', area: 'all', view: 'list', search: '', sort: 'go',
   status: null, timeline: null, location: null, bbox: null, meta: null, stations: [], visible: 0, map: null,
   markers: null, request: 0,
   staticMode: document.querySelector('meta[name="spbfi-static-site"]')?.content === 'true',
+  gradesBrief: {},
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -112,6 +113,7 @@ async function staticApi(path) {
   const url = new URL(path, window.location.origin);
   if (url.pathname === '/api/meta') return staticJson('static-data/meta.json');
   if (url.pathname === '/api/sources') return staticJson('static-data/sources.json');
+  if (url.pathname === '/api/grades-brief') return staticJson('static-data/grades-brief.json');
   const detail = url.pathname.match(/^\/api\/stations\/([^/]+)$/);
   if (detail) return staticJson(`static-data/details/${encodeURIComponent(decodeURIComponent(detail[1]))}.json`);
   if (url.pathname !== '/api/stations') throw new Error('Эта функция доступна только в локальном режиме.');
@@ -233,6 +235,11 @@ async function bootstrap() {
   try {
     state.meta = await api('/api/meta');
     renderMeta();
+    // One small file with every grade for every station; the card shows all six
+    // marks without downloading six full bundles.
+    api('/api/grades-brief')
+      .then((brief) => { state.gradesBrief = brief.stations || {}; renderStations(); })
+      .catch(() => { state.gradesBrief = {}; });
     initMap();
     await loadStations();
   } catch (error) {
@@ -267,8 +274,9 @@ function bindControls() {
   window.addEventListener('appinstalled', () => { installPrompt = null; $('#installButton').hidden = true; });
   // iOS Safari never fires beforeinstallprompt, so the button stays visible
   // everywhere except inside an already installed window.
-  const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const { installed, inAppBrowser } = platformInfo();
   $('#installButton').hidden = installed;
+  if (inAppBrowser) $('#installButton').textContent = 'Открыть в Safari';
   $('#installButton').addEventListener('click', async () => {
     if (installPrompt) {
       installPrompt.prompt();
@@ -538,6 +546,32 @@ function trustPanel(grade) {
   </div>`;
 }
 
+const GRADE_MARK = {
+  CAN_REFUEL: { sign: '✓', tone: 'yes' },
+  LIKELY_AVAILABLE: { sign: '✓', tone: 'likely' },
+  LIMITED: { sign: '✓', tone: 'limited' },
+  CONFLICT: { sign: '?', tone: 'conflict' },
+  LIKELY_NOT: { sign: '✕', tone: 'no' },
+  CONFIRMED_NO: { sign: '✕', tone: 'no' },
+  NO_FRESH_DATA: { sign: '—', tone: 'unknown' },
+};
+const RISK_TONE = { low: '#158257', medium: '#d58a13', high: '#b8333a' };
+const DECISION_TONE = { GO: '#158257', GO_WITH_WAIT: '#77a827', RISKY: '#d58a13', UNKNOWN: '#8a9691', NO: '#b8333a' };
+
+function gradeChips(station) {
+  const brief = (state.gradesBrief || {})[station.id] || {};
+  return Object.keys(GRADE_LABELS).map((grade) => {
+    const item = brief[grade] || {};
+    const status = grade === state.grade ? station.grade.status : (item.s || 'NO_FRESH_DATA');
+    const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
+    const selected = grade === state.grade ? ' selected' : '';
+    // Six chips plus six prices do not fit a 375px phone; the price belongs to
+    // the grade the driver actually asked about.
+    const price = selected && item.p != null ? ` ${Math.round(item.p)}₽` : '';
+    return `<span class="grade-chip ${mark.tone}${selected}" title="${escapeHtml(GRADE_LABELS[grade])}: ${escapeHtml(STATUS[status]?.short || '')}">${mark.sign} ${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))}${price}</span>`;
+  }).join('');
+}
+
 function timelineBadge(timeline) {
   if (!timeline || ['NO_HISTORY', 'OBSERVED', 'OUTDATED_HISTORY'].includes(timeline.state)) return null;
   if (['JUST_APPEARED', 'RECENTLY_APPEARED'].includes(timeline.state)) return { text: `✦ ${timeline.label}`, tone: 'fresh' };
@@ -549,17 +583,20 @@ function timelineBadge(timeline) {
 
 function factsFor(station) {
   const grade = station.grade;
-  const facts = [];
-  if (grade.price_rub != null) facts.push(`${grade.price_rub.toFixed(2)} ₽/л`);
-  if (grade.limit_liters != null) facts.push(`лимит ${grade.limit_liters} л`);
-  const queue = formatQueue(grade.queue);
-  if (queue) facts.push(`очередь: ${queue}`);
-  facts.push(formatAge(grade.age_seconds));
-  const sources = grade.fresh_source_count ?? grade.fresh_provenance_count ?? 0;
-  facts.push(`${sources} ист.`);
-  if (grade.trust_score) facts.push(`достоверность ${grade.trust_score}%`);
-  return facts.join(' · ');
+  const advice = grade.advice || {};
+  return advice.summary || (grade.status === 'NO_FRESH_DATA' ? 'нет свежего сигнала по этой марке' : '');
 }
+
+function metaFor(station) {
+  const grade = station.grade;
+  const parts = [formatAge(grade.age_seconds)];
+  const sources = grade.fresh_source_count ?? grade.fresh_provenance_count ?? 0;
+  if (sources) parts.push(`${sources} ${sources === 1 ? 'источник' : 'ист.'}`);
+  if (grade.trust_score) parts.push(`достоверность ${grade.trust_score}%`);
+  if (grade.price_rub != null) parts.push(`${grade.price_rub.toFixed(2)} ₽/л`);
+  return parts.join(' · ');
+}
+
 
 // A phone should not receive 500 detailed cards at once: the list renders in
 // pages and grows on demand.
@@ -607,13 +644,17 @@ function renderStations({ append = false } = {}) {
   const fragment = document.createDocumentFragment();
   state.stations.slice(from, to).forEach((station) => {
     const node = $('#stationTemplate').content.cloneNode(true);
-    const status = STATUS[station.grade.status];
+    const grade = station.grade;
+    const advice = grade.advice || {};
     const card = node.querySelector('.station-card');
-    card.style.setProperty('--status-color', status.color);
+    card.style.setProperty('--status-color', DECISION_TONE[advice.decision] || STATUS[grade.status].color);
     node.querySelector('.network').textContent = station.network;
     node.querySelector('.address').textContent = station.address;
-    node.querySelector('.status-label').textContent = station.grade.label;
-    const temporal = timelineBadge(station.grade.timeline);
+    node.querySelector('.grade-chips').innerHTML = gradeChips(station);
+    node.querySelector('.verdict-text').textContent = advice.label || STATUS[grade.status].short;
+    node.querySelector('.verdict-dot').style.background = RISK_TONE[advice.risk] || '#8a9691';
+    node.querySelector('.wait').textContent = advice.wait_text ? `· стоять ${advice.wait_text}` : '';
+    const temporal = timelineBadge(grade.timeline);
     if (temporal) {
       const badge = node.querySelector('.timeline-badge');
       badge.hidden = false;
@@ -621,6 +662,7 @@ function renderStations({ append = false } = {}) {
       badge.dataset.tone = temporal.tone;
     }
     node.querySelector('.facts').textContent = factsFor(station);
+    node.querySelector('.meta-line').textContent = metaFor(station);
     node.querySelector('.distance').textContent = station.distance_km != null ? `${station.distance_km.toLocaleString('ru-RU')} км` : '';
     node.querySelector('.card-main').addEventListener('click', () => openStation(station.id));
     fragment.appendChild(node);
@@ -735,21 +777,50 @@ function closeDrawer() {
   document.body.style.overflow = '';
 }
 
+function platformInfo() {
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // Safari on iOS always defines navigator.standalone. Telegram, VK and other
+  // in-app browsers are WKWebViews where it is undefined, and none of them has
+  // an "Add to Home Screen" item at all.
+  const inAppBrowser = iOS && typeof navigator.standalone === 'undefined';
+  const installed = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  return { iOS, inAppBrowser, installed };
+}
+
+async function copyPageLink(button) {
+  const link = location.href.split('?')[0];
+  try {
+    await navigator.clipboard.writeText(link);
+    button.textContent = 'Ссылка скопирована';
+  } catch {
+    button.textContent = link;
+  }
+}
+
 function showInstallHelp() {
-  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const steps = iOS
-    ? ['Откройте эту страницу в <b>Safari</b> (в Chrome на iPhone установка недоступна).',
-       'Нажмите кнопку «Поделиться» — квадрат со стрелкой вверх внизу экрана.',
-       'Прокрутите список и выберите <b>«На экран “Домой”»</b>.',
-       'Нажмите «Добавить». Приложение появится на экране как обычная иконка и будет открываться без адресной строки.']
-    : ['Откройте меню браузера (три точки).',
-       'Выберите <b>«Установить приложение»</b> или «Добавить на главный экран».',
-       'Подтвердите установку.'];
+  const { iOS, inAppBrowser } = platformInfo();
+  const steps = inAppBrowser
+    ? ['Нажмите кнопку «Скопировать ссылку» ниже.',
+       'Откройте <b>Safari</b> и вставьте ссылку в адресную строку.',
+       'Нажмите «Поделиться» — квадрат со стрелкой вверх внизу экрана.',
+       'Выберите <b>«На экран “Домой”»</b> и нажмите «Добавить».']
+    : iOS
+      ? ['Нажмите «Поделиться» — квадрат со стрелкой вверх внизу экрана.',
+         'Прокрутите список и выберите <b>«На экран “Домой”»</b>.',
+         'Нажмите «Добавить». Приложение появится на экране как обычная иконка.']
+      : ['Откройте меню браузера (три точки).',
+         'Выберите <b>«Установить приложение»</b> или «Добавить на главный экран».',
+         'Подтвердите установку.'];
+  const warning = inAppBrowser
+    ? `<div class="drawer-status" style="--status-color:#d58a13"><strong>Сейчас открыто не в Safari</strong><p>Страница открыта во встроенном браузере другого приложения — например, Telegram. В нём пункта «На экран “Домой”» не существует ни у одного сайта. Нужен именно Safari.</p></div>`
+    : '';
   openDrawer(`<h2>Установить на телефон</h2>
-    <p class="drawer-address">Приложение работает как обычный сайт, но его можно поставить на главный экран: полноэкранный режим и последний загруженный снимок доступны даже без сети.</p>
+    <p class="drawer-address">После установки приложение открывается без адресной строки, а интерфейс и последний загруженный снимок работают без сети.</p>
+    ${warning}
     <ol class="install-steps">${steps.map((step) => `<li>${step}</li>`).join('')}</ol>
-    <div class="drawer-status" style="--status-color:#0d5a43"><strong>Что работает офлайн</strong><p>Интерфейс и последний открытый снимок. Свежие статусы появятся, когда снова будет связь — возраст данных всегда показан на карточке.</p></div>`);
+    <button type="button" class="list-more" id="copyLink">Скопировать ссылку</button>`);
+  $('#copyLink').addEventListener('click', (event) => copyPageLink(event.currentTarget));
 }
 
 function showAbout() {

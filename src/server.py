@@ -156,6 +156,9 @@ class AppHandler(BaseHTTPRequestHandler):
             if path == "/api/sources":
                 self._json(self.repository.sources())
                 return
+            if path == "/api/grades-brief":
+                self._json(self.repository.grades_brief(as_of=params.get("as_of")))
+                return
             if path == "/api/geocode":
                 self._json(self._geocode(params.get("q", "")))
                 return

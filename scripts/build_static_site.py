@@ -43,6 +43,9 @@ def main() -> int:
     data_dir = output / "static-data"
     write_json(data_dir / "meta.json", meta)
     write_json(data_dir / "sources.json", repository.sources())
+    # Every grade for every station in one small file, so a card can show all
+    # six marks without the phone downloading six full bundles.
+    write_json(data_dir / "grades-brief.json", repository.grades_brief(as_of=snapshot_time))
     # Publishing the raw collector outcome makes a silently failing upstream
     # visible on the site itself, not only in a workflow log.
     probe_path = ROOT / "data" / "live" / "full-aoi-probe-results.json"
