@@ -28,7 +28,8 @@ GAS_PUMP = re.compile(
 )
 # A brand that sells gas but also runs ordinary forecourts; evidence decides.
 GAS_BRAND = re.compile(
-    r"(?:^|[\s,«\"(])газ(?:[\s,»\")]|$)|автогаз|росгаз|\bgas\b|greengas|globalgaz|vervex|вервекс|митекс",
+    r"(?:^|[\s,«\"(])газ(?:[\s,»\")]|$)|автогаз|росгаз|газ\b|газонаполн|газоснабж|газовичк"
+    r"|\bgas\b|greengas|globalgaz|vervex|вервекс|митекс",
     re.IGNORECASE,
 )
 # "Сургутнефтегаз" is an oil company, not a gas pump.
