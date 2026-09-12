@@ -308,7 +308,10 @@ function bindControls() {
     clearTimeout(searchTimer);
     state.search = event.target.value;
     if (state.searchScope) clearSearchScope({ keepText: true, reload: false });
-    if (!looksLikePlaceSearch(state.search)) searchTimer = setTimeout(loadStations, 250);
+    // Typing a street used to filter nothing at all until the user guessed to
+    // press "Найти рядом"; filtering by address now happens as you type, and
+    // the button stays for turning the same text into a place on the map.
+    searchTimer = setTimeout(loadStations, 250);
     renderSearchContext();
   });
   $('#searchInput').addEventListener('keydown', (event) => {
@@ -337,12 +340,6 @@ function bindControls() {
   $('#sourcesButton').addEventListener('click', showSources);
   $('#refreshButton').addEventListener('click', refreshData);
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeDrawer(); });
-}
-
-function looksLikePlaceSearch(value) {
-  const text = String(value || '').trim().toLocaleLowerCase();
-  return /(?:^|\s)(ул\.?|улица|пр\.?|проспект|наб\.?|набережная|шоссе|площадь|пер\.?|переулок)\b/.test(text)
-    || /\d/.test(text) || text.split(/\s+/).length > 1;
 }
 
 async function refreshData() {
@@ -565,10 +562,39 @@ function factsFor(station) {
 // pages and grows on demand.
 const PAGE_SIZE = 40;
 
+function resetFilters() {
+  state.search = '';
+  state.status = null;
+  state.timeline = null;
+  state.area = 'all';
+  state.bbox = null;
+  state.location = null;
+  state.searchScope = null;
+  state.searchLabel = null;
+  state.sort = 'status';
+  $('#searchInput').value = '';
+  $('#sortSelect').value = 'status';
+  $$('[data-area]').forEach((item) => item.classList.toggle('active', item.dataset.area === 'all'));
+  renderSearchContext();
+  loadStations();
+}
+
 function renderStations({ append = false } = {}) {
   const list = $('#stationList');
   if (!state.stations.length) {
-    list.innerHTML = '<div class="empty-state"><strong>Ничего не найдено</strong><br>Измените фильтр или область карты.</div>';
+    // Say which filter emptied the list, otherwise a stray map area or status
+    // chip looks like a broken application.
+    const active = [];
+    if (state.searchScope === 'map') active.push('выбранная область карты');
+    if (state.searchScope === 'place' || state.searchScope === 'device') active.push(`радиус ${state.radiusKm} км`);
+    if (state.search.trim()) active.push(`поиск «${state.search.trim()}»`);
+    if (state.status) active.push(`статус «${STATUS[state.status].short}»`);
+    if (state.timeline) active.push('только недавно появившиеся');
+    if (state.area !== 'all') active.push(state.area === 'spb' ? 'только Петербург' : 'только область');
+    list.innerHTML = `<div class="empty-state"><strong>Ничего не найдено</strong><br>${
+      active.length ? `Активные ограничения: ${escapeHtml(active.join(', '))}.` : 'Данных по этой марке сейчас нет.'
+    }<br><button type="button" class="list-more" id="resetFilters">Сбросить все фильтры</button></div>`;
+    $('#resetFilters').addEventListener('click', resetFilters);
     return;
   }
   if (!append) state.visible = 0;

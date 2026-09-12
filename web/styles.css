@@ -129,6 +129,9 @@ select { color: white; border: 1px solid rgba(255,255,255,.18); background: #173
 #map { position: absolute; inset: 0; touch-action: none; cursor: grab; overscroll-behavior: contain; }
 #map:active { cursor: grabbing; }
 .map-area-button { position: absolute; z-index: 500; left: 50%; top: 14px; transform: translateX(-50%); border: 0; border-radius: 99px; background: var(--brand-dark); color: white; padding: 10px 16px; box-shadow: 0 6px 22px rgba(0,0,0,.22); cursor: pointer; display: none; }
+/* A `display` rule beats the hidden attribute, so this overlay stayed on top
+   of the map and swallowed every drag and click even while invisible. */
+[hidden] { display: none !important; }
 .map-fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 30px; text-align: center; color: var(--muted); }
 .fuel-marker { width: 18px; height: 18px; border-radius: 50% 50% 50% 2px; transform: rotate(-45deg); border: 2px solid white; background: var(--marker); box-shadow: 0 2px 9px rgba(0,0,0,.3); }
 .leaflet-popup-content-wrapper { border-radius: 14px; }
