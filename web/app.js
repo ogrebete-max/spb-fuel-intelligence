@@ -99,7 +99,11 @@ async function api(path) {
 
 async function staticJson(relativePath) {
   if (!staticCache.has(relativePath)) {
-    staticCache.set(relativePath, fetch(relativePath, { headers: { Accept: 'application/json' } }).then(async (response) => {
+    // GitHub Pages lets a browser keep a file for ten minutes without asking.
+    // A new build announced in meta.json then went unseen for those minutes,
+    // and fresh data sat next to a stale list. «no-cache» asks every time and
+    // costs a 304 when nothing changed.
+    staticCache.set(relativePath, fetch(relativePath, { cache: 'no-cache', headers: { Accept: 'application/json' } }).then(async (response) => {
       if (!response.ok) throw new Error(`Не найден статический файл ${relativePath}`);
       return response.json();
     }));
@@ -744,6 +748,7 @@ function applyFix(coords, { force = false } = {}) {
   notePassedStations(here, accuracy);
   renderMe();
   renderLocateButton();
+  refreshVerdicts();
   if (firstFix) {
     state.bbox = null;
     state.search = '';
@@ -1432,6 +1437,7 @@ async function pollGroupMarks() {
         slot[report.grade] = {
           seen: !!report.seen, at: report.at, queue: report.queue, people: [...people], names: [...names],
           who: report.who, authorName: report.name || '', thanks: report.thanks || 0, thanked: !!report.thanked,
+          up: report.up || 0, down: report.down || 0, myVote: report.my_vote || null,
         };
       } else {
         current.people = [...people];
@@ -1521,19 +1527,21 @@ async function renderGroupFeed() {
       <span class="feed-address">${escapeHtml(shortAddress(info.address || ''))}</span>
       <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
       ${thanksButton(entry.stationId)}
+      ${verdictButtons(entry.stationId)}
     </div>`;
   }).join('');
   box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div>${clubJoinLine()}${outboxNote()}<div class="feed-list">${cards}</div>${ownLink()}${scoutHint()}`;
   box.querySelectorAll('[data-feed-station]').forEach((item) => {
     item.addEventListener('click', (event) => {
-      if (event.target.closest('.thanks-button')) return;
+      if (event.target.closest('.thanks-button, .verdicts')) return;
       openStation(item.dataset.feedStation);
     });
     item.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.target.closest('.thanks-button')) openStation(item.dataset.feedStation);
+      if (event.key === 'Enter' && !event.target.closest('.thanks-button, .verdicts')) openStation(item.dataset.feedStation);
     });
   });
   bindThanks(box);
+  bindVerdicts(box);
   bindScout(box);
   bindOwnLink(box);
   bindPushButton(box);
@@ -1794,7 +1802,14 @@ function handleNews(news = [], now = Date.now()) {
   const since = newsSince();
   try { localStorage.setItem(NEWS_KEY, String(now)); } catch { /* nothing to keep it in */ }
   if (!since) return;
-  const items = news.filter((item) => item.at > since && !['mark', 'first_seen'].includes(item.type));
+  const all = news.filter((item) => item.at > since && !['mark', 'first_seen'].includes(item.type));
+  // A warning is never folded into a summary of good news.
+  const warning = all.filter((item) => item.type === 'warning').pop();
+  if (warning) {
+    if (navigator.vibrate) navigator.vibrate([200, 80, 200]);
+    showToast('⚠️ С вашими отметками не согласны', `${warning.people} ${plural(warning.people, 'человек', 'человека', 'человек')} на заправках поставили 👎. Отмечайте только то, что видите сами: после пяти — выбывание из клуба.`);
+  }
+  const items = all.filter((item) => item.type !== 'warning');
   if (!items.length) return;
   if (items.length > 3) {
     const count = (type) => items.filter((item) => item.type === type).length;
@@ -1987,12 +2002,13 @@ async function renderOwnList() {
         <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
         <span class="own-age ${entry.tier.key}">${entry.tier.icon} ${escapeHtml(entry.tier.label)} · ${escapeHtml(formatAge((now - entry.latest) / 1000))}${who}</span>
       </button>
-      <div class="card-actions">${thanksButton(entry.stationId)}</div>
+      <div class="card-actions">${thanksButton(entry.stationId)}${verdictButtons(entry.stationId)}</div>
     </article>`;
   }).join('');
   list.querySelectorAll('[data-own-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.ownStation)));
   list.querySelector('[data-own-back]').addEventListener('click', leaveOwnView);
   bindThanks(list);
+  bindVerdicts(list);
 }
 
 function renderOwnMarkers() {
@@ -2088,6 +2104,150 @@ async function sendThanks(stationId, button) {
   }
 }
 
+// ---------------------------------------------------------------- 👍 and 👎
+// Someone else's fresh mark is confirmed or refuted only by a member at that
+// pump. The buttons are shown to the whole club, so it is plain where they
+// work; within 300 metres and in the first hour they come alive.
+const VOTE_WINDOW_MS = 60 * 60 * 1000;
+const VOTE_RADIUS_METRES = 300;
+
+function voteTargets(stationId) {
+  const grades = (state.groupMarks || {})[stationId] || {};
+  const me = myId();
+  const looks = new Map();
+  for (const [grade, mark] of Object.entries(grades)) {
+    // A mark without a name came from a phone outside the club (possible until
+    // the door is closed): there is nobody to confirm or refute.
+    if (!mark.who || !mark.authorName || !GRADE_LABELS[grade] || Date.now() - mark.at > VOTE_WINDOW_MS) continue;
+    const key = `${mark.who}:${mark.at}`;
+    const look = looks.get(key) || { station: stationId, at: mark.at, author: mark.who, name: mark.authorName, mine: mark.who === me, up: mark.up || 0, down: mark.down || 0, myVote: mark.myVote || null, grades: [] };
+    look.grades.push(`${GRADE_LABELS[grade].replace('АИ-', '')} ${mark.seen ? 'есть' : 'нет'}`);
+    looks.set(key, look);
+  }
+  const latest = new Map();
+  for (const look of looks.values()) {
+    if (!latest.has(look.author) || latest.get(look.author).at < look.at) latest.set(look.author, look);
+  }
+  return [...latest.values()].sort((a, b) => b.at - a.at);
+}
+
+function stationPlace(stationId) {
+  const info = state.stationInfo[stationId];
+  if (info?.lat != null) return { lat: Number(info.lat), lon: Number(info.lon) };
+  const local = state.stations.find((item) => item.id === stationId);
+  return local?.location ? { lat: Number(local.location.lat), lon: Number(local.location.lon) } : null;
+}
+
+function atPumpForVote(stationId) {
+  const pump = stationPlace(stationId);
+  if (!pump || !state.location || Date.now() - (state.locationAt || 0) > 5 * 60 * 1000 || (state.accuracy || 0) > 500) return false;
+  return haversineKm(state.location, pump) * 1000 <= VOTE_RADIUS_METRES;
+}
+
+function verdictInner(stationId) {
+  if (!state.club.enabled || !state.club.member || !state.club.features?.votes) return '';
+  const here = atPumpForVote(stationId);
+  return voteTargets(stationId).map((look) => {
+    if (look.mine) return look.up || look.down ? `<p class="verdict-own">Вашу отметку оценили на месте: 👍 ${look.up} · 👎 ${look.down}</p>` : '';
+    const button = (vote, icon, count, title) => `<button type="button" class="verdict-button ${vote}${look.myVote === vote ? ' mine' : ''}${here ? '' : ' away'}" data-verdict="${vote}" aria-pressed="${look.myVote === vote}" title="${title}">${icon} <b>${count}</b></button>`;
+    return `<div class="verdict" data-verdict-author="${escapeHtml(look.author)}" data-verdict-at="${look.at}">
+      <span class="verdict-label">На месте так? ${look.name ? `<b>${escapeHtml(look.name)}</b>: ` : ''}${escapeHtml(look.grades.join(', '))}</span>
+      ${button('up', '👍', look.up, 'Подтверждаю: вижу то же самое')}
+      ${button('down', '👎', look.down, 'Опровергаю: на колонках другое')}
+      <small class="verdict-hint${here ? ' here' : ''}">${here ? 'Вы на этой заправке: всё так — 👍, неправда — 👎' : '👍 👎 — только на этой заправке, в первый час после отметки'}</small>
+    </div>`;
+  }).join('');
+}
+
+function verdictButtons(stationId) {
+  const inner = verdictInner(stationId);
+  return inner ? `<div class="verdicts" data-verdicts-station="${escapeHtml(stationId)}" data-here="${atPumpForVote(stationId)}">${inner}</div>` : '';
+}
+
+function bindVerdicts(root) {
+  root.querySelectorAll('.verdicts [data-verdict]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const look = button.closest('.verdict');
+      const station = button.closest('.verdicts').dataset.verdictsStation;
+      sendVerdict({ station, author: look.dataset.verdictAuthor, at: Number(look.dataset.verdictAt) }, button.dataset.verdict, button);
+    });
+  });
+}
+
+// Every copy on screen — the feed, the «Свои» list, an open card — follows a
+// vote or the phone arriving at the pump. Redrawn only when something changed,
+// so a finger on the way to a button does not lose it.
+function refreshVerdicts(stationId = null, { force = false } = {}) {
+  document.querySelectorAll('.verdicts').forEach((holder) => {
+    const id = holder.dataset.verdictsStation;
+    if (stationId && id !== stationId) return;
+    const here = String(atPumpForVote(id));
+    if (!force && holder.dataset.here === here) return;
+    holder.dataset.here = here;
+    holder.innerHTML = verdictInner(id);
+    bindVerdicts(holder);
+  });
+}
+
+// Where the phone is now, not where it was when the app last looked.
+function placeForVote() {
+  if (state.location && Date.now() - (state.locationAt || 0) < 60 * 1000) return Promise.resolve({ ...state.location, accuracy: state.accuracy || 0 });
+  if (!navigator.geolocation) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude, accuracy: Math.round(position.coords.accuracy || 0) }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+    );
+  });
+}
+
+async function sendVerdict(target, vote, button) {
+  const look = voteTargets(target.station).find((item) => item.author === target.author && item.at === target.at);
+  if (!look || look.myVote === vote) return;
+  const buttons = [...(button.closest('.verdict')?.querySelectorAll('[data-verdict]') || [button])];
+  const release = () => buttons.forEach((item) => { item.disabled = false; });
+  buttons.forEach((item) => { item.disabled = true; });
+  const place = await placeForVote();
+  const pump = stationPlace(target.station);
+  const metres = place && pump ? haversineKm(place, pump) * 1000 : null;
+  if (metres == null || metres > VOTE_RADIUS_METRES) {
+    release();
+    const why = !pump
+      ? 'Приложение не нашло, где эта АЗС. Откройте её карточку и попробуйте оттуда.'
+      : !place
+        ? 'Приложение не знает, где вы. Разрешите доступ к геопозиции: оценить отметку может только тот, кто сейчас сам видит колонки.'
+        : `Вы в ${formatDistance(metres / 1000)} от неё. Оценить отметку может только тот, кто сейчас сам видит колонки.`;
+    showToast('👍 👎 — только на этой заправке', why);
+    return;
+  }
+  if (vote === 'down' && !confirm(`Опровергнуть отметку${look.name ? ` «${look.name}»` : ''}: ${look.grades.join(', ')}?\n\nСтавьте 👎, только если сами видите на колонках другое. Пять 👎 от разных людей — и автор выбывает из клуба.`)) {
+    release();
+    return;
+  }
+  const result = await clubCall('/club/vote', {
+    method: 'POST',
+    body: { station: target.station, at: target.at, author: target.author, vote, lat: place.lat, lon: place.lon, accuracy: place.accuracy, station_lat: pump.lat, station_lon: pump.lon },
+  }).catch(() => null);
+  release();
+  if (result && handleClubRejection(result)) return;
+  if (!result?.ok) {
+    showToast('Не получилось', result ? clubMessage(result) : 'Нет связи с клубом. Попробуйте ещё раз.');
+    return;
+  }
+  for (const mark of Object.values(state.groupMarks?.[target.station] || {})) {
+    if (mark.who === target.author && mark.at === target.at) Object.assign(mark, { up: result.data.up, down: result.data.down, myVote: result.data.mine });
+  }
+  if (vote === 'up') {
+    burst('👍');
+    showToast(`👍 Подтверждено${look.name ? `: ${look.name}` : ''}`, result.data.paid ? `Автору +${result.data.paid} 🤝 за точность. Спасибо, что проверили на месте.` : 'Спасибо, что проверили на месте.', target.station);
+  } else {
+    showToast('👎 Отметка опровергнута', 'Отметьте, как на самом деле: откройте карточку этой АЗС.', target.station);
+  }
+  refreshVerdicts(target.station, { force: true });
+}
+
 function profileCard(profile) {
   if (!profile?.level) return '';
   const { level, counts = {} } = profile;
@@ -2162,9 +2322,15 @@ const CLUB_RULES = [
   'Клуб — только для своих. Приглашайте тех, за кого ручаетесь сами. Код приглашения — только для того, кого пригласили: не пересылайте его дальше.',
   'Отмечайте только то, что видите своими глазами прямо сейчас. Не пересказывайте чаты и слухи.',
   'Не уверены — не отмечайте. Лучше промолчать, чем отправить своих на пустую заправку.',
-  'За ложные отметки владелец исключает из клуба. Кто пригласил — отвечает за приглашённого.',
+  'Ложную отметку опровергают 👎 — их ставят только на самой заправке. Пять 👎 от разных людей, и автор выбывает из клуба, пока владелец не вернёт. Кто пригласил — отвечает за приглашённого.',
   'Не показывайте приложение и отметки посторонним и не выкладывайте их в общие чаты.',
 ];
+
+// Until the worker takes 👍 and 👎, rule four says what actually happens.
+function clubRules() {
+  if (state.club.features?.votes) return CLUB_RULES;
+  return CLUB_RULES.map((rule, index) => (index === 3 ? 'За ложные отметки владелец исключает из клуба. Кто пригласил — отвечает за приглашённого.' : rule));
+}
 const CLUB_ERRORS = {
   invite_unknown: 'Такого кода нет. Проверьте буквы: в кодах не бывает О, 0, I и 1.',
   invite_used: 'Этим кодом уже вступили. Если это были вы — войдите через «🔑 Я уже в клубе» или попросите код для входа у владельца клуба.',
@@ -2175,6 +2341,12 @@ const CLUB_ERRORS = {
   member_banned: 'Участник исключён. Сначала верните его в клуб.',
   member_unknown: 'Такого участника в клубе уже нет.',
   not_your_code: 'Тогда этот код не ваш: им уже вступил другой человек. Попросите своё приглашение у того, кто вас пригласил.',
+  expected_vote: 'Не получилось отправить оценку. Обновите приложение.',
+  cannot_vote_self: 'Свою отметку оценивать нельзя.',
+  vote_too_late: 'Отметке больше часа — подтверждать или опровергать её уже поздно.',
+  vote_not_here: '👍 и 👎 — только на этой заправке: оценить отметку может тот, кто сейчас сам видит колонки.',
+  vote_needs_place: 'Чтобы оценить отметку, приложению нужно видеть, что вы на заправке. Разрешите доступ к геопозиции.',
+  too_many_votes: 'На сегодня оценок достаточно — завтра можно снова.',
   invite_expired: 'Срок кода истёк: он действует 7 дней. Попросите новый.',
   sponsor_banned: 'Пригласивший исключён из клуба, поэтому код недействителен.',
   rules_not_accepted: 'Чтобы вступить, нужно принять правила клуба.',
@@ -2638,7 +2810,7 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
   // On an iPhone the home-screen app keeps its own storage: a login made in
   // Safari does not follow the icon. The code has to be typed in the app.
   const installFirst = iOS && !standalone() && mode === 'join';
-  const rules = `<div class="gate-rules"><strong>Правила клуба</strong><ol>${CLUB_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol></div>`;
+  const rules = `<div class="gate-rules"><strong>Правила клуба</strong><ol>${clubRules().map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol></div>`;
   const alertBox = banned != null
     ? `<div class="gate-alert"><strong>Владелец клуба закрыл вам доступ.</strong>${banned ? ` Причина: ${escapeHtml(banned)}.` : ''}</div>`
     : notice ? `<div class="gate-alert">${escapeHtml(notice)}</div>` : '';
@@ -2882,6 +3054,7 @@ async function showClub() {
     <h2>Клуб «Топливо СПб»</h2>
     <p class="drawer-address">Вы в клубе как <b>${escapeHtml(member.name)}</b>${owner ? ' · владелец' : ''}.</p>
     ${profileCard(profile)}
+    ${me.data.refuted_by ? `<div class="drawer-status" style="--status-color:#b8333a"><strong>👎 Ваши отметки опровергли: ${me.data.refuted_by} ${plural(me.data.refuted_by, 'человек', 'человека', 'человек')} из 5</strong><p>Так решили участники, которые сами были на тех заправках. Отмечайте только то, что видите на колонках: после пяти разных людей — выбывание из клуба.</p></div>` : ''}
     <div id="clubBoard"></div>
     <div class="drawer-status" style="--status-color:#0d5a43">
       <strong>Пригласить человека</strong>
@@ -2893,8 +3066,18 @@ async function showClub() {
     <div class="source-list">${inviteRows}</div>
     ${owner ? '<h3 class="section-title">Участники</h3><div id="clubMembers" class="source-list"><div class="loading-state">Загружаем участников…</div></div>' : ''}
     ${loginSection(me.data.passkeys || 0)}
+    <details class="club-howto">
+      <summary>Как пользоваться клубом</summary>
+      <ol>
+        <li><b>Видите АЗС</b> — откройте её карточку и отметьте, что есть на колонках и какая очередь. Отметка живёт 45 минут и сразу видна всем своим.</li>
+        ${state.club.features?.votes ? '<li><b>Вы на заправке, которую отметил другой?</b> Всё так — 👍, неправда — 👎. Вдали от заправки эти кнопки не работают: оценивает только тот, кто видит колонки сам.</li>' : ''}
+        <li><b>Отметка помогла</b> — скажите 🙏 «Спасибо». Автору +2 🤝.</li>
+        ${state.club.features?.passkeys ? '<li><b>Запомните вход 🔑</b> — если приложение сбросится или смените телефон, вернётесь по Face ID или отпечатку.</li>' : ''}
+        ${state.club.features?.returning ? '<li><b>Вылетели, а вход не запоминали</b> — введите тот же код приглашения (он пускает вас неделю) или код с другого своего устройства: «👥 Клуб» → «Войти на другом устройстве».</li>' : ''}
+      </ol>
+    </details>
     <h3 class="section-title">Правила клуба</h3>
-    <ol class="club-rules">${CLUB_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol>
+    <ol class="club-rules">${clubRules().map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol>
     <button type="button" class="list-more club-leave" id="clubLeave">Выйти из клуба на этом устройстве</button>`;
   $('#clubInvite')?.addEventListener('click', createInvite);
   bindInviteButtons($('#drawerContent'));
@@ -2985,14 +3168,15 @@ async function loadClubMembers() {
       `отметок за 3 ч: ${item.marks_3h}`,
       item.invited ? `привёл(а): ${item.invited}` : null,
       item.passkeys ? '🔑 вход запомнен' : null,
+      item.refuted_by ? `👎 опровергли: ${item.refuted_by} ${plural(item.refuted_by, 'человек', 'человека', 'человек')} из 5${item.refuted_names?.length ? ` (${item.refuted_names.map(escapeHtml).join(', ')})` : ''}${item.warned ? ', предупреждён(а)' : ''}` : null,
     ].filter(Boolean).join(' · ');
     const disputed = item.disputed_30d
-      ? `<span class="club-flag">С отметками не согласились ${item.disputed_30d} ${plural(item.disputed_30d, 'раз', 'раза', 'раз')} (${item.disputed_by_people_30d} ${plural(item.disputed_by_people_30d, 'человек', 'человека', 'человек')}) за 30 дней</span>`
+      ? `<span class="club-flag">Противоположные отметки: ${item.disputed_30d} ${plural(item.disputed_30d, 'раз', 'раза', 'раз')} (${item.disputed_by_people_30d} ${plural(item.disputed_by_people_30d, 'человек', 'человека', 'человек')}) за 30 дней</span>`
       : '';
     const action = item.role === 'owner' ? '' : item.banned
       ? `<button type="button" class="club-small" data-unban="${escapeHtml(item.id)}">Вернуть в клуб</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`
       : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button>${state.club.features?.returning ? `<button type="button" class="club-small" data-login-code="${escapeHtml(item.id)}">🔑 Код для входа</button>` : ''}<button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`;
-    return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? ' — исключён(а)' : ''}</strong><small>${facts}</small>${disputed}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
+    return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? (item.banned_by === 'votes' ? ' — выбыл(а) по 👎' : ' — исключён(а)') : ''}</strong><small>${facts}</small>${disputed}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
   }).join('');
   const invites = result.data.invites.length
     ? `<p class="drawer-address">Неиспользованные приглашения: ${result.data.invites.map((invite) => `${escapeHtml(invite.code)} (${escapeHtml(invite.by)})`).join(', ')}</p>`
@@ -3547,6 +3731,11 @@ async function openStation(id) {
   try {
     const station = await api(`/api/stations/${encodeURIComponent(id)}`);
     state.stationDetails[id] = station;
+    // A card opened from a push or a link may be for a station outside the
+    // loaded list; 👍 and 👎 on it still need to know where the pump is.
+    if (!state.stationInfo[id] && station.location) {
+      state.stationInfo[id] = { network: station.network, address: station.address, lat: Number(station.location.lat), lon: Number(station.location.lon) };
+    }
     if (state.staticMode) {
       const elapsed = staticElapsedSeconds();
       Object.values(station.grades).forEach((value) => expireGrade(value, elapsed));
@@ -3582,6 +3771,7 @@ async function openStation(id) {
         ${eyewitnessLine(selected, station.id) ? `<p class="here-mine group ${eyewitnessLine(selected, station.id).tone}">${escapeHtml(eyewitnessLine(selected, station.id).text)}</p>` : ''}
         ${markLine(station.id, state.grade) ? `<p class="here-mine">✔ ${escapeHtml(markLine(station.id, state.grade))}</p>` : ''}
         ${thanksButton(station.id)}
+        ${verdictButtons(station.id)}
         ${markComposer(station.id)}
         <p class="here-note">Отметьте, что видите на колонках, и очередь. Отметка сразу появится у всех наверху в «Свои сообщают» и весит больше любой ленты. Живёт 45 минут.</p>
       </div>
@@ -3598,6 +3788,7 @@ async function openStation(id) {
     bindMarkButtons($('#drawerContent'));
     bindComposer($('#drawerContent'));
     bindThanks($('#drawerContent'));
+    bindVerdicts($('#drawerContent'));
     $('#routeLink').addEventListener('click', () => track('route_open', analytics.predictionFields(station, state.grade)));
     $('#trafficLink').addEventListener('click', () => track('traffic_open', analytics.predictionFields(station, state.grade)));
     $('#copyCoords').addEventListener('click', async (event) => {

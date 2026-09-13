@@ -563,6 +563,9 @@ body.club-locked { overflow: hidden; }
 .gate-remember .remember-note { color: #ffd9a8; }
 .club-login .list-more { margin-top: 8px; }
 .club-login .remember-note { color: #a52a2a; }
+.club-howto { margin: 16px 0 4px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
+.club-howto summary { font-weight: 800; cursor: pointer; }
+.club-howto ol { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
 .feed-club-join { margin: 0 0 8px; padding: 10px 14px; border-radius: 12px; background: rgba(13, 51, 40, .07); color: var(--brand-dark, #0d3328); font-size: 14px; font-weight: 600; }
 .feed-club-join button { margin-left: 6px; padding: 6px 12px; border-radius: 999px; border: 0; background: var(--brand-dark, #0d3328); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 #heroTitle { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -590,6 +593,18 @@ body.club-locked { overflow: hidden; }
 .thanks-button { justify-self: start; margin-top: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid #1f7a4d; background: #fff; color: #1f7a4d; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .thanks-button.done { border-color: transparent; background: rgba(31, 122, 77, .1); color: #3b6b53; cursor: default; }
 .drawer-mark .thanks-button { margin-top: 10px; }
+.verdicts { display: grid; gap: 8px; margin-top: 8px; }
+.verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border-radius: 12px; background: rgba(13, 51, 40, .05); }
+.verdict-label { flex: 1 1 100%; font-size: 13px; color: var(--ink); }
+.verdict-button { min-height: 40px; padding: 4px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-size: 16px; cursor: pointer; }
+.verdict-button b { margin-left: 2px; font-weight: 800; }
+.verdict-button.up.mine { background: #e3f4ea; border-color: #158257; }
+.verdict-button.down.mine { background: #fbe7e8; border-color: #b8333a; }
+.verdict-button.away { opacity: .5; }
+.verdict-button:disabled { opacity: .35; }
+.verdict-hint { flex: 1 1 100%; font-size: 12px; color: var(--muted); }
+.verdict-hint.here { color: #0d5a43; font-weight: 700; }
+.verdict-own { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 .tank-card { margin: 14px 0 6px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #0d3328, #1f5c45); color: #fff; }
 .tank-head { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
 .tank-icon { font-size: 40px; line-height: 1; }

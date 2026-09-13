@@ -22,7 +22,9 @@
  * remembers who vouched for whom, and the owner can ban. A member whose phone
  * forgot the token gets back in without anyone's help: with a passkey, with
  * the same invite code while it runs, or with a short code shown by a device
- * still inside. It opens in stages.
+ * still inside. Members standing at a pump confirm (👍) or refute (👎)
+ * each other's fresh marks; five refutations from different people take the
+ * author out of the club until the owner brings them back. It opens in stages.
  * With CLUB_OWNER_KEY alone it is a test: members see it on their own phones,
  * and for everyone else the app stays as it was. CLUB_GATE=invite offers
  * joining to everyone; CLUB_GATE=closed shuts the door, and only members can
@@ -718,6 +720,17 @@ const MARK_LITERS_PER_DAY = 10;
 const THANKS_PER_DAY = 20;
 const CONFIRM_WINDOW_MS = 45 * 60 * 1000;
 const SAME_STATION_MS = 60 * 60 * 1000;
+// 👍 and 👎 on someone else's mark come only from a member standing at that
+// pump while the mark is still news. 👎 from different people add up with no
+// expiry: three bring a warning, five take the author out of the club until
+// the owner brings them back.
+const VOTE_WINDOW_MS = 60 * 60 * 1000;
+const VOTE_RADIUS_M = 300;
+// GPS under a canopy or between buildings drifts; the app asks for 300 m.
+const VOTE_RADIUS_SLACK_M = 100;
+const VOTES_PER_DAY = 40;
+const REFUTED_WARNING = 3;
+const REFUTED_BAN = 5;
 const LEVELS = [
   { min: 0, icon: '🔰', title: 'Новичок' },
   { min: 10, icon: '⛽', title: 'Заправщик' },
@@ -747,7 +760,7 @@ function emptyStats() {
   return {
     liters: 0, marks: 0, confirmed: 0, thanks: 0, saved: 0, given: 0, scout: 0, first_seen: 0,
     night: 0, queue_confirmed: 0, sponsor: 0, heroes: 0, blind: 0, zones: [], weeks: {}, days: {}, given_days: {},
-    badges: {}, awards: [], news: [], thanked: {}, confirms: {},
+    badges: {}, awards: [], news: [], thanked: {}, confirms: {}, votes: {}, refuted_by: {}, vote_days: {},
   };
 }
 
@@ -831,6 +844,11 @@ function queueBucket(cars) {
 
 function markKey(report) {
   return `${report.station}:${report.grade}:${report.at}`;
+}
+
+// One look at a pump may list several grades; 👍 and 👎 are about the look.
+function lookKey(report) {
+  return `${report.station}:${report.at}`;
 }
 
 function profileOf(stats, now = Date.now()) {
@@ -1257,7 +1275,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -1405,6 +1423,7 @@ async function clubRoutes(request, env, url, ctx) {
     return json({
       member: publicMember(member), invites: mine, invites_left: inviteAllowance(member, invites),
       passkeys: Object.values(keys).filter((key) => key.member === member.id).length,
+      refuted_by: Object.keys(stats.refuted_by || {}).length,
       profile: profileOf(stats), news, now: Date.now(),
     }, request, env);
   }
@@ -1551,6 +1570,112 @@ async function clubRoutes(request, env, url, ctx) {
     return json({ ok: true, thanks: thanked.thanks, author_name: members[authorId].name, badges: thanked.badges }, request, env);
   }
 
+  if (request.method === 'POST' && path === '/club/vote') {
+    if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
+    const body = (await readJson(request)) || {};
+    const authorId = String(body.author || '');
+    const vote = body.vote === 'up' || body.vote === 'down' ? body.vote : null;
+    if (!vote) return json({ error: 'expected_vote' }, request, env, 400);
+    if (authorId === member.id) return json({ error: 'cannot_vote_self' }, request, env, 400);
+    const station = String(body.station || '');
+    const at = Number(body.at);
+    const look = (await readAll(env)).filter((report) => report.who === authorId && report.station === station && report.at === at);
+    const author = members[authorId];
+    if (!look.length || !author || author.banned) return json({ error: 'mark_gone' }, request, env, 404);
+    const now = Date.now();
+    if (now - at > VOTE_WINDOW_MS) return json({ error: 'vote_too_late' }, request, env, 410);
+    // Only someone who sees the pump can say whether the mark is true. The
+    // mark carries where the station is; an old app's mark without it is
+    // placed by the voter's app.
+    const placed = look.find((report) => report.lat != null && report.lon != null);
+    const pump = placed ? { lat: placed.lat, lon: placed.lon } : { lat: Number(body.station_lat), lon: Number(body.station_lon) };
+    const here = { lat: Number(body.lat), lon: Number(body.lon) };
+    if (![pump.lat, pump.lon, here.lat, here.lon].every(Number.isFinite)) return json({ error: 'vote_needs_place' }, request, env, 400);
+    if (distanceKm(here, pump) * 1000 > VOTE_RADIUS_M + VOTE_RADIUS_SLACK_M) return json({ error: 'vote_not_here' }, request, env, 403);
+    const key = `${station}:${at}`;
+    const today = dayKey(now);
+    const outcome = await transact(env, { 'club:stats': {}, 'club:members': {} }, (docs) => {
+      const all = docs['club:stats'];
+      const voter = statsFor(all, member.id);
+      const target = statsFor(all, authorId);
+      const record = target.votes[key] || { up: [], down: [] };
+      const was = record.up.includes(member.id) ? 'up' : record.down.includes(member.id) ? 'down' : null;
+      if (was === vote) return { up: record.up.length, down: record.down.length, mine: vote };
+      if ((voter.vote_days[today] || 0) >= VOTES_PER_DAY) return { error: 'too_many_votes', status: 429 };
+      voter.vote_days = { [today]: (voter.vote_days[today] || 0) + 1 };
+      for (const old of Object.keys(target.votes)) {
+        if (now - Number(old.split(':').pop()) > 3 * 24 * 60 * 60 * 1000) delete target.votes[old];
+      }
+      record.up = record.up.filter((id) => id !== member.id);
+      record.down = record.down.filter((id) => id !== member.id);
+      record[vote].push(member.id);
+      target.votes[key] = record;
+      const result = { up: record.up.length, down: record.down.length, mine: vote };
+      // Who refuted what: a changed mind takes that 👎 back, and one person
+      // refuting several marks still counts as one.
+      const refuted = target.refuted_by;
+      const looks = (refuted[member.id]?.looks || []).filter((item) => item !== key);
+      if (vote === 'down') looks.push(key);
+      if (looks.length) refuted[member.id] = { at: refuted[member.id]?.at || now, looks: looks.slice(-20) };
+      else delete refuted[member.id];
+      result.people = Object.keys(refuted).length;
+      if (vote === 'up') {
+        // Paid like a second pair of eyes: once per person per station an hour.
+        const pair = `${member.id}:${station}`;
+        for (const [confirm, when] of Object.entries(target.confirms)) if (now - when > SAME_STATION_MS) delete target.confirms[confirm];
+        if (!target.confirms[pair]) {
+          target.confirms[pair] = now;
+          target.confirmed += 1;
+          result.levelUp = addLiters(target, LITERS.confirmed, now, 'confirmed', { by: member.id, station, grade: look[0].grade, seen: look[0].seen });
+          awardBadges(target, now);
+          result.paid = LITERS.confirmed;
+        }
+      }
+      const record2 = docs['club:members'][authorId];
+      if (vote === 'down' && record2 && record2.role !== 'owner' && !record2.banned) {
+        if (result.people >= REFUTED_BAN) {
+          record2.banned = true;
+          record2.banned_reason = `отметки опровергли ${result.people} участников клуба`;
+          record2.banned_at = now;
+          record2.banned_by = 'votes';
+          result.banned = true;
+        } else if (result.people >= REFUTED_WARNING && !target.warned_at) {
+          target.warned_at = now;
+          pushNews(target, { type: 'warning', people: result.people, at: now });
+          result.warned = true;
+        }
+      }
+      return result;
+    });
+    if (outcome.error) return json({ error: outcome.error }, request, env, outcome.status);
+    if (outcome.banned) {
+      // What the excluded member said stops counting at once, as with the owner's ban.
+      await transact(env, { reports: [], subscriptions: [] }, (docs) => {
+        docs.reports = docs.reports.filter((report) => report?.who !== authorId);
+        docs.subscriptions = docs.subscriptions.filter((sub) => sub?.who !== authorId);
+      });
+      ctx.waitUntil(notifyMember(env, 'owner', {
+        title: `⛔ ${author.name || 'Участник'} выбыл(а) из клуба`,
+        body: `Отметки опровергли ${outcome.people} участников. Если это ошибка — «👥 Клуб» → «Участники» → «Вернуть в клуб».`,
+        tag: `spbfi-refuted-${authorId}`,
+      }).catch(() => {}));
+    } else if (outcome.warned) {
+      ctx.waitUntil(notifyMember(env, authorId, {
+        title: '⚠️ С вашими отметками не согласны',
+        body: `${outcome.people} человека на заправках поставили 👎. Отмечайте только то, что видите сами: после ${REFUTED_BAN} — выбывание из клуба.`,
+        tag: 'spbfi-warning',
+      }).catch(() => {}));
+    } else if (outcome.paid) {
+      ctx.waitUntil(notifyMember(env, authorId, {
+        title: `👍 ${member.name || 'Свой'} подтвердил(а) вашу отметку`,
+        body: `На месте всё так · +${outcome.paid} 🤝${outcome.levelUp ? ` · новый уровень: ${outcome.levelUp.icon} ${outcome.levelUp.title}` : ''}`,
+        station,
+        tag: `spbfi-confirm-${station}`,
+      }).catch(() => {}));
+    }
+    return json({ ok: true, up: outcome.up, down: outcome.down, mine: outcome.mine, ...(outcome.paid ? { paid: outcome.paid } : {}) }, request, env);
+  }
+
   if (request.method === 'GET' && path === '/club/leaderboard') {
     const hero = await crownLastWeek(env, members);
     const all = await readDoc(env, 'club:stats', {});
@@ -1582,12 +1707,16 @@ async function clubRoutes(request, env, url, ctx) {
       .map((report) => {
         const author = (clubStats[report.who] || {});
         const thankedBy = author.thanked?.[markKey(report)] || [];
+        const votes = author.votes?.[lookKey(report)] || { up: [], down: [] };
         return {
           ...report,
           name: members[report.who]?.name || '',
           level_icon: levelFor(author.liters || 0).icon,
           thanks: thankedBy.length,
           thanked: thankedBy.includes(member.id),
+          up: votes.up.length,
+          down: votes.down.length,
+          my_vote: votes.up.includes(member.id) ? 'up' : votes.down.includes(member.id) ? 'down' : null,
         };
       });
     return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
@@ -1635,6 +1764,11 @@ async function clubRoutes(request, env, url, ctx) {
         level_icon: levelFor((ownerStats[item.id]?.liters) || 0).icon,
         invited: Object.values(invites).filter((invite) => invite.by === item.id && invite.used_by && !invite.for).length,
         passkeys: Object.values(keys).filter((key) => key.member === item.id).length,
+        refuted_by: Object.keys(ownerStats[item.id]?.refuted_by || {}).length,
+        // The author sees only how many; the owner, who decides, sees who.
+        refuted_names: Object.keys(ownerStats[item.id]?.refuted_by || {}).map((id) => members[id]?.name || '—'),
+        warned: !!ownerStats[item.id]?.warned_at,
+        banned_by: item.banned ? (item.banned_by || 'owner') : null,
       };
     }).sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : (b.joined || 0) - (a.joined || 0)));
     const active = Object.entries(invites)
@@ -1680,9 +1814,20 @@ async function clubRoutes(request, env, url, ctx) {
       target.banned = body.banned !== false;
       target.banned_reason = target.banned ? String(body.reason || '').slice(0, 120) : '';
       target.banned_at = target.banned ? Date.now() : null;
+      if (target.banned) target.banned_by = 'owner';
+      else delete target.banned_by;
       return publicMember(target);
     });
     if (!changed) return json({ error: 'member_unknown' }, request, env, 404);
+    if (!changed.banned) {
+      // Brought back by the owner, a member starts again with no 👎 against them.
+      await transact(env, { 'club:stats': {} }, (docs) => {
+        const stats = docs['club:stats'][id];
+        if (!stats) return;
+        stats.refuted_by = {};
+        delete stats.warned_at;
+      });
+    }
     if (changed.banned) {
       // What a banned member said stops counting at once, not in three hours.
       await transact(env, { reports: [], subscriptions: [] }, (docs) => {

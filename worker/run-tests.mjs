@@ -16,6 +16,8 @@ const runs = [
   ['club-modes.test.mjs', 'd1'],
   ['club-return.test.mjs', 'kv'],
   ['club-return.test.mjs', 'd1'],
+  ['club-votes.test.mjs', 'kv'],
+  ['club-votes.test.mjs', 'd1'],
   ['storage.test.mjs', 'kv+d1'],
 ];
 
