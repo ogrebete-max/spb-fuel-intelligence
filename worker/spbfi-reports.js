@@ -1041,7 +1041,7 @@ const LOOKALIKES = { a: 'а', c: 'с', e: 'е', o: 'о', p: 'р', x: 'х', y: '�
 function ownerKeyForm(value) {
   return String(value || '')
     .normalize('NFKC')
-    .replace(/[​-‍⁠﻿]/g, '')
+    .replace(/[\u200b-\u200d\u2060\ufeff]/g, '')
     .toLowerCase()
     .replace(/ё/g, 'е')
     .replace(/[aceopxyk]/g, (letter) => LOOKALIKES[letter])
