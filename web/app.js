@@ -37,6 +37,8 @@ const state = {
   gradesBrief: {},
   marks: {},
   follow: false, watchId: null, accuracy: null,
+  locationAt: 0, fixStartedAt: 0, pendingFix: null, locating: false, locationTimer: null, contextTimer: null,
+  passed: {}, ownOnly: false,
   groupMarks: {}, stationInfo: {}, stationDetails: {}, total: 0,
   club: { enabled: false, member: null, profile: null, newsTimer: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
@@ -73,6 +75,11 @@ function formatDuration(seconds) {
 function formatSnapshot(seconds, mode) {
   if (seconds == null) return ['Время снимка неизвестно', 'проверяйте evidence'];
   const stale = seconds > 60 * 60;
+  // Refreshes are ten minutes apart. Past twenty the data is late and the card
+  // must say so plainly instead of a calm green dot.
+  if (!stale && seconds > 20 * 60) {
+    return ['Данные отстают', `последнее обновление ${formatAge(seconds)} · обычно раз в 10 мин`, false, true];
+  }
   const title = stale ? 'Снимок слишком старый для «сейчас»' : mode === 'live_http_snapshot' ? 'Свежий HTTP-снимок' : mode === 'static_github_pages' ? 'Публичный снимок' : 'Снимок Phase 0';
   const subtitle = stale ? `${formatAge(seconds)} · статусы старше 45 мин не подтверждают наличие` : formatAge(seconds);
   return [title, subtitle, stale];
@@ -285,10 +292,10 @@ async function bootstrap() {
 
 function renderMeta() {
   const frozenAge = state.meta.mode === 'static_github_pages' && state.meta.snapshot_at ? Math.max(0, Math.round((Date.now() - new Date(state.meta.snapshot_at).getTime()) / 1000)) : state.meta.snapshot_age_seconds;
-  const [title, subtitle, stale] = formatSnapshot(frozenAge, state.meta.mode);
+  const [title, subtitle, stale, late] = formatSnapshot(frozenAge, state.meta.mode);
   const stats = state.meta.stats || {};
   const baseline = Number((stats.source_rows || {}).sber || 0);
-  $('#snapshotCard').innerHTML = `<span class="pulse ${stale ? 'stale' : ''}"></span><span><strong>${title}</strong><small>${subtitle} · ${Number(stats.canonical_stations).toLocaleString('ru-RU')} карточек</small></span>`;
+  $('#snapshotCard').innerHTML = `<span class="pulse ${stale ? 'stale' : late ? 'late' : ''}"></span><span><strong>${title}</strong><small>${subtitle} · ${Number(stats.canonical_stations).toLocaleString('ru-RU')} карточек</small></span>`;
   const live = Object.keys(stats.source_rows || {}).length;
   renderCollectorHealth();
   $('#identityNote').textContent = baseline
@@ -302,7 +309,7 @@ function renderMeta() {
   if (state.staticMode || state.meta.mode === 'static_github_pages') {
     refresh.textContent = 'Автообновление: 10 мин';
     refresh.disabled = true;
-    refresh.title = 'Публичная версия обновляется GitHub Actions по расписанию.';
+    refresh.title = 'Данные обновляются автоматически, примерно раз в 10 минут.';
   }
 }
 
@@ -469,13 +476,35 @@ async function refreshData() {
   }
 }
 
-function renderSearchContext() {
+// Precise location is a per-app switch on iPhone, and messenger browsers
+// locate worse than Safari; the fix has to be named, not guessed at.
+function preciseHint() {
+  const { iOS, inAppBrowser } = platformInfo();
+  if (inAppBrowser) return 'Приложение открыто внутри мессенджера — там место определяется хуже и обновляется с задержкой. Откройте его в Safari и добавьте на экран «Домой».';
+  if (iOS) return 'Проверьте: Настройки → Конфиденциальность → Службы геолокации → Safari или «Сайты Safari» → включите «Точная геопозиция».';
+  return 'Проверьте, что браузеру разрешена точная геолокация.';
+}
+
+function formatMeters(metres) {
+  return metres >= 1000 ? `${(metres / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} км` : `${Math.round(metres)} м`;
+}
+
+function renderSearchContext({ waitingAccuracy = null } = {}) {
   const context = $('#searchContext');
+  if (state.follow && waitingAccuracy) {
+    context.innerHTML = `<strong>Уточняем ваше место…</strong> Пока телефон даёт точность ±${escapeHtml(formatMeters(waitingAccuracy))} — этого мало, чтобы выбрать ближайшие АЗС. <span class="context-warn">${escapeHtml(preciseHint())}</span>`;
+    return;
+  }
   if (state.searchScope === 'place') {
     context.innerHTML = `<strong>Рядом с: ${escapeHtml(state.searchLabel)}</strong> · радиус ${state.radiusKm} км по прямой <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.searchScope === 'device') {
-    const acc = state.accuracy ? ` · точность ±${state.accuracy} м` : '';
-    context.innerHTML = `<strong>Рядом с вами</strong> · ближайшие сверху, список сам обновляется по мере движения${acc} <button type="button" data-clear-scope>Весь город</button>`;
+    const age = state.locationAt ? Math.round((Date.now() - state.locationAt) / 1000) : null;
+    const fresh = age == null ? '' : age < 20 ? ' · место обновлено только что' : ` · место обновлено ${formatAge(age)}`;
+    const precision = state.accuracy ? ` · ±${formatMeters(state.accuracy)}` : '';
+    const coarse = state.accuracy > 300
+      ? `<span class="context-warn">⚠️ Место определено неточно — список может быть не для вашей улицы. ${escapeHtml(preciseHint())}</span>`
+      : '';
+    context.innerHTML = `<strong>Рядом с вами</strong> · ближайшие сверху${fresh}${precision} <button type="button" data-clear-scope>Весь город</button>${coarse}`;
   } else if (state.searchScope === 'map') {
     context.innerHTML = `<strong>${escapeHtml(state.searchLabel)}</strong> <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.search.trim()) {
@@ -503,7 +532,7 @@ function clearSearchScope({ keepText = false, reload = true } = {}) {
     state.search = '';
     $('#searchInput').value = '';
   }
-  $('#locateButton').innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
+  renderLocateButton();
   renderSearchContext();
   if (reload) loadStations();
 }
@@ -609,13 +638,170 @@ async function loadStationsWideningRadius() {
 // out a coarse cached fix first, so a single getCurrentPosition would happily
 // show the other end of the city; watchPosition keeps improving instead.
 const REQUERY_METRES = 150;
+// A fix this rough cannot tell one district from the next; the list waits a
+// little for a better one before it moves.
+const COARSE_METRES = 1000;
+const COARSE_WAIT_MS = 12000;
+// Watches stall in messenger browsers and whenever iOS suspends the page, so
+// a fresh fix is asked for on return and every so often while on screen.
+const LOCATION_REFRESH_MS = 45000;
+// Stations passed this close are offered for a mark for a while afterwards:
+// at 50 km/h there is no time to find the right card while driving past.
+const PASSED_METRES = 250;
+const PASSED_KEEP_MS = 15 * 60 * 1000;
 
 function locate() {
+  // With "рядом" already on, the button means "update my place now". People
+  // pressed it for exactly that and it used to switch the mode off; leaving is
+  // the "Весь город" link.
   if (state.follow) {
-    stopFollowing();
+    refreshLocation({ manual: true });
     return;
   }
   startFollowing({ manual: true });
+}
+
+function renderLocateButton() {
+  const button = $('#locateButton');
+  if (!button) return;
+  button.classList.remove('coarse');
+  if (!state.follow) {
+    button.innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
+    return;
+  }
+  if (state.locating || !state.location) {
+    button.innerHTML = '<span aria-hidden="true">◌</span> Определяем место…';
+    return;
+  }
+  const coarse = state.accuracy > 300;
+  button.classList.toggle('coarse', coarse);
+  button.innerHTML = coarse
+    ? `<span aria-hidden="true">⚠️</span> Место неточное · ±${formatMeters(state.accuracy)} · уточнить`
+    : `<span aria-hidden="true">📍</span> Вы здесь · ±${formatMeters(state.accuracy)} · обновить`;
+}
+
+function liveDistanceKm(station) {
+  if (state.location && station?.location) return haversineKm(state.location, station.location);
+  return station?.distance_km ?? null;
+}
+
+function notePassedStations(here, accuracy) {
+  if (accuracy > 300) return;
+  const now = Date.now();
+  for (const station of state.stations) {
+    if (!station.location) continue;
+    const metres = haversineKm(here, station.location) * 1000;
+    if (metres <= PASSED_METRES) {
+      state.passed[station.id] = {
+        at: now, network: station.network, address: station.address, location: station.location,
+      };
+    }
+  }
+  for (const [id, item] of Object.entries(state.passed)) {
+    if (now - item.at > PASSED_KEEP_MS) delete state.passed[id];
+  }
+}
+
+function applyFix(coords, { force = false } = {}) {
+  const here = { lat: coords.latitude, lon: coords.longitude };
+  const accuracy = Math.round(coords.accuracy || 0);
+  const firstFix = !state.location;
+  if (firstFix && accuracy > COARSE_METRES && Date.now() - state.fixStartedAt < COARSE_WAIT_MS) {
+    state.pendingFix = coords;
+    renderSearchContext({ waitingAccuracy: accuracy });
+    return;
+  }
+  const previous = state.location;
+  const previousAccuracy = state.accuracy;
+  const moved = !previous || haversineKm(previous, here) * 1000 > REQUERY_METRES;
+  // A much sharper fix of the same spot still changes which stations are near.
+  const sharper = Boolean(previousAccuracy && previousAccuracy > 300 && accuracy < previousAccuracy / 2);
+  state.location = here;
+  state.accuracy = accuracy;
+  state.locationAt = Date.now();
+  state.pendingFix = null;
+  notePassedStations(here, accuracy);
+  renderMe();
+  renderLocateButton();
+  if (firstFix) {
+    state.bbox = null;
+    state.search = '';
+    state.status = null;
+    state.timeline = null;
+    state.searchScope = 'device';
+    state.searchLabel = null;
+    state.radiusKm = 5;
+    state.sort = 'nearest_available';
+    $('#searchInput').value = '';
+    $('#sortSelect').value = 'nearest_available';
+    if (state.map) state.map.setView([here.lat, here.lon], 13);
+    renderSearchContext();
+    loadStationsWideningRadius();
+    renderGroupFeed();
+    refreshPushLocation();
+    track('locate_result', { success: true, zone: analytics.zoneFor(here), reason: accuracy > 300 ? 'coarse' : 'precise' });
+    return;
+  }
+  if ((moved || sharper || force) && state.searchScope === 'device') {
+    loadStations({ silent: true });
+  } else {
+    renderSearchContext();
+    renderHerePanel();
+  }
+  if (moved) refreshPushLocation();
+}
+
+function refreshLocation({ manual = false } = {}) {
+  if (!navigator.geolocation) return;
+  // A background refresh still waiting for the GPS must never swallow a tap:
+  // the person pressed the button because the place looked wrong.
+  if (state.locating && !manual) return;
+  const token = (state.locateToken || 0) + 1;
+  state.locateToken = token;
+  state.locating = true;
+  if (manual) renderLocateButton();
+  setTimeout(() => {
+    if (state.locateToken === token && state.locating) {
+      state.locating = false;
+      renderLocateButton();
+    }
+  }, 17000);
+  // Two requests at once: a quick one that may reuse a fix from the last half
+  // minute, and a precise fresh one. A brand-new high-accuracy fix can take
+  // many seconds indoors or never come at all; the quick answer is shown
+  // straight away and the precise one sharpens it when it arrives.
+  let answered = false;
+  let pending = 2;
+  const onFix = ({ coords }) => {
+    if (state.locateToken !== token) {
+      applyFix(coords);
+      return;
+    }
+    applyFix(coords, { force: manual && !answered });
+    if (answered) return;
+    answered = true;
+    state.locating = false;
+    renderLocateButton();
+    if (manual) {
+      showToast(
+        `📍 Место обновлено · ±${formatMeters(state.accuracy)}`,
+        state.accuracy > 300 ? 'Точность низкая — список может быть не для этой улицы.' : 'Ближайшие АЗС — наверху списка.',
+      );
+    }
+  };
+  const onError = (error) => {
+    pending -= 1;
+    if (answered || pending > 0 || state.locateToken !== token) return;
+    state.locating = false;
+    renderLocateButton();
+    if (manual) {
+      showToast('Не удалось обновить место', error.code === 1
+        ? 'Геолокация запрещена для этого сайта в настройках телефона.'
+        : 'Нет сигнала. Попробуйте ещё раз через несколько секунд.');
+    }
+  };
+  navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: false, maximumAge: 30000, timeout: 6000 });
+  navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: true, maximumAge: manual ? 0 : 20000, timeout: 15000 });
 }
 
 function startFollowing({ manual = false } = {}) {
@@ -623,57 +809,50 @@ function startFollowing({ manual = false } = {}) {
     if (manual) alert('Геолокация не поддерживается этим браузером.');
     return;
   }
-  const button = $('#locateButton');
   if (manual) track('locate_start');
-  button.innerHTML = '<span aria-hidden="true">◌</span> Определяем…';
   state.follow = true;
+  state.fixStartedAt = Date.now();
+  state.pendingFix = null;
   document.body.classList.add('following');
-  const onFix = ({ coords }) => {
-    const here = { lat: coords.latitude, lon: coords.longitude };
-    const moved = !state.location || haversineKm(state.location, here) * 1000 > REQUERY_METRES;
-    const firstFix = !state.location;
-    state.location = here;
-    state.accuracy = Math.round(coords.accuracy || 0);
-    button.innerHTML = `<span aria-hidden="true">●</span> Слежу за вами${state.accuracy > 300 ? ' · грубо' : ''}`;
-    renderMe();
-    if (firstFix) {
-      state.bbox = null;
-      state.search = '';
-      state.status = null;
-      state.timeline = null;
-      state.searchScope = 'device';
-      state.searchLabel = null;
-      state.radiusKm = 5;
-      state.sort = 'nearest_available';
-      $('#searchInput').value = '';
-      $('#sortSelect').value = 'nearest_available';
-      if (state.map) state.map.setView([here.lat, here.lon], 13);
-      renderSearchContext();
-      loadStationsWideningRadius();
-      renderGroupFeed();
-      refreshPushLocation();
-      track('locate_result', { success: true, zone: analytics.zoneFor(here), reason: state.accuracy > 300 ? 'coarse' : 'precise' });
+  renderLocateButton();
+  const onFix = ({ coords }) => applyFix(coords);
+  const onError = (error) => {
+    // Only a refusal ends following. A timeout or a moment without signal is
+    // ordinary on the road, and switching the mode off then left people with
+    // a list for a place they had long since left.
+    if (error.code !== 1) {
+      renderLocateButton();
       return;
     }
-    if (moved && state.searchScope === 'device') {
-      loadStations({ silent: true });
-    }
-    if (moved) refreshPushLocation();
-  };
-  const onError = (error) => {
     state.follow = false;
     document.body.classList.remove('following');
-    button.innerHTML = '<span aria-hidden="true">⌖</span> Рядом со мной';
+    renderLocateButton();
     if (manual) {
-      alert(error.code === 1
-        ? 'Доступ к геолокации запрещён. Разрешите его для этого сайта в настройках телефона, иначе «рядом» работать не будет.'
-        : 'Не удалось определить положение. Попробуйте ещё раз на открытом месте.');
+      alert('Доступ к геолокации запрещён. Разрешите его для этого сайта в настройках телефона, иначе «рядом» работать не будет.');
     }
-    track('locate_result', { success: false, reason: error.code === 1 ? 'denied' : 'unavailable' });
+    track('locate_result', { success: false, reason: 'denied' });
   };
   // A cached fix within a minute appears instantly; the watch then refines it.
   navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 });
+  if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
   state.watchId = navigator.geolocation.watchPosition(onFix, onError, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  // If only coarse fixes came during the wait, use the best of them anyway.
+  setTimeout(() => {
+    if (state.follow && !state.location && state.pendingFix) applyFix(state.pendingFix);
+  }, COARSE_WAIT_MS + 200);
+  if (!state.locationTimer) {
+    state.locationTimer = setInterval(() => {
+      if (state.follow && !document.hidden) refreshLocation();
+    }, LOCATION_REFRESH_MS);
+    document.addEventListener('visibilitychange', () => {
+      if (state.follow && !document.hidden) refreshLocation();
+    });
+  }
+  if (!state.contextTimer) {
+    state.contextTimer = setInterval(() => {
+      if (state.searchScope === 'device' && !document.hidden) renderSearchContext();
+    }, 15000);
+  }
 }
 
 function stopFollowing() {
@@ -715,7 +894,7 @@ function renderStatusStrip(counts, timelineCounts = {}) {
   const strip = $('#statusStrip');
   const appeared = timelineCounts.appeared || 0;
   const temporalChip = `<button class="status-chip timeline-filter ${state.timeline === 'appeared' ? 'active' : ''}" style="--status-color:#0d5a43" data-timeline="appeared" ${appeared ? '' : 'disabled'}>✦ Появилось недавно · ${appeared}</button>`;
-  strip.innerHTML = temporalChip + Object.entries(STATUS).map(([key, item]) => {
+  strip.innerHTML = ownChip() + temporalChip + Object.entries(STATUS).map(([key, item]) => {
     const count = counts[key] || 0;
     // A chip reading "· 0" must not be clickable: selecting it empties the
     // list and looks exactly like a broken page.
@@ -723,6 +902,10 @@ function renderStatusStrip(counts, timelineCounts = {}) {
     return `<button class="status-chip ${state.status === key ? 'active' : ''}" style="--status-color:${item.color}" data-status="${key}" ${disabled}>${item.short} · ${count}</button>`;
   }).join('');
   strip.onclick = (event) => {
+    if (event.target.closest('[data-own]')) {
+      toggleOwnOnly();
+      return;
+    }
     const temporal = event.target.closest('[data-timeline]');
     if (temporal) {
       state.timeline = state.timeline === temporal.dataset.timeline ? null : temporal.dataset.timeline;
@@ -900,6 +1083,7 @@ function plural(count, one, few, many) {
 const PAGE_SIZE = 40;
 
 function resetFilters() {
+  state.ownOnly = false;
   state.search = '';
   state.status = null;
   state.timeline = null;
@@ -1035,7 +1219,7 @@ async function pollGroupMarks() {
       return;
     }
     const payload = await response.json();
-    const cutoff = Date.now() - GROUP_MARK_TTL_MS;
+    const cutoff = Date.now() - OWN_WINDOW_MS;
     const marks = {};
     for (const report of payload.reports || []) {
       if (!report || report.at < cutoff || !report.station || !report.grade) continue;
@@ -1071,6 +1255,8 @@ async function pollGroupMarks() {
     state.groupMarks = marks;
     if (changed && state.stations.length) renderStations();
     renderGroupFeed();
+    updateOwnChip();
+    if (state.ownOnly && changed) renderMarkers();
     if (changed) announceNewMarks(previous, marks);
   } catch {
     // Offline or the worker is down; the pipeline's copy still arrives.
@@ -1116,9 +1302,10 @@ async function renderGroupFeed() {
     return { stationId, items, latest, queue, people, names };
   }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
   if (!entries.length) {
-    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${scoutHint()}`;
+    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${ownLink()}${scoutHint()}`;
     bindPushButton(box);
     bindScout(box);
+    bindOwnLink(box);
     return;
   }
   await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
@@ -1130,13 +1317,13 @@ async function renderGroupFeed() {
     const who = entry.names.length ? entry.names.join(', ') : entry.people > 1 ? `${entry.people} ${plural(entry.people, 'человек', 'человека', 'человек')}` : null;
     const meta = [who, formatAge((now - entry.latest) / 1000), distance || null].filter(Boolean).join(' · ');
     return `<div class="feed-item" role="button" tabindex="0" data-feed-station="${escapeHtml(entry.stationId)}">
-      <span class="feed-title"><strong>${escapeHtml(info.network || 'АЗС')}</strong><span class="feed-meta">${escapeHtml(meta)}</span></span>
+      <span class="feed-title"><strong>${escapeHtml(displayNetwork(info.network))}</strong><span class="feed-meta">${escapeHtml(meta)}</span></span>
       <span class="feed-address">${escapeHtml(shortAddress(info.address || ''))}</span>
       <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
       ${thanksButton(entry.stationId)}
     </div>`;
   }).join('');
-  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div><div class="feed-list">${cards}</div>${scoutHint()}`;
+  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div><div class="feed-list">${cards}</div>${ownLink()}${scoutHint()}`;
   box.querySelectorAll('[data-feed-station]').forEach((item) => {
     item.addEventListener('click', (event) => {
       if (event.target.closest('.thanks-button')) return;
@@ -1148,6 +1335,7 @@ async function renderGroupFeed() {
   });
   bindThanks(box);
   bindScout(box);
+  bindOwnLink(box);
   bindPushButton(box);
 }
 
@@ -1463,12 +1651,147 @@ function bindScout(root) {
   });
 }
 
+// ---------------------------------------------------------------- «Свои» tab
+
+// Everything the group marked in the worker's three-hour window, in one list
+// and on the map, ordered fresh first and then by distance, with how stale
+// each mark has become said in words.
+const OWN_WINDOW_MS = 3 * 60 * 60 * 1000;
+const OWN_TIERS = [
+  { max: 45, key: 'fresh', icon: '🟢', label: 'свежая' },
+  { max: 90, key: 'aging', icon: '🟡', label: 'протухает' },
+  { max: 180, key: 'stale', icon: '⚪', label: 'устарела — нужна новая отметка' },
+];
+
+function ownTier(ageMinutes) {
+  return OWN_TIERS.find((tier) => ageMinutes <= tier.max) || OWN_TIERS[OWN_TIERS.length - 1];
+}
+
+function ownEntries() {
+  const now = Date.now();
+  const order = Object.keys(GRADE_LABELS);
+  return Object.entries(state.groupMarks || {}).map(([stationId, grades]) => {
+    const items = Object.entries(grades)
+      .filter(([grade, mark]) => GRADE_LABELS[grade] && now - mark.at <= OWN_WINDOW_MS)
+      .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+    if (!items.length) return null;
+    const latest = Math.max(...items.map(([, mark]) => mark.at));
+    return {
+      stationId,
+      items,
+      latest,
+      tier: ownTier((now - latest) / 60000),
+      queue: items.map(([, mark]) => mark.queue).find((value) => value != null),
+      names: [...new Set(items.flatMap(([, mark]) => mark.names || []))].filter(Boolean),
+    };
+  }).filter(Boolean);
+}
+
+function ownChip() {
+  const count = ownEntries().length;
+  if (!count && !state.ownOnly) return '';
+  return `<button class="status-chip own-filter ${state.ownOnly ? 'active' : ''}" style="--status-color:#1f7a4d" data-own="1">👁 Свои · ${count}</button>`;
+}
+
+function updateOwnChip() {
+  const strip = $('#statusStrip');
+  if (!strip) return;
+  const existing = strip.querySelector('[data-own]');
+  const html = ownChip();
+  if (existing && html) existing.outerHTML = html;
+  else if (existing) existing.remove();
+  else if (html) strip.insertAdjacentHTML('afterbegin', html);
+}
+
+function ownLink() {
+  const count = ownEntries().length;
+  return count ? `<button type="button" class="feed-all" data-own-open>Все отметки своих за 3 часа · ${count} →</button>` : '';
+}
+
+function bindOwnLink(root) {
+  root.querySelector('[data-own-open]')?.addEventListener('click', () => {
+    if (!state.ownOnly) toggleOwnOnly();
+    $('#stationList')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function toggleOwnOnly() {
+  state.ownOnly = !state.ownOnly;
+  track('status_filter', { filter: state.ownOnly ? 'own' : 'all' });
+  if (state.ownOnly) {
+    updateOwnChip();
+    renderOwnList();
+    renderMarkers();
+  } else {
+    loadStations();
+  }
+}
+
+async function renderOwnList() {
+  const list = $('#stationList');
+  if (!list) return;
+  const entries = ownEntries();
+  $('#resultCount').textContent = entries.length.toLocaleString('ru-RU');
+  $('#resultNoun').textContent = `${plural(entries.length, 'АЗС', 'АЗС', 'АЗС')} с отметками своих`;
+  if (!entries.length) {
+    list.innerHTML = `<div class="empty-state"><strong>За три часа свои ничего не отмечали</strong><br>Как только кто-то отметит АЗС, она появится здесь.<br><button type="button" class="list-more" id="ownBack">Показать все АЗС</button></div>`;
+    $('#ownBack').addEventListener('click', toggleOwnOnly);
+    return;
+  }
+  await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
+  if (!state.ownOnly) return;
+  const now = Date.now();
+  const withDistance = entries.map((entry) => {
+    const info = state.stationInfo[entry.stationId] || {};
+    const km = state.location && info.lat != null ? haversineKm(state.location, { lat: info.lat, lon: info.lon }) : null;
+    return { ...entry, info, km };
+  }).sort((a, b) => {
+    const tiers = OWN_TIERS.indexOf(a.tier) - OWN_TIERS.indexOf(b.tier);
+    if (tiers) return tiers;
+    if (a.km != null && b.km != null && Math.abs(a.km - b.km) > 0.3) return a.km - b.km;
+    return b.latest - a.latest;
+  });
+  list.innerHTML = withDistance.map((entry) => {
+    const grades = entry.items.map(([grade, mark]) => `<span class="feed-grade ${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))} ${mark.seen ? '✓' : '✗'}</span>`).join('');
+    const queue = queueWords(entry.queue);
+    const who = entry.names.length ? ` · ${escapeHtml(entry.names.join(', '))}` : '';
+    return `<article class="station-card own-card ${entry.tier.key}">
+      <button type="button" class="card-main own-main" data-own-station="${escapeHtml(entry.stationId)}">
+        <span class="card-topline"><strong class="network">${escapeHtml(displayNetwork(entry.info.network))}</strong><span class="distance">${escapeHtml(formatDistance(entry.km))}</span></span>
+        <span class="address">${escapeHtml(shortAddress(entry.info.address || ''))}</span>
+        <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
+        <span class="own-age ${entry.tier.key}">${entry.tier.icon} ${escapeHtml(entry.tier.label)} · ${escapeHtml(formatAge((now - entry.latest) / 1000))}${who}</span>
+      </button>
+      <div class="card-actions">${thanksButton(entry.stationId)}</div>
+    </article>`;
+  }).join('');
+  list.querySelectorAll('[data-own-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.ownStation)));
+  bindThanks(list);
+}
+
+function renderOwnMarkers() {
+  const now = Date.now();
+  for (const entry of ownEntries()) {
+    const info = state.stationInfo[entry.stationId];
+    if (!info || info.lat == null) continue;
+    const grades = entry.items.map(([grade, mark]) => `<i class="${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))}</i>`).join('');
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="fuel-pin labelled own-pin ${entry.tier.key}"><span class="fuel-marker"></span><span class="pin-label"><b>${entry.tier.icon} ${escapeHtml(shortNetwork(info.network))}</b><span class="pin-grades">${grades}</span><em>${escapeHtml(formatAge((now - entry.latest) / 1000))}</em></span></div>`,
+      iconSize: [20, 20], iconAnchor: [10, 20],
+    });
+    const marker = L.marker([info.lat, info.lon], { icon });
+    marker.on('click', () => openStation(entry.stationId));
+    marker.addTo(state.markers);
+  }
+}
+
 function thankTargets(stationId) {
   const grades = (state.groupMarks || {})[stationId] || {};
   const me = myId();
   const byAuthor = new Map();
   for (const [grade, mark] of Object.entries(grades)) {
-    if (!mark.who || mark.who === me || !GRADE_LABELS[grade] || Date.now() - mark.at > GROUP_MARK_TTL_MS) continue;
+    if (!mark.who || mark.who === me || !GRADE_LABELS[grade] || Date.now() - mark.at > OWN_WINDOW_MS) continue;
     const known = byAuthor.get(mark.who);
     if (!known || mark.at > known.at) {
       byAuthor.set(mark.who, { station: stationId, grade, at: mark.at, author: mark.who, name: mark.authorName, thanks: mark.thanks || 0, thanked: !!mark.thanked });
@@ -2141,12 +2464,41 @@ function markComposer(stationId) {
   </div>`;
 }
 
+// On a card near the station there is no room, and no time, for five rows of
+// buttons: one chip per grade, tapped once for "есть" and twice for "нет".
+function quickComposer(stationId) {
+  const chips = Object.keys(GRADE_LABELS).map((grade) => `<button type="button" class="quick-grade" data-quick-grade="${grade}" aria-pressed="false">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))}</button>`).join('');
+  const queue = QUEUE_CHOICES.map(([cars, label]) => `<button type="button" class="queue-chip" data-compose-queue="${cars}">${label}</button>`).join('');
+  return `<div class="mark-composer quick" data-compose-station="${escapeHtml(stationId)}">
+    <span class="quick-title">Вы рядом. Нажмите марку: один раз — <b>есть</b>, второй — <b>нет</b></span>
+    <div class="quick-grades">${chips}</div>
+    <div class="compose-queue"><span>Очередь:</span>${queue}</div>
+    <button type="button" class="compose-send" disabled>Отправить своим</button>
+  </div>`;
+}
+
 function bindComposer(root) {
   const box = root.querySelector('.mark-composer');
   if (!box) return;
   const chosen = {};
   let queue = null;
   const send = box.querySelector('.compose-send');
+  box.querySelectorAll('[data-quick-grade]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const grade = button.dataset.quickGrade;
+      const label = GRADE_LABELS[grade].replace('АИ-', '');
+      if (!(grade in chosen)) chosen[grade] = true;
+      else if (chosen[grade] === true) chosen[grade] = false;
+      else delete chosen[grade];
+      const value = chosen[grade];
+      button.classList.toggle('yes', value === true);
+      button.classList.toggle('no', value === false);
+      button.textContent = value === true ? `${label} ✓` : value === false ? `${label} ✕` : label;
+      button.setAttribute('aria-pressed', value === undefined ? 'false' : 'true');
+      send.disabled = !Object.keys(chosen).length;
+    });
+  });
   box.querySelectorAll('[data-compose-grade]').forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -2176,10 +2528,9 @@ function bindComposer(root) {
     grades.forEach((grade, index) => saveMark(stationId, grade, chosen[grade], queue, {
       render: false, notify: index === 0, summary: index === 0 ? summary + queueText : '', blindSpot: index === 0 && blindSpot,
     }));
-    renderStations();
-    renderHerePanel();
-    renderGroupFeed();
     box.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(summary)}${escapeHtml(queueText)}. У всех это уже наверху, в «Свои сообщают».</span>`;
+    renderGroupFeed();
+    setTimeout(() => { renderStations(); renderHerePanel(); }, 4000);
   });
 }
 
@@ -2205,7 +2556,7 @@ const AT_STATION_METRES = 220;
 // a feed says; a driver in the city only needs the street.
 function shortAddress(address) {
   return String(address || '')
-    .replace(/^(?:(?:Россия|г\.?\s*Санкт-Петербург|Санкт-Петербург|Ленинградская область|Ленинградская обл\.?),\s*)+/i, '')
+    .replace(/^(?:(?:Российская Федерация|Россия|РФ|г\.?\s*Санкт-Петербург|Санкт-Петербург|Ленинградская область|Ленинградская обл\.?),\s*)+/i, '')
     .replace(/^[\s,]+/, '');
 }
 
@@ -2214,52 +2565,73 @@ function formatDistance(km) {
   return km < 1 ? `${Math.round(km * 1000)} м` : `${km.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} км`;
 }
 
+function markedRecently(stationId, minutes = 15) {
+  return Object.values((state.marks || {})[stationId] || {}).some((mark) => Date.now() - mark.at < minutes * 60 * 1000);
+}
+
 function renderHerePanel() {
   const panel = $('#herePanel');
   if (!panel) return;
-  if (!state.location || !state.stations.length) {
+  if (!state.location || !state.stations.length || state.accuracy > 300) {
     panel.hidden = true;
     return;
   }
   const nearest = state.stations
-    .filter((item) => item.distance_km != null)
-    .sort((a, b) => a.distance_km - b.distance_km)[0];
-  if (!nearest || nearest.distance_km * 1000 > AT_STATION_METRES) {
+    .filter((item) => item.location)
+    .map((item) => ({ item, km: liveDistanceKm(item) }))
+    .sort((a, b) => a.km - b.km)[0];
+  if (nearest && nearest.km * 1000 <= AT_STATION_METRES && !markedRecently(nearest.item.id, 10)) {
+    const station = nearest.item;
+    const brief = (state.gradesBrief || {})[station.id] || {};
+    const rows = Object.keys(GRADE_LABELS).map((grade) => {
+      const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
+      const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
+      return `<div class="here-grade ${mark.tone}"><b>${escapeHtml(GRADE_LABELS[grade])}</b><span>${mark.sign} ${escapeHtml(STATUS[status].short)}</span></div>`;
+    }).join('');
+    const witness = eyewitnessLine(station.grade, station.id);
+    panel.hidden = false;
+    panel.innerHTML = `
+      <span class="here-kicker">Вы у АЗС · ${escapeHtml(formatDistance(nearest.km))}</span>
+      <strong>${escapeHtml(displayNetwork(station.network))}</strong>
+      <span class="here-address">${escapeHtml(shortAddress(station.address))}</span>
+      <div class="here-grades">${rows}</div>
+      ${witness ? `<p class="here-mine group ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
+      ${quickComposer(station.id)}
+      <div class="here-actions"><button type="button" id="hereDetails">Подробнее об этой АЗС</button></div>`;
+    $('#hereDetails').addEventListener('click', () => openStation(station.id));
+    bindComposer(panel);
+    return;
+  }
+  const recent = Object.entries(state.passed)
+    .map(([id, item]) => ({ id, ...item, away: haversineKm(state.location, item.location) * 1000 }))
+    .filter((item) => item.away > AT_STATION_METRES && Date.now() - item.at <= PASSED_KEEP_MS && !markedRecently(item.id))
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 3);
+  if (!recent.length) {
     panel.hidden = true;
     return;
   }
-  const brief = (state.gradesBrief || {})[nearest.id] || {};
-  const rows = Object.keys(GRADE_LABELS).map((grade) => {
-    const status = grade === state.grade ? nearest.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
-    const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
-    return `<div class="here-grade ${mark.tone}">
-      <b>${escapeHtml(GRADE_LABELS[grade])}</b>
-      <span>${mark.sign} ${escapeHtml(STATUS[status].short)}</span>
-    </div>`;
-  }).join('');
-  const grade = nearest.grade;
-  const mine = markLine(nearest.id, state.grade);
   panel.hidden = false;
   panel.innerHTML = `
-    <span class="here-kicker">Вы сейчас на этой АЗС · ${escapeHtml(formatDistance(nearest.distance_km))}</span>
-    <strong>${escapeHtml(nearest.network)}</strong>
-    <span class="here-address">${escapeHtml(nearest.address)}</span>
-    <div class="here-grades">${rows}</div>
-    ${eyewitnessLine(grade, nearest.id) ? `<p class="here-mine group ${eyewitnessLine(grade, nearest.id).tone}">${escapeHtml(eyewitnessLine(grade, nearest.id).text)}</p>` : ''}
-    ${mine ? `<p class="here-mine">✔ ${escapeHtml(mine)}</p>` : ''}
-    <p class="here-note">Сверьте с колонками. Мы утверждаем это по ${(grade.votes || []).length} ${plural((grade.votes || []).length, 'источнику', 'источникам', 'источникам')}, самый свежий сигнал — ${escapeHtml(grade.undated_only ? 'без отметки времени' : formatAge(grade.age_seconds))}.</p>
-    ${markButtons(nearest.id)}
-    <div class="here-actions">
-      <button type="button" id="hereDetails">Почему такой ответ</button>
-      <a href="https://t.me/s/benzinspb78" target="_blank" rel="noopener noreferrer">Сообщить всем в чат ↗</a>
-    </div>`;
-  $('#hereDetails').addEventListener('click', () => openStation(nearest.id));
-  bindMarkButtons(panel);
+    <span class="here-kicker">Недавно проезжали — отметьте, пока помните</span>
+    <div class="passed-list">${recent.map((item) => `<button type="button" class="passed-item" data-passed-station="${escapeHtml(item.id)}">
+      <strong>${escapeHtml(shortNetwork(item.network))}</strong>
+      <span>${escapeHtml(shortAddress(item.address))} · ${escapeHtml(formatAge((Date.now() - item.at) / 1000))}</span>
+      <em>Отметить →</em>
+    </button>`).join('')}</div>
+    <p class="here-note">Отметить можно и позже — на светофоре или с пассажирского места. Не уверены — пропустите.</p>`;
+  panel.querySelectorAll('[data-passed-station]').forEach((button) => {
+    button.addEventListener('click', () => openStation(button.dataset.passedStation));
+  });
 }
 
 function renderStations({ append = false } = {}) {
   const list = $('#stationList');
   renderHerePanel();
+  if (state.ownOnly) {
+    renderOwnList();
+    return;
+  }
   if (!state.stations.length) {
     // Say which filter emptied the list, otherwise a stray map area or status
     // chip looks like a broken application.
@@ -2287,7 +2659,7 @@ function renderStations({ append = false } = {}) {
     const advice = grade.advice || {};
     const card = node.querySelector('.station-card');
     card.style.setProperty('--status-color', DECISION_TONE[advice.decision] || STATUS[grade.status].color);
-    node.querySelector('.network').textContent = station.network;
+    node.querySelector('.network').textContent = displayNetwork(station.network);
     node.querySelector('.address').textContent = shortAddress(station.address);
     node.querySelector('.grade-chips').innerHTML = gradeChips(station);
     node.querySelector('.verdict-text').textContent = advice.label || STATUS[grade.status].short;
@@ -2322,17 +2694,21 @@ function renderStations({ append = false } = {}) {
       own.textContent = `✔ ${mine}`;
       node.querySelector('.card-main').insertBefore(own, node.querySelector('.meta-line'));
     }
-    if (state.location && station.distance_km != null && station.distance_km * 1000 <= NEARBY_REPORT_METRES) {
-      const row = document.createElement('div');
-      row.innerHTML = markButtons(station.id, { compact: true });
-      node.querySelector('.card-main').appendChild(row.firstElementChild);
-      bindMarkButtons(node);
+    // Buttons inside the card's own button are invalid HTML: on iPhone a tap on
+    // them opened the card or did nothing. They live in a sibling block now.
+    const actions = node.querySelector('.card-actions');
+    const km = liveDistanceKm(station);
+    const near = state.location && state.accuracy <= 500 && km != null && km * 1000 <= NEARBY_REPORT_METRES;
+    if (near && markedRecently(station.id)) {
+      const own = Object.values(state.marks[station.id]).sort((a, b) => b.at - a.at)[0];
+      actions.innerHTML = `<span class="mark-sent">✔ Вы отметили ${escapeHtml(formatAge((Date.now() - own.at) / 1000))}</span> <button type="button" class="mark-link" data-open-station>Изменить</button>`;
+    } else if (near) {
+      actions.innerHTML = quickComposer(station.id);
+      bindComposer(actions);
     } else {
-      const link = document.createElement('span');
-      link.className = 'mark-link';
-      link.textContent = 'Видите эту АЗС? Отметить для своих →';
-      node.querySelector('.card-main').appendChild(link);
+      actions.innerHTML = '<button type="button" class="mark-link" data-open-station>Видите эту АЗС? Отметить для своих →</button>';
     }
+    actions.querySelector('[data-open-station]')?.addEventListener('click', () => openStation(station.id));
     const second = yandexLine(grade);
     if (second && second.agrees === false) {
       const note = document.createElement('span');
@@ -2341,7 +2717,7 @@ function renderStations({ append = false } = {}) {
       node.querySelector('.card-main').insertBefore(note, node.querySelector('.meta-line'));
     }
     const distance = node.querySelector('.distance');
-    distance.textContent = formatDistance(station.distance_km);
+    distance.textContent = formatDistance(liveDistanceKm(station));
     // Straight line, not the drive: around water and interchanges the road can
     // be far longer, and saying "км" without that is misleading.
     if (station.distance_km != null) distance.title = 'по прямой, дорога может быть заметно длиннее';
@@ -2400,6 +2776,14 @@ function renderMe() {
 // drivers like about Yandex's pins, here with our statuses behind it.
 const LABEL_ZOOM = 12;
 
+// Feeds name an unbranded station "other" and some networks by a lower-case
+// id; a driver should read a name, not a database value.
+function displayNetwork(name) {
+  const text = String(name || '').trim();
+  if (!text || /^(other|прочие|независимая)/i.test(text)) return 'АЗС';
+  return text.charAt(0).toLocaleUpperCase('ru-RU') + text.slice(1);
+}
+
 function shortNetwork(name) {
   const head = String(name || '').split(',')[0].replace(/\s*АЗС\s*$/i, '').trim().slice(0, 16);
   if (!head || /^(other|прочие|независимая)/i.test(head)) return 'АЗС';
@@ -2424,6 +2808,10 @@ function renderMarkers() {
   if (!state.map || !state.markers) return;
   renderMe();
   state.markers.clearLayers();
+  if (state.ownOnly) {
+    renderOwnMarkers();
+    return;
+  }
   const labelled = state.map.getZoom() >= LABEL_ZOOM;
   const bounds = labelled ? state.map.getBounds().pad(0.3) : null;
   state.stations.forEach((station) => {
@@ -2471,7 +2859,7 @@ async function openStation(id) {
       return `<div class="evidence-row" style="--evidence-color:${rowStatus}"><div class="evidence-head"><strong>${escapeHtml(AVAILABILITY_LABELS[row.availability] || row.availability)}</strong><span>${row.fresh ? formatAge(row.age_seconds) : 'устарело'}</span></div><div class="evidence-meta">${escapeHtml(row.source || 'источник не указан')} · ${escapeHtml(KIND_LABELS[row.kind] || row.kind)}${extras ? `<br>${escapeHtml(extras)}` : ''}<br>provenance: ${escapeHtml(row.effective_provenance)}${note ? `<br>${escapeHtml(note)}` : ''}</div></div>`;
     }).join('') : '<div class="empty-state">Для этой марки нет даже устаревших station-level свидетельств.</div>';
     $('#drawerContent').innerHTML = `
-      <h2>${escapeHtml(station.network || 'АЗС')}</h2>
+      <h2>${escapeHtml(displayNetwork(station.network))}</h2>
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
       <div class="drawer-actions"><a id="routeLink" href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><a id="trafficLink" href="${trafficUrl}" target="_blank" rel="noopener noreferrer">Пробки у АЗС ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="here-panel drawer-mark">

@@ -13,6 +13,8 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  # The last slot starts the next chain with `gh workflow run`.
+  actions: write
 
 # A newer wake-up takes over from the running chain instead of queueing behind
 # it, so there is always exactly one live refresher.
@@ -135,3 +137,13 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
+
+      # GitHub's schedule is only a wake-up and can sit in the queue for an hour
+      # (13 Sep 2026: the chain ended at 15:24 MSK and the next scheduled run
+      # waited until 17:05). The last slot therefore starts the next chain
+      # itself; the cron stays as a fallback.
+      - name: Hand over to the next chain
+        if: always() && matrix.slot == 15
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run refresh-and-deploy.yml --repo "${{ github.repository }}" --ref "${{ github.event.repository.default_branch }}"
