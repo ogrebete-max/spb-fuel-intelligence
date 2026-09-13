@@ -37,7 +37,7 @@ const state = {
   gradesBrief: {},
   marks: {},
   follow: false, watchId: null, accuracy: null,
-  groupMarks: {}, stationInfo: {},
+  groupMarks: {}, stationInfo: {}, stationDetails: {}, total: 0,
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -47,6 +47,8 @@ let installPrompt = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const analytics = window.SPBFIAnalytics || { track() {}, predictionFields() { return {}; }, zoneFor() { return 'unknown'; }, ageBucket() { return 'unknown'; }, enabled() { return false; }, setEnabled() {} };
+const track = (event, fields = {}) => analytics.track(event, { area: state.area, grade: state.grade, ...fields });
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -265,6 +267,13 @@ async function bootstrap() {
       .catch(() => { state.gradesBrief = {}; });
     initMap();
     await loadStations();
+    const health = state.meta?.collectors || {};
+    track('app_open', {
+      installed: platformInfo().installed,
+      snapshot_age_bucket: analytics.ageBucket(state.meta?.snapshot_age_seconds),
+      collector_ok: Number(health.ok || 0),
+      collector_failed: Number(health.failed?.length || 0),
+    });
   } catch (error) {
     $('#stationList').innerHTML = `<div class="empty-state"><strong>Не удалось загрузить приложение</strong><br>${escapeHtml(error.message)}</div>`;
   }
@@ -345,8 +354,9 @@ function bindControls() {
     event.preventDefault();
     installPrompt = event;
     $('#installButton').hidden = false;
+    track('install_prompt');
   });
-  window.addEventListener('appinstalled', () => { installPrompt = null; $('#installButton').hidden = true; });
+  window.addEventListener('appinstalled', () => { installPrompt = null; $('#installButton').hidden = true; track('installed'); });
   // iOS Safari never fires beforeinstallprompt, so the button stays visible
   // everywhere except inside an already installed window.
   const { installed, inAppBrowser } = platformInfo();
@@ -369,6 +379,7 @@ function bindControls() {
     $$('[data-grade]').forEach((item) => { item.classList.toggle('active', item === button); item.setAttribute('aria-checked', item === button); });
     state.status = null;
     state.timeline = null;
+    track('grade_select');
     loadStations();
   });
   $('.location-row .segmented').addEventListener('click', (event) => {
@@ -376,6 +387,7 @@ function bindControls() {
     if (!button) return;
     state.area = button.dataset.area;
     $$('[data-area]').forEach((item) => item.classList.toggle('active', item === button));
+    track('area_select');
     loadStations();
   });
   $('.view-switch').addEventListener('click', (event) => {
@@ -384,6 +396,7 @@ function bindControls() {
     state.view = button.dataset.view;
     $$('[data-view]').forEach((item) => item.classList.toggle('active', item === button));
     $('#contentGrid').classList.toggle('map-mode', state.view === 'map');
+    track('view_change', { view: state.view });
     if (state.map) setTimeout(() => { state.map.invalidateSize(); renderMarkers(); }, 80);
   });
   let searchTimer;
@@ -403,7 +416,7 @@ function bindControls() {
     findNearby();
   });
   $('#nearbySearchButton').addEventListener('click', findNearby);
-  $('#sortSelect').addEventListener('change', (event) => { state.sort = event.target.value; loadStations(); });
+  $('#sortSelect').addEventListener('change', (event) => { state.sort = event.target.value; track('sort_change', { filter: state.sort }); loadStations(); });
   $('#locateButton').addEventListener('click', locate);
   $('#mapAreaButton').addEventListener('click', () => {
     const bounds = state.map.getBounds();
@@ -416,6 +429,7 @@ function bindControls() {
     $('#searchInput').value = '';
     renderSearchContext();
     $('#mapAreaButton').style.display = 'none';
+    track('map_area_search', { zone: analytics.zoneFor(state.map.getCenter()) });
     loadStations();
   });
   $('#drawerClose').addEventListener('click', closeDrawer);
@@ -537,6 +551,7 @@ async function geocodePlace(query) {
 async function findNearby() {
   const query = $('#searchInput').value.trim();
   if (query.length < 3) return alert('Введите адрес, посёлок или название АЗС — например, «Невский проспект», «Мурино» или «Газпромнефть».');
+  track('search_start', { reason: 'place' });
   const button = $('#nearbySearchButton');
   button.disabled = true;
   button.textContent = 'Ищем место…';
@@ -555,8 +570,15 @@ async function findNearby() {
     if (state.map) state.map.setView([place.location.lat, place.location.lon], 13);
     renderSearchContext();
     await loadStationsWideningRadius();
+    track('search_complete', {
+      reason: 'place', success: state.total > 0, result_count: state.total,
+      fresh_count: state.stations.filter((item) => item.grade?.status !== 'NO_FRESH_DATA').length,
+      radius_km: state.radiusKm, zone: analytics.zoneFor(place.location),
+    });
+    if (!state.total) track('search_zero', { reason: 'place', radius_km: state.radiusKm, zone: analytics.zoneFor(place.location) });
   } catch (error) {
     $('#searchContext').textContent = error.message;
+    track('search_failed', { reason: 'geocoder' });
   } finally {
     button.disabled = false;
     button.textContent = '⌖ Найти рядом';
@@ -598,6 +620,7 @@ function startFollowing({ manual = false } = {}) {
     return;
   }
   const button = $('#locateButton');
+  if (manual) track('locate_start');
   button.innerHTML = '<span aria-hidden="true">◌</span> Определяем…';
   state.follow = true;
   document.body.classList.add('following');
@@ -625,6 +648,7 @@ function startFollowing({ manual = false } = {}) {
       loadStationsWideningRadius();
       renderGroupFeed();
       refreshPushLocation();
+      track('locate_result', { success: true, zone: analytics.zoneFor(here), reason: state.accuracy > 300 ? 'coarse' : 'precise' });
       return;
     }
     if (moved && state.searchScope === 'device') {
@@ -641,6 +665,7 @@ function startFollowing({ manual = false } = {}) {
         ? 'Доступ к геолокации запрещён. Разрешите его для этого сайта в настройках телефона, иначе «рядом» работать не будет.'
         : 'Не удалось определить положение. Попробуйте ещё раз на открытом месте.');
     }
+    track('locate_result', { success: false, reason: error.code === 1 ? 'denied' : 'unavailable' });
   };
   // A cached fix within a minute appears instantly; the watch then refines it.
   navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 });
@@ -670,6 +695,7 @@ async function loadStations({ silent = false } = {}) {
     const data = await api(`/api/stations?${params}`);
     if (requestId !== state.request) return;
     state.stations = data.stations;
+    state.total = Number(data.total || 0);
     $('#resultCount').textContent = data.total.toLocaleString('ru-RU');
     $('#resultNoun').textContent = `${plural(data.total, 'карточка', 'карточки', 'карточек')} АЗС`;
     renderStatusStrip(data.status_counts, data.timeline_counts);
@@ -695,12 +721,14 @@ function renderStatusStrip(counts, timelineCounts = {}) {
     const temporal = event.target.closest('[data-timeline]');
     if (temporal) {
       state.timeline = state.timeline === temporal.dataset.timeline ? null : temporal.dataset.timeline;
+      track('status_filter', { filter: state.timeline || 'all' });
       loadStations();
       return;
     }
     const button = event.target.closest('[data-status]');
     if (!button) return;
     state.status = state.status === button.dataset.status ? null : button.dataset.status;
+    track('status_filter', { filter: state.status || 'all' });
     loadStations();
   };
 }
@@ -906,6 +934,10 @@ function loadMarks() {
 }
 
 function saveMark(stationId, grade, seen, queue = null, { render = true, notify = true, summary = '' } = {}) {
+  const station = state.stationDetails[stationId] || state.stations.find((item) => item.id === stationId);
+  const onSite = !!(state.location && station?.location && haversineKm(state.location, station.location) <= 0.5);
+  track('report_sent', { station: stationId, grade, seen, queue, reason: onSite ? 'on_site' : 'remote', zone: analytics.zoneFor(station?.location) });
+  if (onSite) track('report_outcome', { ...analytics.predictionFields(station, grade), seen, queue, reason: 'on_site' });
   const marks = loadMarks();
   marks[stationId] = marks[stationId] || {};
   marks[stationId][grade] = { seen, at: Date.now(), queue };
@@ -1628,11 +1660,13 @@ async function openStation(id) {
   openDrawer('<div class="loading-state">Загружаем доказательства…</div>');
   try {
     const station = await api(`/api/stations/${encodeURIComponent(id)}`);
+    state.stationDetails[id] = station;
     if (state.staticMode) {
       const elapsed = staticElapsedSeconds();
       Object.values(station.grades).forEach((value) => expireGrade(value, elapsed));
     }
     const selected = station.grades[state.grade];
+    track('station_open', analytics.predictionFields(station, state.grade));
     const status = STATUS[selected.status];
     const lat = Number(station.location.lat);
     const lon = Number(station.location.lon);
@@ -1654,7 +1688,7 @@ async function openStation(id) {
     $('#drawerContent').innerHTML = `
       <h2>${escapeHtml(station.network || 'АЗС')}</h2>
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
-      <div class="drawer-actions"><a href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><a href="${trafficUrl}" target="_blank" rel="noopener noreferrer">Пробки у АЗС ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
+      <div class="drawer-actions"><a id="routeLink" href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><a id="trafficLink" href="${trafficUrl}" target="_blank" rel="noopener noreferrer">Пробки у АЗС ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="here-panel drawer-mark">
         <span class="here-kicker">Для своих</span>
         <strong>Видите эту АЗС своими глазами?</strong>
@@ -1675,6 +1709,8 @@ async function openStation(id) {
       <div class="evidence-meta">${station.source_refs.map((ref) => `${escapeHtml(ref.source)}:${escapeHtml(ref.station_id)}`).join('<br>')}</div>`;
     bindMarkButtons($('#drawerContent'));
     bindComposer($('#drawerContent'));
+    $('#routeLink').addEventListener('click', () => track('route_open', analytics.predictionFields(station, state.grade)));
+    $('#trafficLink').addEventListener('click', () => track('traffic_open', analytics.predictionFields(station, state.grade)));
     $('#copyCoords').addEventListener('click', async (event) => {
       try {
         await navigator.clipboard.writeText(`${lat}, ${lon}`);
@@ -1749,7 +1785,17 @@ function showInstallHelp() {
 }
 
 function showAbout() {
-  openDrawer(`<h2>Что здесь иначе</h2><p class="drawer-address">Приложение не выдаёт отсутствие данных за отсутствие топлива и запоминает изменения по каждой марке.</p><div class="drawer-status" style="--status-color:#0d5a43"><strong>История «не было → появилось»</strong><p>После каждого живого обновления сохраняется статус конкретной АЗС и марки. Переход показывается отдельно от обычного давнего наличия. «Возможное пополнение» — только осторожная интерпретация подтверждённого перехода, а не заявление о бензовозе или количестве литров.</p></div><div class="drawer-status about-secondary" style="--status-color:#7856c7"><strong>Evidence-first</strong><p>Учитываются возраст, тип сигнала, независимость upstream, очередь, лимит и конфликт источников.</p></div><h3 class="section-title">Семь честных состояний</h3><div class="source-list">${Object.values(STATUS).map((item) => `<div class="source-row"><strong style="color:${item.color}">${item.short}</strong></div>`).join('')}</div>`);
+  const statsOn = analytics.enabled();
+  openDrawer(`<h2>Что здесь иначе</h2>
+    <p class="drawer-address">Приложение не выдаёт отсутствие данных за отсутствие топлива и запоминает изменения по каждой марке.</p>
+    <div class="drawer-status" style="--status-color:#0d5a43"><strong>История «не было → появилось»</strong><p>После каждого живого обновления сохраняется статус конкретной АЗС и марки. Переход показывается отдельно от обычного давнего наличия. «Возможное пополнение» — только осторожная интерпретация подтверждённого перехода, а не заявление о бензовозе или количестве литров.</p></div>
+    <div class="drawer-status about-secondary" style="--status-color:#7856c7"><strong>Evidence-first</strong><p>Учитываются возраст, тип сигнала, независимость upstream, очередь, лимит и конфликт источников.</p></div>
+    <div class="drawer-status about-secondary" style="--status-color:#158257"><strong>Анонимная аналитика: ${statsOn ? 'включена' : 'выключена'}</strong><p>Считаем полезность поиска и точность прогнозов. Текст адреса, точные координаты, IP и рекламные идентификаторы не сохраняются. География — только крупная зона города.</p><button type="button" class="list-more" id="analyticsToggle">${statsOn ? 'Отключить статистику' : 'Включить статистику'}</button><p><a href="analytics.html" target="_blank" rel="noopener noreferrer">Закрытая панель владельца ↗</a></p></div>
+    <h3 class="section-title">Семь честных состояний</h3><div class="source-list">${Object.values(STATUS).map((item) => `<div class="source-row"><strong style="color:${item.color}">${item.short}</strong></div>`).join('')}</div>`);
+  $('#analyticsToggle')?.addEventListener('click', () => {
+    analytics.setEnabled(!analytics.enabled());
+    showAbout();
+  });
 }
 
 const SOURCE_STATUS_LABELS = {

@@ -23,6 +23,20 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("icons/apple-touch-icon.png", html)
         self.assertTrue((ROOT / "web" / "icons" / "apple-touch-icon.png").exists())
         self.assertIn("const APP_SHELL = ['./'", service_worker)
+        self.assertIn("analytics.js", service_worker)
+
+    def test_privacy_first_analytics_assets_are_packaged(self):
+        client = (ROOT / "web" / "analytics.js").read_text(encoding="utf-8")
+        dashboard = (ROOT / "web" / "analytics.html").read_text(encoding="utf-8")
+        worker = (ROOT / "worker" / "spbfi-reports.js").read_text(encoding="utf-8")
+
+        self.assertIn("navigator.globalPrivacyControl", client)
+        self.assertNotIn("fields.query", client)
+        self.assertNotIn("fields.lat", client)
+        self.assertNotIn("fields.lon", client)
+        self.assertIn("/analytics/events", worker)
+        self.assertIn("/analytics/dashboard", worker)
+        self.assertIn('name="robots" content="noindex,nofollow"', dashboard)
 
 
 if __name__ == "__main__":

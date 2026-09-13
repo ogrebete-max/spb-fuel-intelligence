@@ -32,6 +32,22 @@ const MAX_SUBSCRIPTIONS = 300;
 const NOTIFY_RADIUS_KM = 7;
 const GRADES = new Set(['AI92', 'AI95', 'AI98', 'AI100', 'DT', 'LPG']);
 const GRADE_LABELS = { AI92: '92', AI95: '95', AI98: '98', AI100: '100', DT: 'ДТ', LPG: 'Газ' };
+const ANALYTICS_VERSION = 2;
+const ANALYTICS_RETENTION_SECONDS = 180 * 24 * 60 * 60;
+const ANALYTICS_EVENTS = new Set([
+  'app_open', 'app_error', 'analytics_enabled', 'install_prompt', 'installed',
+  'grade_select', 'area_select', 'view_change', 'sort_change', 'status_filter',
+  'search_start', 'search_complete', 'search_zero', 'search_failed',
+  'locate_start', 'locate_result', 'map_area_search', 'station_open',
+  'route_open', 'traffic_open', 'report_sent', 'report_outcome',
+  'push_enabled', 'push_disabled',
+]);
+const ANALYTICS_DIMENSIONS = new Set([
+  'area', 'zone', 'grade', 'station', 'status', 'probability', 'trust',
+  'age_bucket', 'source_count', 'sources', 'result_count', 'fresh_count',
+  'radius_km', 'success', 'seen', 'queue', 'view', 'filter', 'reason',
+  'collector_ok', 'collector_failed', 'snapshot_age_bucket', 'installed',
+]);
 
 function cors(request, env) {
   const allowed = env.ORIGIN || DEFAULT_ORIGIN;
@@ -39,7 +55,7 @@ function cors(request, env) {
   return {
     'Access-Control-Allow-Origin': origin === allowed ? origin : allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Group-Key',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Group-Key, X-Analytics-Key',
     'Access-Control-Max-Age': '86400',
   };
 }
@@ -58,13 +74,235 @@ async function readAll(env) {
 }
 
 /** A crude per-address limit; enough to stop a loop, not a security boundary. */
-async function overRate(request, env) {
+async function overRate(request, env, scope = 'reports') {
   const who = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const bucket = `rate:${who}:${Math.floor(Date.now() / 60000)}`;
+  const bucket = `rate:${scope}:${who}:${Math.floor(Date.now() / 60000)}`;
   const used = Number((await env.REPORTS.get(bucket)) || 0);
   if (used >= MAX_PER_MINUTE) return true;
   await env.REPORTS.put(bucket, String(used + 1), { expirationTtl: 120 });
   return false;
+}
+
+// ---------------------------------------------------------------- analytics
+
+function analyticsDay(offset = 0) {
+  return new Date(Date.now() - offset * 86400000).toISOString().slice(0, 10);
+}
+
+function safeDimension(value, max = 64) {
+  return String(value ?? '').replace(/[^a-zA-Z0-9_:.\-]/g, '').slice(0, max) || 'unknown';
+}
+
+function finiteNumber(value, min, max) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : null;
+}
+
+function cleanAnalyticsFields(fields) {
+  const clean = {};
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return clean;
+  for (const [key, value] of Object.entries(fields)) {
+    if (!ANALYTICS_DIMENSIONS.has(key) || value == null) continue;
+    if (key === 'sources' && Array.isArray(value)) {
+      clean.sources = [...new Set(value.slice(0, 8).map((item) => safeDimension(item, 32)))];
+    } else if (['probability', 'trust'].includes(key)) clean[key] = finiteNumber(value, 0, 100);
+    else if (['source_count', 'result_count', 'fresh_count', 'radius_km', 'queue', 'collector_ok', 'collector_failed'].includes(key)) clean[key] = finiteNumber(value, 0, 100000);
+    else if (typeof value === 'boolean') clean[key] = value;
+    else clean[key] = safeDimension(value);
+  }
+  return clean;
+}
+
+async function analyticsSecret(env) {
+  if (env.ANALYTICS_SALT) return String(env.ANALYTICS_SALT);
+  // Existing deployments need no extra binding to start collecting. The
+  // private VAPID component already lives in KV and is never returned here.
+  const keys = await vapidKeys(env);
+  return keys.privateJwk?.d || JSON.stringify(keys.privateJwk);
+}
+
+async function hmacToken(secret, value) {
+  const key = await crypto.subtle.importKey('raw', utf8.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const digest = await crypto.subtle.sign('HMAC', key, utf8.encode(value));
+  return [...new Uint8Array(digest).slice(0, 12)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function increment(object, key, amount = 1) {
+  object[key] = Number(object[key] || 0) + amount;
+}
+
+function outcomeSlot(object, key) {
+  const slot = object[key] || { total: 0, correct: 0, brier_sum: 0 };
+  object[key] = slot;
+  return slot;
+}
+
+function addOutcome(slot, probability, actual) {
+  const predicted = probability >= 0.5;
+  slot.total += 1;
+  slot.correct += Number(predicted === actual);
+  slot.brier_sum += (probability - Number(actual)) ** 2;
+}
+
+function trustBucket(score) {
+  if (score == null) return 'unknown';
+  if (score >= 75) return 'high';
+  if (score >= 45) return 'moderate';
+  return 'low';
+}
+
+function emptyAnalyticsDay(day) {
+  return {
+    version: ANALYTICS_VERSION, day, updated_at: Date.now(),
+    events: {}, users: {}, sessions: {}, hours: {}, areas: {}, zones: {}, grades: {},
+    search: { total: 0, success: 0, zero: 0, result_sum: 0, fresh_sum: 0, widened: 0 },
+    outcomes: { total: 0, correct: 0, brier_sum: 0, by_status: {}, by_trust: {}, by_age: {}, by_source: {} },
+    stations: {},
+  };
+}
+
+function applyAnalyticsEvent(day, event, userHash, sessionHash) {
+  increment(day.events, event.event);
+  day.users[userHash] = 1;
+  day.sessions[sessionHash] = 1;
+  const hour = String(new Date(event.at).getUTCHours()).padStart(2, '0');
+  increment(day.hours, hour);
+  const fields = event.fields;
+  for (const key of ['area', 'zone', 'grade']) {
+    if (fields[key]) increment(day[`${key}s`], fields[key]);
+  }
+  if (fields.station) {
+    const station = day.stations[fields.station] || { opens: 0, routes: 0, reports: 0 };
+    if (event.event === 'station_open') station.opens += 1;
+    if (event.event === 'route_open') station.routes += 1;
+    if (event.event === 'report_sent') station.reports += 1;
+    day.stations[fields.station] = station;
+  }
+  if (event.event === 'search_complete') {
+    day.search.total += 1;
+    day.search.success += Number(fields.success === true || Number(fields.result_count) > 0);
+    day.search.zero += Number(Number(fields.result_count) === 0);
+    day.search.result_sum += Number(fields.result_count || 0);
+    day.search.fresh_sum += Number(fields.fresh_count || 0);
+    day.search.widened += Number(Number(fields.radius_km || 0) > 5);
+  }
+  if (event.event !== 'report_outcome' || fields.reason !== 'on_site' || typeof fields.seen !== 'boolean') return;
+  const probability = finiteNumber(fields.probability, 0, 100);
+  if (probability == null) return;
+  const p = probability / 100;
+  addOutcome(day.outcomes, p, fields.seen);
+  for (const [dimension, key] of [
+    ['by_status', fields.status], ['by_trust', trustBucket(fields.trust)], ['by_age', fields.age_bucket],
+  ]) addOutcome(outcomeSlot(day.outcomes[dimension], safeDimension(key)), p, fields.seen);
+  for (const source of fields.sources || []) addOutcome(outcomeSlot(day.outcomes.by_source, source), p, fields.seen);
+}
+
+async function storeAnalytics(request, env) {
+  if (await overRate(request, env, 'analytics')) return json({ error: 'too many events' }, request, env, 429);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'expected JSON' }, request, env, 400); }
+  const installId = safeDimension(body.install_id, 80);
+  const sessionId = safeDimension(body.session_id, 80);
+  if (installId === 'unknown' || sessionId === 'unknown' || !Array.isArray(body.events)) {
+    return json({ error: 'expected install_id, session_id and events' }, request, env, 400);
+  }
+  const events = body.events.slice(0, 24).flatMap((raw) => {
+    const name = safeDimension(raw?.event, 32);
+    if (!ANALYTICS_EVENTS.has(name)) return [];
+    const at = finiteNumber(raw.at, Date.now() - 86400000, Date.now() + 300000) || Date.now();
+    return [{ event: name, at, fields: cleanAnalyticsFields(raw.fields) }];
+  });
+  if (!events.length) return json({ ok: true, accepted: 0 }, request, env, 202);
+  const dayName = analyticsDay();
+  const secret = await analyticsSecret(env);
+  const [userHash, sessionHash] = await Promise.all([
+    hmacToken(secret, `${dayName}:user:${installId}`),
+    hmacToken(secret, `${dayName}:session:${sessionId}`),
+  ]);
+  const key = `analytics:v${ANALYTICS_VERSION}:${dayName}`;
+  const day = (await env.REPORTS.get(key, { type: 'json' })) || emptyAnalyticsDay(dayName);
+  for (const event of events) applyAnalyticsEvent(day, event, userHash, sessionHash);
+  day.updated_at = Date.now();
+  await env.REPORTS.put(key, JSON.stringify(day), { expirationTtl: ANALYTICS_RETENTION_SECONDS });
+  return json({ ok: true, accepted: events.length }, request, env, 202);
+}
+
+function publicOutcome(slot = {}) {
+  const total = Number(slot.total || 0);
+  return {
+    total,
+    accuracy_percent: total ? Math.round(1000 * Number(slot.correct || 0) / total) / 10 : null,
+    brier_score: total ? Math.round(10000 * Number(slot.brier_sum || 0) / total) / 10000 : null,
+  };
+}
+
+function mergeCounters(target, source) {
+  for (const [key, value] of Object.entries(source || {})) increment(target, key, Number(value || 0));
+}
+
+function ranked(counter, minimum = 0) {
+  return Object.entries(counter || {}).filter(([, count]) => count >= minimum)
+    .sort((a, b) => b[1] - a[1]).map(([key, count]) => ({ key, count }));
+}
+
+async function analyticsDashboard(request, env, url) {
+  if (!env.ANALYTICS_ADMIN_KEY) return json({ error: 'ANALYTICS_ADMIN_KEY is not configured' }, request, env, 503);
+  if (!constantEqual(request.headers.get('X-Analytics-Key') || '', String(env.ANALYTICS_ADMIN_KEY))) {
+    return json({ error: 'forbidden' }, request, env, 403);
+  }
+  const days = Math.round(finiteNumber(url.searchParams.get('days') || 7, 1, 30));
+  const documents = (await Promise.all([...Array(days)].map((_, index) => env.REPORTS.get(`analytics:v${ANALYTICS_VERSION}:${analyticsDay(index)}`, { type: 'json' })))).filter(Boolean);
+  const total = emptyAnalyticsDay('range');
+  const trend = [];
+  for (const day of documents) {
+    mergeCounters(total.events, day.events); mergeCounters(total.hours, day.hours);
+    mergeCounters(total.areas, day.areas); mergeCounters(total.zones, day.zones); mergeCounters(total.grades, day.grades);
+    for (const key of ['total', 'success', 'zero', 'result_sum', 'fresh_sum', 'widened']) total.search[key] += Number(day.search?.[key] || 0);
+    for (const key of ['total', 'correct', 'brier_sum']) total.outcomes[key] += Number(day.outcomes?.[key] || 0);
+    for (const dimension of ['by_status', 'by_trust', 'by_age', 'by_source']) {
+      for (const [key, slot] of Object.entries(day.outcomes?.[dimension] || {})) {
+        const merged = outcomeSlot(total.outcomes[dimension], key);
+        merged.total += Number(slot.total || 0); merged.correct += Number(slot.correct || 0); merged.brier_sum += Number(slot.brier_sum || 0);
+      }
+    }
+    for (const [key, station] of Object.entries(day.stations || {})) {
+      const merged = total.stations[key] || { opens: 0, routes: 0, reports: 0 };
+      for (const metric of ['opens', 'routes', 'reports']) merged[metric] += Number(station[metric] || 0);
+      total.stations[key] = merged;
+    }
+    trend.push({ day: day.day, users: Object.keys(day.users || {}).length, sessions: Object.keys(day.sessions || {}).length, events: Object.values(day.events || {}).reduce((a, b) => a + b, 0) });
+  }
+  const dimensionOutcomes = (name) => Object.entries(total.outcomes[name]).map(([key, slot]) => ({ key, ...publicOutcome(slot) })).sort((a, b) => b.total - a.total);
+  const searches = total.search.total;
+  const opens = Number(total.events.station_open || 0);
+  return json({
+    version: ANALYTICS_VERSION, days, generated_at: new Date().toISOString(), trend: trend.sort((a, b) => a.day.localeCompare(b.day)),
+    totals: {
+      daily_active_sum: trend.reduce((sum, item) => sum + item.users, 0),
+      sessions: trend.reduce((sum, item) => sum + item.sessions, 0),
+      events: Object.values(total.events).reduce((a, b) => a + b, 0),
+      searches, search_success_percent: searches ? Math.round(1000 * total.search.success / searches) / 10 : null,
+      zero_searches: total.search.zero, widened_searches: total.search.widened,
+      station_opens: opens, routes: Number(total.events.route_open || 0),
+      route_conversion_percent: opens ? Math.round(1000 * Number(total.events.route_open || 0) / opens) / 10 : null,
+      on_site_checks: total.outcomes.total, ...publicOutcome(total.outcomes),
+    },
+    events: ranked(total.events), areas: ranked(total.areas), grades: ranked(total.grades),
+    // A zone is hidden until at least three interactions occurred in the range.
+    zones: ranked(total.zones, 3), hours_utc: ranked(total.hours),
+    calibration: {
+      by_status: dimensionOutcomes('by_status'), by_trust: dimensionOutcomes('by_trust'),
+      by_age: dimensionOutcomes('by_age'), by_source: dimensionOutcomes('by_source'),
+    },
+    top_stations: Object.entries(total.stations).map(([station, value]) => ({ station, ...value })).sort((a, b) => (b.routes + b.opens) - (a.routes + a.opens)).slice(0, 20),
+  }, request, env);
+}
+
+function constantEqual(left, right) {
+  if (left.length !== right.length) return false;
+  let result = 0;
+  for (let i = 0; i < left.length; i++) result |= left.charCodeAt(i) ^ right.charCodeAt(i);
+  return result === 0;
 }
 
 function distanceKm(a, b) {
@@ -233,6 +471,18 @@ export default {
 
     if (!env.REPORTS) {
       return json({ error: 'KV namespace REPORTS is not bound' }, request, env, 500);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/analytics/health') {
+      return json({ ok: true, version: ANALYTICS_VERSION, storage: 'aggregate-kv', retention_days: 180 }, request, env);
+    }
+
+    if (request.method === 'POST' && url.pathname === '/analytics/events') {
+      return storeAnalytics(request, env);
+    }
+
+    if (request.method === 'GET' && url.pathname === '/analytics/dashboard') {
+      return analyticsDashboard(request, env, url);
     }
 
     if (request.method === 'GET' && (url.pathname === '/reports' || url.pathname === '/')) {
