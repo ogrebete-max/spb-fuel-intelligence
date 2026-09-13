@@ -16,11 +16,15 @@ permissions:
   # The last slot starts the next chain with `gh workflow run`.
   actions: write
 
-# A newer wake-up takes over from the running chain instead of queueing behind
-# it, so there is always exactly one live refresher.
+# One chain at a time. A wake-up that arrives while a chain runs waits behind
+# it rather than cancelling it: cancelling threw the rest of the chain away,
+# and on 13 Sep 2026 manual runs and then the cron kept killing chains before
+# the hand-over in the last slot could ever run. A newer waiting run replaces
+# an older waiting one, so at most one waits. Every slot checks out the latest
+# main, so a push never needs a manual run.
 concurrency:
   group: spb-fuel-refresh
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   refresh-and-deploy:

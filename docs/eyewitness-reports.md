@@ -11,7 +11,7 @@
 3. **Storage & Databases → KV → Create namespace**. Имя: `spbfi-reports`.
 4. **Compute (Workers) → Create → Start from Hello World → Deploy**. Имя: `spbfi-reports`.
 5. Открыть Worker → **Edit code**, удалить содержимое и вставить целиком файл [`worker/spbfi-reports.js`](../worker/spbfi-reports.js) из этого репозитория. Нажать **Deploy**.
-6. Worker → **Settings → Bindings → Add binding**:
+6. Worker → вкладка **Bindings** (в старом виде дашборда — **Settings → Bindings**) → **Add binding**:
    - **D1 database**: Variable name `DB`, база `spbfi-club`;
    - **KV namespace**: Variable name `REPORTS`, namespace `spbfi-reports`.
 7. Там же **Add → Variable** (по желанию, но лучше сделать):

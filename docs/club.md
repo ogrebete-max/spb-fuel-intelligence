@@ -51,7 +51,7 @@
 После каждого **Deploy** Cloudflare переключается на новую версию не сразу: снаружи она начинает отвечать минут через 10–15. Поэтому после шага, который заканчивается Deploy, дождитесь проверки.
 
 1. **Создать базу клуба.** Cloudflare → **Storage & Databases → D1 SQL Database → Create Database**. Имя `spbfi-club`, Location, если спросит, — **Eastern Europe**. **Create**.
-2. **Подключить базу к воркеру.** Workers → `spbfi-reports` → **Settings → Bindings → Add binding → D1 database**: Variable name `DB`, база `spbfi-club` → **Add binding**. Привязку `REPORTS` не удаляйте: из неё воркер один раз перенесёт подписки на уведомления и свежие отметки.
+2. **Подключить базу к воркеру.** Workers & Pages → `spbfi-reports` → вкладка **Bindings** (в старом виде дашборда — **Settings → Bindings**) → **Add binding → D1 database**: Variable name `DB`, база `spbfi-club` → **Add binding**. Привязку `REPORTS` не удаляйте: из неё воркер один раз перенесёт подписки на уведомления и свежие отметки.
 3. **Обновить воркер.** **Edit code** → вставить целиком [`worker/spbfi-reports.js`](../worker/spbfi-reports.js) → в меню у кнопки **Deploy** выбрать именно **Deploy**, не Save.
 4. **Проверить.** `https://spbfi-reports.ogrebete.workers.dev/club/health` должен вернуть `"storage":"d1"` и `"club":false`. Если видно `"storage":"kv"`, база не подключена (шаг 2).
 5. **Задать ключ владельца.** Воркер → **Settings → Variables and Secrets → Add**: тип **Secret**, имя `CLUB_OWNER_KEY`, значение — длинная фраза, которую знаете только вы (например, четыре случайных слова). Никому её не сообщайте, в том числе в чатах с помощниками. **Deploy**. Через 10–15 минут `/club/health` покажет `"club":true`.
