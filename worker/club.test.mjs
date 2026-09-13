@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import worker from './spbfi-reports.js';
+import { FakeD1 } from './fake-d1.mjs';
 
 class MemoryKV {
   constructor() { this.values = new Map(); this.writes = 0; }
@@ -10,6 +11,11 @@ class MemoryKV {
   }
   async put(key, value) { this.writes += 1; this.values.set(key, String(value)); }
 }
+
+// SPBFI_STORE=d1 runs the same checks against D1 instead of KV.
+const useD1 = process.env.SPBFI_STORE === 'd1';
+const storage = () => ({ REPORTS: new MemoryKV(), ...(useD1 ? { DB: new FakeD1() } : {}) });
+const writesOf = (env) => (env.DB ? env.DB.docWrites : env.REPORTS.writes);
 
 const base = 'https://spbfi-reports.example';
 const origin = 'https://ogrebete-max.github.io';
@@ -39,21 +45,21 @@ const mark = (station, seen) => ({ station, grade: 'AI95', seen, lat: 60.0, lon:
 
 // ------------------------------------------------------------ without the club nothing changes
 {
-  const env = { REPORTS: new MemoryKV() };
-  assert.deepEqual((await call(env, '/club/health')).data, { club: false, version: 1, batch: true });
+  const env = storage();
+  assert.deepEqual((await call(env, '/club/health')).data, { club: false, version: 1, batch: true, late_marks: true, storage: useD1 ? 'd1' : 'kv' });
   assert.equal((await call(env, '/report', { method: 'POST', body: mark('open-1', true) })).status, 200);
   assert.equal((await call(env, '/club/me')).status, 404, 'club routes stay closed while the club is off');
-  const before = env.REPORTS.writes;
+  const before = writesOf(env);
   const analytics = await call(env, '/analytics/events', {
     method: 'POST', body: { install_id: 'a', session_id: 'b', events: [{ event: 'app_open', at: Date.now(), fields: {} }] },
   });
   assert.equal(analytics.status, 202);
   assert.equal(analytics.data.accepted, 0);
-  assert.equal(env.REPORTS.writes, before, 'analytics must not spend KV writes before the dashboard is set up');
+  assert.equal(writesOf(env), before, 'analytics must not spend writes before the dashboard is set up');
 }
 
 // ------------------------------------------------------------ the club
-const env = { REPORTS: new MemoryKV(), CLUB_OWNER_KEY: 'owner-secret-for-tests-only' };
+const env = { ...storage(), CLUB_OWNER_KEY: 'owner-secret-for-tests-only' };
 assert.equal((await call(env, '/club/health')).data.club, true);
 assert.equal((await call(env, '/report', { method: 'POST', body: mark('s-1', true) })).status, 401, 'strangers cannot mark');
 assert.equal((await call(env, '/subscribe', { method: 'POST', body: {} })).status, 401, 'strangers cannot subscribe');
@@ -84,9 +90,9 @@ assert.equal((await call(env, '/club/join', { method: 'POST', body: { code: invi
 
 // A plain mark is two KV writes — the mark and the club scoreboard — with no
 // rate-limit counter and no dispute record.
-const writes = env.REPORTS.writes;
+const writes = writesOf(env);
 assert.equal((await call(env, '/report', { method: 'POST', token: sashaToken, body: mark('s-1', true) })).status, 200);
-assert.equal(env.REPORTS.writes - writes, 2, 'one mark must cost two KV writes');
+assert.equal(writesOf(env) - writes, 2, 'one mark must cost two writes');
 
 const publicRead = await call(env, '/reports');
 assert.equal(publicRead.data.reports[0].who, sasha.data.member.id);

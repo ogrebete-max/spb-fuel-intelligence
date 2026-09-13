@@ -7,16 +7,19 @@
 ## Что нужно сделать один раз
 
 1. Зарегистрироваться на <https://dash.cloudflare.com> (бесплатно).
-2. **Storage & Databases → KV → Create namespace**. Имя: `spbfi-reports`.
-3. **Compute (Workers) → Create → Start from Hello World → Deploy**. Имя: `spbfi-reports`.
-4. Открыть Worker → **Edit code**, удалить содержимое и вставить целиком файл [`worker/spbfi-reports.js`](../worker/spbfi-reports.js) из этого репозитория. Нажать **Deploy**.
-5. Worker → **Settings → Bindings → Add → KV namespace**:
-   - Variable name: `REPORTS`
-   - KV namespace: `spbfi-reports`
-6. Там же **Add → Variable** (по желанию, но лучше сделать):
+2. **Storage & Databases → D1 SQL Database → Create Database**. Имя: `spbfi-club`.
+3. **Storage & Databases → KV → Create namespace**. Имя: `spbfi-reports`.
+4. **Compute (Workers) → Create → Start from Hello World → Deploy**. Имя: `spbfi-reports`.
+5. Открыть Worker → **Edit code**, удалить содержимое и вставить целиком файл [`worker/spbfi-reports.js`](../worker/spbfi-reports.js) из этого репозитория. Нажать **Deploy**.
+6. Worker → **Settings → Bindings → Add binding**:
+   - **D1 database**: Variable name `DB`, база `spbfi-club`;
+   - **KV namespace**: Variable name `REPORTS`, namespace `spbfi-reports`.
+7. Там же **Add → Variable** (по желанию, но лучше сделать):
    - `GROUP_KEY` — любое слово, которое знают только свои. Без него писать отметки сможет кто угодно, кто найдёт адрес.
    - `ORIGIN` — `https://ogrebete-max.github.io`, если сайт переедет на другой адрес.
-7. Скопировать адрес воркера, он выглядит как `https://spbfi-reports.ваш-логин.workers.dev`.
+8. Скопировать адрес воркера, он выглядит как `https://spbfi-reports.ваш-логин.workers.dev`.
+
+Воркер работает и с одной KV, без базы, но тогда одновременные записи от разных людей могут затирать друг друга, а записей в сутки бесплатно всего 1000. Подробности — в [club.md](club.md#зачем-база-если-есть-kv).
 
 ## Как подключить к приложению
 
@@ -34,7 +37,7 @@ window.SPBFI_REPORT_ENDPOINT = 'https://spbfi-reports.ваш-логин.workers.
 curl -s https://spbfi-reports.ваш-логин.workers.dev/reports
 ```
 
-Должно вернуться `{"window_hours":3,"count":0,"reports":[]}`. Если вернулась ошибка про `REPORTS`, значит не выполнен пункт 5.
+Должно вернуться `{"window_hours":3,"count":0,...,"reports":[]}`. Если вернулась ошибка про привязки, значит не выполнен пункт 6. Какое хранилище подключено, показывает `/club/health`: `"storage":"d1"` или `"storage":"kv"`.
 
 ## Уведомления на телефон (обновление воркера)
 
@@ -42,7 +45,7 @@ curl -s https://spbfi-reports.ваш-логин.workers.dev/reports
 
 Чтобы включить:
 
-1. Открыть воркер в Cloudflare → **Edit code**, заменить содержимое на свежий [`worker/spbfi-reports.js`](../worker/spbfi-reports.js) → **Deploy**. Ключи для подписи уведомлений воркер создаст сам и сохранит в KV, вставлять ничего не нужно.
+1. Открыть воркер в Cloudflare → **Edit code**, заменить содержимое на свежий [`worker/spbfi-reports.js`](../worker/spbfi-reports.js) → **Deploy**. Ключи для подписи уведомлений воркер создаст сам и сохранит у себя, вставлять ничего не нужно.
 2. Каждый из своих в приложении нажимает **«🔔 Уведомлять о своих»** (над списком) и разрешает уведомления.
 
 Ограничения телефонов, не наши:
@@ -57,10 +60,11 @@ curl -s https://spbfi-reports.ваш-логин.workers.dev/reports
 - Движок даёт ему **наибольший вес из всех**: человек смотрел на колонку своими глазами, это сильнее любой ленты.
 - Отметки живут три часа и исчезают — устаревшее наблюдение не должно выдавать себя за текущее.
 - Повторная отметка того же человека по той же марке заменяет предыдущую, а не добавляет ещё один «голос».
+- Если связи нет, отметка ждёт на телефоне до получаса и уходит со временем, когда её поставили.
 
 ## Что это стоит
 
-Бесплатный тариф Cloudflare Workers — 100 000 запросов в сутки и 1000 записей в KV. Десять человек, отмечающихся несколько раз в день, расходуют доли процента. Платить не придётся.
+Бесплатный тариф Cloudflare: Workers — 100 000 запросов в сутки, D1 — 100 000 записей в сутки (одна KV без базы — 1000). Своим, отмечающимся несколько раз в день, этого хватает с запасом. Платить не придётся.
 
 ## Чего он намеренно не делает
 

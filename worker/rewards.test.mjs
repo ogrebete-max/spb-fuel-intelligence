@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import worker from './spbfi-reports.js';
+import { FakeD1 } from './fake-d1.mjs';
 
 class MemoryKV {
   constructor() { this.values = new Map(); this.writes = 0; }
@@ -10,6 +11,11 @@ class MemoryKV {
   }
   async put(key, value) { this.writes += 1; this.values.set(key, String(value)); }
 }
+
+// SPBFI_STORE=d1 runs the same checks against D1 instead of KV.
+const useD1 = process.env.SPBFI_STORE === 'd1';
+const storage = () => ({ REPORTS: new MemoryKV(), ...(useD1 ? { DB: new FakeD1() } : {}) });
+const writesOf = (env) => (env.DB ? env.DB.docWrites : env.REPORTS.writes);
 
 const base = 'https://spbfi-reports.example';
 const pending = [];
@@ -34,7 +40,7 @@ async function call(env, path, { method = 'GET', body, token } = {}) {
   return { status: response.status, data: await response.json() };
 }
 
-const env = { REPORTS: new MemoryKV(), CLUB_OWNER_KEY: 'owner-secret-for-tests-only' };
+const env = { ...storage(), CLUB_OWNER_KEY: 'owner-secret-for-tests-only' };
 const owner = (await call(env, '/club/owner', { method: 'POST', body: { key: env.CLUB_OWNER_KEY, name: 'Егор' } })).data;
 async function invite(token, name) {
   const { code } = (await call(env, '/club/invite', { method: 'POST', token })).data;
@@ -130,8 +136,8 @@ await call(env, '/club/ban', { method: 'POST', token: owner.token, body: { id: o
 assert.equal((await call(env, '/club/leaderboard', { token: sasha.token })).data.members.some((row) => row.name === 'Оля'), false);
 
 // A mark now costs two writes: the mark and the club's scoreboard.
-const writes = env.REPORTS.writes;
+const writes = writesOf(env);
 await mark(sasha.token, 'st-9', 'AI98', true);
-assert.equal(env.REPORTS.writes - writes, 2);
+assert.equal(writesOf(env) - writes, 2);
 
 console.log('worker rewards integration: OK');

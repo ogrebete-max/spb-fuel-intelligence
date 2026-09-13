@@ -1157,7 +1157,7 @@ function saveMark(stationId, grade, seen, queue = null, { render = true, notify 
     renderHerePanel();
     renderGroupFeed();
   }
-  if (share) shareMark(stationId, grade, seen, queue, { notify, summary, blindSpot });
+  return share ? shareMark(stationId, grade, seen, queue, { notify, summary, blindSpot }) : Promise.resolve('kept');
 }
 
 // Sharing is optional. With no endpoint configured the mark stays on this
@@ -1174,25 +1174,45 @@ function deviceId() {
   return id;
 }
 
-// Reports from one phone go out one at a time. The worker keeps every mark in
-// one KV list and rewrites it on each report, so three grades sent at once
-// raced and only the last survived (13 Sep 2026: 92, 95 and 98 marked, 98
-// kept). A worker that says it takes batches gets a whole look in one request;
-// an older one gets the grades one after another.
+// Reports from one phone go out one at a time. The worker kept every mark in
+// one list and rewrote it on each report, so three grades sent at once raced
+// and only the last survived (13 Sep 2026: 92, 95 and 98 marked, 98 kept). A
+// worker that says it takes batches gets a whole look in one request; an older
+// one gets the grades one after another.
 let reportQueue = Promise.resolve();
+
+// What the worker says when it could not store something, in words for people.
+const STORAGE_ERRORS = {
+  storage_limit: 'У клуба на сегодня кончился бесплатный лимит записей. В 03:00 по Москве он обнулится.',
+  storage_busy: 'Сервер клуба перегружен. Попробуйте ещё раз через минуту.',
+  worker_error: 'На сервере клуба сбой. Попробуйте ещё раз через минуту.',
+};
+
+// A mark that could not go out — no signal at the pump, the server down for a
+// moment — waits on the phone and is sent once the connection is back, dated
+// the moment it was made. A worker that says it takes late marks keeps them
+// for half an hour; an older one dates a mark on arrival, so for it a mark
+// waits five minutes at most.
+const OUTBOX_KEY = 'spbfi-outbox-v1';
+const OUTBOX_LATE_MS = 30 * 60 * 1000;
+const OUTBOX_LEGACY_MS = 5 * 60 * 1000;
+let outboxWarned = false;
+let outboxFlushing = false;
 
 function shareMark(stationId, grade, seen, queue = null, options = {}) {
   return shareLook(stationId, [{ grade, seen }], queue, options);
 }
 
+/** Sends a look. Resolves to 'sent', 'queued' (waits for a connection), 'refused' or 'kept' (nowhere to send). */
 function shareLook(stationId, looks, queue = null, { notify = true, summary = '', blindSpot = false } = {}) {
   const endpoint = window.SPBFI_REPORT_ENDPOINT;
-  if (!endpoint || !looks.length) return Promise.resolve();
+  if (!endpoint || !looks.length) return Promise.resolve('kept');
   const known = state.stations.find((item) => item.id === stationId) || state.stationInfo[stationId];
   const place = known?.location || (known?.lat != null ? { lat: known.lat, lon: known.lon } : null);
   const common = {
     station: stationId, who: myId(), lat: place?.lat, lon: place?.lon,
     name: known?.network || '', address: shortAddress(known?.address || ''),
+    observed_at: Date.now(),
     ...(queue != null ? { queue } : {}),
   };
   const bodies = looks.length === 1 || state.workerBatch
@@ -1206,49 +1226,149 @@ function shareLook(stationId, looks, queue = null, { notify = true, summary = ''
       notify: notify && index === 0, summary: index === 0 ? summary : '',
       ...(blindSpot && index === 0 ? { blind_spot: true } : {}),
     }));
+  // A newer look makes a waiting older one about the same grades pointless.
+  trimOutbox(stationId, looks.map((look) => look.grade));
   const run = async () => {
-    for (const body of bodies) {
-      if (!await postReport(endpoint, body)) break;
+    for (const [index, body] of bodies.entries()) {
+      const outcome = await postReport(endpoint, body);
+      if (outcome === 'sent') continue;
+      if (outcome === 'retry') {
+        bodies.slice(index).forEach(waitInOutbox);
+        warnWaiting();
+        return 'queued';
+      }
+      return 'refused';
     }
+    return 'sent';
   };
   reportQueue = reportQueue.then(run, run);
   return reportQueue;
 }
 
+/** One report to the worker: 'sent', 'retry' (worth another go later) or 'refused'. */
 async function postReport(endpoint, body) {
   let legacyKey = '';
   try { legacyKey = localStorage.getItem(GROUP_KEY) || ''; } catch { /* nothing stored */ }
+  let response;
   try {
-    const response = await fetch(`${endpoint.replace(/\/$/, '')}/report`, {
+    response = await fetch(`${endpoint.replace(/\/$/, '')}/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...memberHeaders(), ...(legacyKey ? { 'X-Group-Key': legacyKey } : {}) },
       body: JSON.stringify(body),
     });
-    if (response.ok) {
-      try {
-        const data = await response.json();
-        if (data.rewards) celebrate(data.rewards);
-      } catch { /* the mark is in; the celebration is optional */ }
-      return true;
-    }
-    if (response.status === 401 || response.status === 403) {
-      let data = {};
-      try { data = await response.json(); } catch { /* not JSON */ }
-      // The club may have been switched on after this page was opened.
-      if (!state.club.enabled) {
-        checkClub();
-        return false;
-      }
-      if (!handleClubRejection({ status: response.status, data })) {
-        showToast('Отметка не отправлена', 'Она сохранена только на этом телефоне.');
-      }
-    }
-    return false;
   } catch {
-    // Offline or the worker is down: the local mark is already saved.
-    return false;
+    // No signal, or the worker could not be reached at all.
+    return 'retry';
+  }
+  let data = {};
+  try { data = await response.json(); } catch { /* not JSON */ }
+  if (response.ok) {
+    if (data.rewards) celebrate(data.rewards);
+    return 'sent';
+  }
+  if (response.status === 401 || response.status === 403) {
+    // The club may have been switched on after this page was opened.
+    if (!state.club.enabled) {
+      checkClub();
+      return 'refused';
+    }
+    if (!handleClubRejection({ status: response.status, data })) {
+      showToast('Отметка не отправлена', 'Она сохранена только на этом телефоне.');
+    }
+    return 'refused';
+  }
+  if (data.error === 'storage_limit') {
+    showToast('Отметка не ушла к своим', `${STORAGE_ERRORS.storage_limit} На этом телефоне отметка сохранена.`);
+    return 'refused';
+  }
+  // Too many at once, or the server busy or down: worth another go shortly.
+  return response.status === 429 || response.status >= 500 ? 'retry' : 'refused';
+}
+
+function loadOutbox() {
+  try {
+    const items = JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]');
+    return Array.isArray(items) ? items.filter((body) => body?.station && Number.isFinite(body.observed_at)) : [];
+  } catch {
+    return [];
   }
 }
+
+function storeOutbox(items) {
+  try {
+    if (items.length) localStorage.setItem(OUTBOX_KEY, JSON.stringify(items.slice(-20)));
+    else localStorage.removeItem(OUTBOX_KEY);
+  } catch { /* nothing to keep it in */ }
+}
+
+function waitInOutbox(body) {
+  storeOutbox([...loadOutbox(), body]);
+}
+
+function trimOutbox(stationId, grades) {
+  const waiting = loadOutbox();
+  const kept = waiting.flatMap((body) => {
+    if (body.station !== stationId) return [body];
+    if (!Array.isArray(body.grades)) return grades.includes(body.grade) ? [] : [body];
+    const left = body.grades.filter((look) => !grades.includes(look.grade));
+    return left.length ? [{ ...body, grades: left }] : [];
+  });
+  if (JSON.stringify(kept) !== JSON.stringify(waiting)) storeOutbox(kept);
+}
+
+function warnWaiting() {
+  if (!outboxWarned) {
+    outboxWarned = true;
+    showToast('Нет связи со своими', 'Отметка сохранена на телефоне и уйдёт сама, как только появится интернет.');
+  }
+  renderGroupFeed();
+}
+
+function flushOutbox() {
+  const endpoint = window.SPBFI_REPORT_ENDPOINT;
+  if (!endpoint || outboxFlushing || !loadOutbox().length) return reportQueue;
+  outboxFlushing = true;
+  const run = async () => {
+    let sent = 0;
+    let expired = 0;
+    try {
+      for (;;) {
+        const [body] = loadOutbox();
+        if (!body) break;
+        const key = JSON.stringify(body);
+        const drop = () => storeOutbox(loadOutbox().filter((item) => JSON.stringify(item) !== key));
+        if (Date.now() - body.observed_at > (state.workerLateMarks ? OUTBOX_LATE_MS : OUTBOX_LEGACY_MS)) {
+          drop();
+          expired += 1;
+          continue;
+        }
+        const outcome = await postReport(endpoint, body);
+        if (outcome === 'retry') break;
+        drop();
+        if (outcome === 'sent') sent += 1;
+      }
+    } finally {
+      outboxFlushing = false;
+    }
+    if (sent) showToast(`✔ ${sent === 1 ? 'Отметка ушла' : `Отметки ушли (${sent})`} к своим`, 'Связь появилась — отправлено со временем, когда вы отмечали.');
+    else if (expired) showToast('Отметка так и не ушла', 'Связи долго не было, и отметка устарела. На этом телефоне она сохранена.');
+    if (!loadOutbox().length) outboxWarned = false;
+    renderGroupFeed();
+  };
+  reportQueue = reportQueue.then(run, run);
+  return reportQueue;
+}
+
+function outboxNote() {
+  const waiting = loadOutbox().length;
+  if (!waiting) return '';
+  const words = waiting === 1
+    ? 'Ваша отметка ждёт связи и уйдёт сама'
+    : `${waiting} ${plural(waiting, 'отметка ждёт', 'отметки ждут', 'отметок ждут')} связи и уйдут сами`;
+  return `<div class="feed-outbox">⏳ ${escapeHtml(words)}, как только появится интернет.</div>`;
+}
+
+window.addEventListener('online', () => flushOutbox());
 
 // Marks the group filed in the last 45 minutes, read straight from the
 // worker. The pipeline folds the same reports into the vote ten minutes
@@ -1272,6 +1392,8 @@ async function pollGroupMarks() {
     }
     const payload = await response.json();
     state.workerBatch = payload.batch === true;
+    state.workerLateMarks = payload.late_marks === true;
+    flushOutbox();
     const cutoff = Date.now() - OWN_WINDOW_MS;
     const marks = {};
     for (const report of payload.reports || []) {
@@ -1355,7 +1477,7 @@ async function renderGroupFeed() {
     return { stationId, items, latest, queue, people, names };
   }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
   if (!entries.length) {
-    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${ownLink()}${scoutHint()}`;
+    box.innerHTML = `${outboxNote()}<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${ownLink()}${scoutHint()}`;
     bindPushButton(box);
     bindScout(box);
     bindOwnLink(box);
@@ -1376,7 +1498,7 @@ async function renderGroupFeed() {
       ${thanksButton(entry.stationId)}
     </div>`;
   }).join('');
-  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div><div class="feed-list">${cards}</div>${ownLink()}${scoutHint()}`;
+  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div>${outboxNote()}<div class="feed-list">${cards}</div>${ownLink()}${scoutHint()}`;
   box.querySelectorAll('[data-feed-station]').forEach((item) => {
     item.addEventListener('click', (event) => {
       if (event.target.closest('.thanks-button')) return;
@@ -2024,7 +2146,7 @@ const CLUB_ERRORS = {
   try_again_in_a_minute: 'Клуб ещё запоминает вас. Попробуйте через минуту.',
   owner_only: 'Это может только владелец клуба.',
 };
-Object.assign(CLUB_ERRORS, REWARD_ERRORS);
+Object.assign(CLUB_ERRORS, REWARD_ERRORS, STORAGE_ERRORS);
 
 function clubUrl(path) {
   return `${String(window.SPBFI_REPORT_ENDPOINT || '').replace(/\/$/, '')}${path}`;
@@ -2598,11 +2720,22 @@ function bindComposer(root) {
     const details = state.stationDetails[stationId];
     const blindSpot = grades.some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(details?.grades?.[grade]?.status || state.gradesBrief?.[stationId]?.[grade]?.s));
     grades.forEach((grade) => saveMark(stationId, grade, chosen[grade], queue, { render: false, share: false }));
-    shareLook(stationId, grades.map((grade) => ({ grade, seen: chosen[grade] })), queue, { summary: summary + queueText, blindSpot });
-    box.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(summary)}${escapeHtml(queueText)}. У всех это уже наверху, в «Свои сообщают».</span>`;
+    box.innerHTML = `<span class="mark-sent">⏳ Отправляю своим: ${escapeHtml(summary)}${escapeHtml(queueText)}…</span>`;
+    shareLook(stationId, grades.map((grade) => ({ grade, seen: chosen[grade] })), queue, { summary: summary + queueText, blindSpot })
+      .then((outcome) => showSendOutcome(box.querySelector('.mark-sent'), outcome, `${summary}${queueText}`, 'У всех это уже наверху, в «Свои сообщают».'));
     renderGroupFeed();
     setTimeout(() => { renderStations(); renderHerePanel(); }, 4000);
   });
+}
+
+// The line under the buttons tells the truth about where the mark went.
+function showSendOutcome(line, outcome, what, sentNote) {
+  if (!line?.isConnected) return;
+  if (outcome === 'queued') line.textContent = `⏳ Нет связи. ${what} — сохранено на телефоне и уйдёт само, как только появится интернет.`;
+  else if (outcome === 'refused') line.textContent = `Не отправлено: ${what}. Отметка осталась только на этом телефоне.`;
+  else line.textContent = `✔ Отправлено своим: ${what}. ${sentNote}`;
+  line.classList.toggle('waiting', outcome === 'queued');
+  line.classList.toggle('refused', outcome === 'refused');
 }
 
 function bindMarkButtons(root) {
@@ -2611,9 +2744,12 @@ function bindMarkButtons(root) {
       event.stopPropagation();
       const seen = button.dataset.markSeen === '1';
       const row = button.closest('.mark-row');
-      if (row) row.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(GRADE_LABELS[state.grade])} ${seen ? 'есть' : 'нет'}. Они увидят это сразу.</span>`;
+      const what = `${GRADE_LABELS[state.grade]} ${seen ? 'есть' : 'нет'}`;
+      if (row) row.innerHTML = `<span class="mark-sent">⏳ Отправляю своим: ${escapeHtml(what)}…</span>`;
+      const line = row?.querySelector('.mark-sent');
       const station = state.stations.find((item) => item.id === button.dataset.markStation);
-      saveMark(button.dataset.markStation, state.grade, seen, null, { blindSpot: ['NO_FRESH_DATA', 'CONFLICT'].includes(station?.grade?.status) });
+      saveMark(button.dataset.markStation, state.grade, seen, null, { blindSpot: ['NO_FRESH_DATA', 'CONFLICT'].includes(station?.grade?.status) })
+        .then((outcome) => showSendOutcome(line, outcome, what, 'Они увидят это сразу.'));
     });
   });
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import worker from './spbfi-reports.js';
+import { FakeD1 } from './fake-d1.mjs';
 
 class MemoryKV {
   constructor() { this.values = new Map(); this.writes = 0; }
@@ -10,6 +11,11 @@ class MemoryKV {
   }
   async put(key, value) { this.writes += 1; this.values.set(key, String(value)); }
 }
+
+// SPBFI_STORE=d1 runs the same checks against D1 instead of KV.
+const useD1 = process.env.SPBFI_STORE === 'd1';
+const storage = () => ({ REPORTS: new MemoryKV(), ...(useD1 ? { DB: new FakeD1() } : {}) });
+const writesOf = (env) => (env.DB ? env.DB.docWrites : env.REPORTS.writes);
 
 // Real KV answers over the network; a small delay is enough for concurrent
 // read-modify-write cycles to overlap the way they did on the phones.
@@ -42,19 +48,20 @@ async function call(env, path, { method = 'GET', body, token } = {}) {
 
 // ------------------------------------------------------------ the bug, for the record
 {
-  const env = { REPORTS: new SlowKV() };
+  const env = useD1 ? { REPORTS: new MemoryKV(), DB: new FakeD1({ latencyMs: 25 }) } : { REPORTS: new SlowKV() };
   await Promise.all(['AI92', 'AI95', 'AI98'].map((grade) => call(env, '/report', {
     method: 'POST', body: { station: 'race', grade, seen: false, who: 'phone-1' },
   })));
   const kept = (await call(env, '/reports')).data.reports.length;
-  assert(kept < 3, `concurrent single-grade reports should lose marks on a slow KV, kept ${kept}`);
+  if (useD1) assert.equal(kept, 3, `D1 keeps every concurrent report, kept ${kept}`);
+  else assert(kept < 3, `concurrent single-grade reports should lose marks on a slow KV, kept ${kept}`);
 }
 
 // ------------------------------------------------------------ one look, one request, one write
 {
-  const env = { REPORTS: new MemoryKV() };
+  const env = storage();
   assert.equal((await call(env, '/reports')).data.batch, true, 'the worker tells the app it takes batches');
-  const before = env.REPORTS.writes;
+  const before = writesOf(env);
   const look = await call(env, '/report', {
     method: 'POST',
     body: {
@@ -67,7 +74,7 @@ async function call(env, path, { method = 'GET', body, token } = {}) {
   });
   assert.equal(look.status, 200);
   assert.equal(look.data.accepted, 3, 'duplicates and malformed grades are dropped');
-  assert.equal(env.REPORTS.writes - before, 1, 'a whole look is one KV write');
+  assert.equal(writesOf(env) - before, 1, 'a whole look is one write');
   const stored = (await call(env, '/reports')).data.reports;
   assert.deepEqual(stored.map((r) => `${r.grade}:${r.seen}:${r.queue}`).sort(), ['AI92:false:12', 'AI95:false:12', 'AI98:false:12']);
 
@@ -85,20 +92,20 @@ async function call(env, path, { method = 'GET', body, token } = {}) {
 
 // ------------------------------------------------------------ in the club a look pays once and costs two writes
 {
-  const env = { REPORTS: new MemoryKV(), CLUB_OWNER_KEY: 'owner-secret-for-tests-only' };
+  const env = { ...storage(), CLUB_OWNER_KEY: 'owner-secret-for-tests-only' };
   assert.equal((await call(env, '/club/health')).data.batch, true);
   const owner = (await call(env, '/club/owner', { method: 'POST', body: { key: env.CLUB_OWNER_KEY, name: 'Егор' } })).data;
   const { code } = (await call(env, '/club/invite', { method: 'POST', token: owner.token })).data;
   const sasha = (await call(env, '/club/join', { method: 'POST', body: { code, name: 'Саша', accept: true } })).data;
 
-  const before = env.REPORTS.writes;
+  const before = writesOf(env);
   const look = await call(env, '/report', {
     method: 'POST', token: sasha.token,
     body: { station: 'c-1', lat: 60.05, lon: 30.3, grades: [{ grade: 'AI92', seen: false }, { grade: 'AI95', seen: false }, { grade: 'AI98', seen: false }] },
   });
   assert.equal(look.data.accepted, 3);
   assert.equal(look.data.rewards.liters, 1, 'three grades of one look are one mark');
-  assert.equal(env.REPORTS.writes - before, 2, 'the look and the scoreboard: two writes');
+  assert.equal(writesOf(env) - before, 2, 'the look and the scoreboard: two writes');
   const named = (await call(env, '/club/reports', { token: owner.token })).data.reports.filter((r) => r.station === 'c-1');
   assert.equal(named.length, 3);
   assert(named.every((r) => r.name === 'Саша'));

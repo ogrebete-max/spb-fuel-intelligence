@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { webkit, chromium, devices } from 'playwright';
 import worker from '../worker/spbfi-reports.js';
+import { FakeD1 } from '../worker/fake-d1.mjs';
 
 const SITE = fileURLToPath(new URL('../site', import.meta.url));
 const SITE_PORT = 8821;
@@ -19,6 +20,9 @@ class MemoryKV {
   async get(key, options) { const v = this.values.get(key); return v == null ? null : options?.type === 'json' ? JSON.parse(v) : v; }
   async put(key, value) { this.values.set(key, String(value)); }
 }
+// `--d1` runs the same flow against D1, the way the worker is meant to be deployed.
+const useD1 = process.argv.includes('--d1');
+const storage = () => ({ REPORTS: new MemoryKV(), ...(useD1 ? { DB: new FakeD1() } : {}) });
 const OWNER_KEY = 'owner-key-used-only-in-this-test';
 let env;
 
@@ -84,7 +88,7 @@ async function member(browser, device, token, memberRecord, { standalone = false
 
 async function run(label, browserType, device) {
   console.log(`\n=== ${label}`);
-  env = { REPORTS: new MemoryKV(), CLUB_OWNER_KEY: OWNER_KEY, ORIGIN: `http://localhost:${SITE_PORT}` };
+  env = { ...storage(), CLUB_OWNER_KEY: OWNER_KEY, ORIGIN: `http://localhost:${SITE_PORT}` };
   const owner = await api('/club/owner', { method: 'POST', body: { key: OWNER_KEY, name: 'Егор' } });
   const { code } = await api('/club/invite', { method: 'POST', token: owner.token });
   const sasha = await api('/club/join', { method: 'POST', body: { code, name: 'Саша', accept: true } });

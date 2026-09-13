@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { webkit, chromium, devices } from 'playwright';
 import worker from '../worker/spbfi-reports.js';
+import { FakeD1 } from '../worker/fake-d1.mjs';
 
 const SITE = fileURLToPath(new URL('../site', import.meta.url));
 const SITE_PORT = 8811;
@@ -19,7 +20,10 @@ class MemoryKV {
   async get(key, options) { const v = this.values.get(key); return v == null ? null : options?.type === 'json' ? JSON.parse(v) : v; }
   async put(key, value) { this.values.set(key, String(value)); }
 }
-const env = { REPORTS: new MemoryKV(), CLUB_OWNER_KEY: OWNER_KEY, ORIGIN: `http://localhost:${SITE_PORT}` };
+// `--d1` runs the same flow against D1, the way the worker is meant to be deployed.
+const useD1 = process.argv.includes('--d1');
+const storage = () => ({ REPORTS: new MemoryKV(), ...(useD1 ? { DB: new FakeD1() } : {}) });
+const env = { ...storage(), CLUB_OWNER_KEY: OWNER_KEY, ORIGIN: `http://localhost:${SITE_PORT}` };
 globalThis.fetch = ((original) => (url, init) => (String(url).startsWith('https://push.') ? Promise.resolve(new Response(null, { status: 201 })) : original(url, init)))(globalThis.fetch);
 
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
@@ -155,11 +159,11 @@ async function run(label, browserType, device) {
 
 try {
   await run('iphone', webkit, devices['iPhone 13']);
-  env.REPORTS = new MemoryKV();
+  Object.assign(env, storage());
   await run('android', chromium, devices['Pixel 7']);
 } finally {
   siteServer.close();
   workerServer.close();
 }
-console.log(failures.length ? `\n${failures.length} FAILED` : '\nALL CLUB UI CHECKS PASSED');
+console.log(failures.length ? `\n${failures.length} FAILED` : `\nALL CLUB UI CHECKS PASSED (${useD1 ? 'D1' : 'KV'})`);
 process.exit(failures.length ? 1 : 0);

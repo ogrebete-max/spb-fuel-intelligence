@@ -24,7 +24,8 @@
  * Without CLUB_OWNER_KEY the worker behaves exactly as before.
  *
  * Bindings:
- *   REPORTS              KV namespace (required)
+ *   DB                   D1 database (recommended): marks, the club and push subscriptions
+ *   REPORTS              KV namespace: storage when there is no DB, and what DB is filled from once
  *   CLUB_OWNER_KEY       secret; turns the closed club on and lets the owner in
  *   CLUB_READER_KEY      optional secret; when set, GET /reports needs it too
  *   GROUP_KEY            legacy shared passphrase, used only without the club
@@ -76,10 +77,209 @@ function json(body, request, env, status = 200) {
   });
 }
 
+// ---------------------------------------------------------------- storage
+
+// Everything the group shares — marks, push subscriptions, the club's members,
+// invites and scoreboard — is a document that a request reads, changes and
+// writes back. Workers KV cannot do that safely: a write made at one
+// Cloudflare location reaches the others up to a minute later, so two people
+// acting at once through different locations overwrite each other (a member
+// who has just joined vanishes, a mark or a thank-you is lost), and the free
+// plan refuses writes after 1,000 a day. A D1 database bound as DB is
+// consistent: each write names the version it was based on, a stale one is
+// refused, and the change is redone on what is stored now. Without DB the
+// worker keeps using KV as before.
+const LEGACY_KEYS = ['vapid', 'subscriptions', 'reports', 'club:secret', 'club:members', 'club:invites', 'club:stats', 'club:flags', 'club:heroes'];
+const MOVED_KEY = 'meta:moved-from-kv';
+// While Cloudflare rolls a new version out, the old one keeps answering some
+// requests for about a quarter of an hour and still writes to KV. Marks and
+// subscriptions it takes in during the first hour are folded in, not lost.
+const STRAGGLER_WINDOW_MS = 60 * 60 * 1000;
+const STRAGGLER_IDENTITY = {
+  reports: (item) => `${item.station}|${item.grade}|${item.who}|${item.at}`,
+  subscriptions: (item) => item.endpoint,
+};
+const WRITE_ATTEMPTS = 8;
+
+class StorageBusy extends Error {
+  constructor(keys) {
+    super(`kept being overtaken while writing ${keys.join(', ')}`);
+    this.name = 'StorageBusy';
+  }
+}
+
+function storageKind(env) {
+  return env.DB ? 'd1' : 'kv';
+}
+
+function parseDoc(raw, fallback) {
+  const fresh = () => (fallback && typeof fallback === 'object' ? structuredClone(fallback) : fallback);
+  if (raw == null) return fresh();
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    // The club secret was once stored as bare text.
+    return fallback === null ? raw : fresh();
+  }
+  if (Array.isArray(fallback)) return Array.isArray(value) ? value : fresh();
+  if (fallback && typeof fallback === 'object') return value && typeof value === 'object' ? value : fresh();
+  return value;
+}
+
+/** Sets up an unused D1 database in place: the tables, then whatever KV held. */
+async function createD1(env) {
+  await env.DB.batch([
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS docs (key TEXT PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL, updated_at INTEGER NOT NULL)'),
+    // A write based on an outdated version inserts a 0 here; the check refuses
+    // it and the whole batch rolls back.
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS doc_guard (ok INTEGER NOT NULL CONSTRAINT stale_write CHECK (ok = 1))'),
+  ]);
+  const now = Date.now();
+  const legacy = env.REPORTS
+    ? (await Promise.all(LEGACY_KEYS.map(async (key) => [key, await env.REPORTS.get(key)]))).filter(([, body]) => body != null)
+    : [];
+  // Nothing already in D1 is overwritten, so two first requests racing here
+  // change nothing. The VAPID key moves together with the subscriptions made
+  // for it, so phones keep hearing pushes.
+  const insert = 'INSERT INTO docs (key, body, version, updated_at) VALUES (?, ?, 1, ?) ON CONFLICT(key) DO NOTHING';
+  await env.DB.batch([
+    ...legacy.map(([key, body]) => env.DB.prepare(insert).bind(key, body, now)),
+    env.DB.prepare(insert).bind(MOVED_KEY, JSON.stringify({ at: now, keys: legacy.map(([key]) => key) }), now),
+  ]);
+}
+
+async function readDocs(env, keys) {
+  if (!env.DB) {
+    const values = await Promise.all(keys.map((key) => env.REPORTS.get(key)));
+    return Object.fromEntries(keys.map((key, index) => [key, { raw: values[index], version: 0 }]));
+  }
+  const wanted = [...new Set([...keys, MOVED_KEY])];
+  const select = () => env.DB.prepare(`SELECT key, body, version FROM docs WHERE key IN (${wanted.map(() => '?').join(', ')})`).bind(...wanted).all();
+  let rows = null;
+  try {
+    rows = (await select()).results;
+  } catch (error) {
+    if (!/no such table/i.test(String(error?.message || error))) throw error;
+  }
+  if (!rows?.some((row) => row.key === MOVED_KEY)) {
+    await createD1(env);
+    rows = (await select()).results;
+  }
+  const found = new Map(rows.map((row) => [row.key, row]));
+  const docs = Object.fromEntries(keys.map((key) => [key, { raw: found.get(key)?.body ?? null, version: Number(found.get(key)?.version || 0) }]));
+  await foldStragglers(env, docs, found.get(MOVED_KEY));
+  return docs;
+}
+
+async function foldStragglers(env, docs, moved) {
+  const keys = Object.keys(STRAGGLER_IDENTITY).filter((key) => docs[key]);
+  if (!keys.length || !env.REPORTS || !moved) return;
+  const movedAt = Number(parseDoc(moved.body, {}).at) || 0;
+  if (Date.now() - movedAt > STRAGGLER_WINDOW_MS) return;
+  await Promise.all(keys.map(async (key) => {
+    const identity = STRAGGLER_IDENTITY[key];
+    const current = parseDoc(docs[key].raw, []).filter(Boolean);
+    const known = new Set(current.map(identity));
+    // Only what the old version took in after the move: what was there before
+    // was copied, and may since have been removed on purpose.
+    const missing = parseDoc(await env.REPORTS.get(key), []).filter((item) => item && item.at > movedAt && !known.has(identity(item)));
+    if (!missing.length) return;
+    const raw = JSON.stringify([...current, ...missing]);
+    try {
+      await writeDocs(env, [{ key, raw, version: docs[key].version }]);
+      docs[key] = { raw, version: docs[key].version + 1 };
+    } catch (error) {
+      if (!staleWrite(error)) throw error;
+      // Someone wrote it meanwhile; the next read folds again.
+      docs[key] = { ...docs[key], raw };
+    }
+  }));
+}
+
+async function writeDocs(env, changed) {
+  if (!env.DB) {
+    for (const { key, raw } of changed) {
+      if (key.startsWith('analytics:')) await env.REPORTS.put(key, raw, { expirationTtl: ANALYTICS_RETENTION_SECONDS });
+      else await env.REPORTS.put(key, raw);
+    }
+    return;
+  }
+  const now = Date.now();
+  await env.DB.batch(changed.flatMap(({ key, raw, version }) => [
+    version
+      ? env.DB.prepare('INSERT INTO doc_guard (ok) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM docs WHERE key = ? AND version = ?)').bind(key, version)
+      : env.DB.prepare('INSERT INTO doc_guard (ok) SELECT 0 WHERE EXISTS (SELECT 1 FROM docs WHERE key = ?)').bind(key),
+    env.DB.prepare('INSERT INTO docs (key, body, version, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, version = excluded.version, updated_at = excluded.updated_at')
+      .bind(key, raw, version + 1, now),
+  ]));
+}
+
+function staleWrite(error) {
+  return /stale_write|CHECK constraint failed/i.test(String(error?.message || error));
+}
+
+/**
+ * Reads the documents named in `defaults`, lets `change` edit them in place
+ * and writes back the ones it changed, all together. If anyone wrote one of
+ * them in the meantime, the write is refused and `change` runs again on what
+ * is stored now — so `change` must do nothing but edit and return a result.
+ */
+async function transact(env, defaults, change) {
+  const keys = Object.keys(defaults);
+  for (let attempt = 1; ; attempt += 1) {
+    const stored = await readDocs(env, keys);
+    const docs = {};
+    const before = {};
+    for (const key of keys) {
+      docs[key] = parseDoc(stored[key].raw, defaults[key]);
+      before[key] = JSON.stringify(docs[key]);
+    }
+    const result = await change(docs);
+    const changed = keys
+      .map((key) => ({ key, raw: JSON.stringify(docs[key]), version: stored[key].version }))
+      .filter(({ key, raw }) => raw !== undefined && raw !== before[key]);
+    if (!changed.length) return result;
+    try {
+      await writeDocs(env, changed);
+      return result;
+    } catch (error) {
+      if (!staleWrite(error)) throw error;
+      if (attempt >= WRITE_ATTEMPTS) throw new StorageBusy(keys);
+      await new Promise((resolve) => setTimeout(resolve, 5 + Math.random() * 25 * attempt));
+    }
+  }
+}
+
+async function loadDocs(env, defaults) {
+  const keys = Object.keys(defaults);
+  const stored = await readDocs(env, keys);
+  return Object.fromEntries(keys.map((key) => [key, parseDoc(stored[key].raw, defaults[key])]));
+}
+
+async function readDoc(env, key, fallback) {
+  return (await loadDocs(env, { [key]: fallback }))[key];
+}
+
+// The VAPID pair and the club's signing secret never change once made, so an
+// isolate reads each of them once.
+const constants = new WeakMap();
+
+function remembered(env, name, load) {
+  const holder = env.DB || env.REPORTS;
+  let slot = constants.get(holder);
+  if (!slot) constants.set(holder, (slot = new Map()));
+  if (!slot.has(name)) {
+    const pending = load();
+    slot.set(name, pending);
+    pending.catch(() => slot.delete(name));
+  }
+  return slot.get(name);
+}
+
 async function readAll(env) {
-  const raw = await env.REPORTS.get('reports', { type: 'json' });
   const cutoff = Date.now() - WINDOW_MS;
-  return Array.isArray(raw) ? raw.filter((item) => item && item.at > cutoff) : [];
+  return (await readDoc(env, 'reports', [])).filter((item) => item && item.at > cutoff);
 }
 
 // The free KV plan allows 1,000 writes a day. A rate-limit counter kept in KV
@@ -241,10 +441,12 @@ async function storeAnalytics(request, env) {
     hmacToken(secret, `${dayName}:session:${sessionId}`),
   ]);
   const key = `analytics:v${ANALYTICS_VERSION}:${dayName}`;
-  const day = (await env.REPORTS.get(key, { type: 'json' })) || emptyAnalyticsDay(dayName);
-  for (const event of events) applyAnalyticsEvent(day, event, userHash, sessionHash);
-  day.updated_at = Date.now();
-  await env.REPORTS.put(key, JSON.stringify(day), { expirationTtl: ANALYTICS_RETENTION_SECONDS });
+  await transact(env, { [key]: null }, (docs) => {
+    const day = docs[key] && typeof docs[key] === 'object' ? docs[key] : emptyAnalyticsDay(dayName);
+    for (const event of events) applyAnalyticsEvent(day, event, userHash, sessionHash);
+    day.updated_at = Date.now();
+    docs[key] = day;
+  });
   return json({ ok: true, accepted: events.length }, request, env, 202);
 }
 
@@ -272,7 +474,8 @@ async function analyticsDashboard(request, env, url) {
     return json({ error: 'forbidden' }, request, env, 403);
   }
   const days = Math.round(finiteNumber(url.searchParams.get('days') || 7, 1, 30));
-  const documents = (await Promise.all([...Array(days)].map((_, index) => env.REPORTS.get(`analytics:v${ANALYTICS_VERSION}:${analyticsDay(index)}`, { type: 'json' })))).filter(Boolean);
+  const stored = await loadDocs(env, Object.fromEntries([...Array(days)].map((_, index) => [`analytics:v${ANALYTICS_VERSION}:${analyticsDay(index)}`, null])));
+  const documents = Object.values(stored).filter((day) => day && typeof day === 'object');
   const total = emptyAnalyticsDay('range');
   const trend = [];
   for (const day of documents) {
@@ -375,16 +578,23 @@ function concat(...parts) {
 // ---------------------------------------------------------------- VAPID keys
 
 async function vapidKeys(env) {
-  const stored = await env.REPORTS.get('vapid', { type: 'json' });
-  if (stored && stored.privateJwk && stored.publicJwk) return stored;
-  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
-  const created = {
-    privateJwk: await crypto.subtle.exportKey('jwk', pair.privateKey),
-    publicJwk: await crypto.subtle.exportKey('jwk', pair.publicKey),
-    publicKey: b64u.encode(await crypto.subtle.exportKey('raw', pair.publicKey)),
-  };
-  await env.REPORTS.put('vapid', JSON.stringify(created));
-  return created;
+  return remembered(env, 'vapid', async () => {
+    const stored = await readDoc(env, 'vapid', null);
+    if (stored?.privateJwk && stored.publicJwk) return stored;
+    const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const created = {
+      privateJwk: await crypto.subtle.exportKey('jwk', pair.privateKey),
+      publicJwk: await crypto.subtle.exportKey('jwk', pair.publicKey),
+      publicKey: b64u.encode(await crypto.subtle.exportKey('raw', pair.publicKey)),
+    };
+    // Two first requests at once must settle on one pair: phones subscribe
+    // with its public half and never hear anything signed with another.
+    return transact(env, { vapid: null }, (docs) => {
+      if (docs.vapid?.privateJwk && docs.vapid.publicJwk) return docs.vapid;
+      docs.vapid = created;
+      return created;
+    });
+  });
 }
 
 async function vapidAuthorization(env, endpoint) {
@@ -448,8 +658,7 @@ async function sendPush(env, subscription, payload) {
 // ---------------------------------------------------------------- subscriptions
 
 async function readSubscriptions(env) {
-  const raw = await env.REPORTS.get('subscriptions', { type: 'json' });
-  return Array.isArray(raw) ? raw : [];
+  return readDoc(env, 'subscriptions', []);
 }
 
 async function notifyGroup(env, report) {
@@ -479,7 +688,9 @@ async function notifyGroup(env, report) {
     }
   }));
   if (dead.size) {
-    await env.REPORTS.put('subscriptions', JSON.stringify(subscriptions.filter((sub) => !dead.has(sub.endpoint))));
+    await transact(env, { subscriptions: [] }, (docs) => {
+      docs.subscriptions = docs.subscriptions.filter((sub) => !dead.has(sub.endpoint));
+    });
   }
 }
 
@@ -622,12 +833,15 @@ function profileOf(stats, now = Date.now()) {
  * recent mark it agrees with, because a second pair of eyes is what makes a
  * mark worth trusting. Returns what happened so the phone can celebrate.
  */
-async function rewardMark(env, members, reports, looks, { blindSpot = false } = {}) {
-  // A look may list several grades; everything below is paid from one read
-  // and one write of the scoreboard.
+async function rewardMark(env, members, reports, looks, options = {}) {
+  // A look may list several grades; everything is paid from one read and one
+  // write of the scoreboard, redone if another payout got there first.
+  return transact(env, { 'club:stats': {} }, (docs) => payMark(docs['club:stats'], members, reports, looks, options));
+}
+
+function payMark(all, members, reports, looks, { blindSpot = false } = {}) {
   const batch = Array.isArray(looks) ? looks : [looks];
   const report = batch[0];
-  const all = await readDoc(env, 'club:stats', {});
   const me = statsFor(all, report.who);
   const at = report.at;
   const result = { liters: 0, confirmed: [], badges: [], level_up: null };
@@ -693,7 +907,6 @@ async function rewardMark(env, members, reports, looks, { blindSpot = false } = 
   result.badges = awardBadges(me, at);
   result.total = me.liters;
   result.level = levelFor(me.liters);
-  await env.REPORTS.put('club:stats', JSON.stringify(all));
   return result;
 }
 
@@ -703,23 +916,26 @@ async function notifyMember(env, memberId, payload) {
 }
 
 /** Once a week the member with the most litres last week becomes its hero. */
-async function crownLastWeek(env, members, all) {
+async function crownLastWeek(env, members) {
   const lastWeek = weekKey(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const heroes = await readDoc(env, 'club:heroes', {});
-  if (heroes[lastWeek] !== undefined) return heroes[lastWeek];
-  const best = Object.entries(all)
-    .filter(([id, stats]) => members[id] && !members[id].banned && (stats.weeks?.[lastWeek] || 0) > 0)
-    .sort((a, b) => b[1].weeks[lastWeek] - a[1].weeks[lastWeek])[0];
-  heroes[lastWeek] = best ? { id: best[0], liters: best[1].weeks[lastWeek] } : null;
-  if (best) {
-    const stats = statsFor(all, best[0]);
-    stats.heroes += 1;
-    pushNews(stats, { type: 'hero', week: lastWeek, liters: heroes[lastWeek].liters, at: Date.now() });
-    awardBadges(stats, Date.now());
-    await env.REPORTS.put('club:stats', JSON.stringify(all));
-  }
-  await env.REPORTS.put('club:heroes', JSON.stringify(heroes));
-  return heroes[lastWeek];
+  const crowned = await readDoc(env, 'club:heroes', {});
+  if (crowned[lastWeek] !== undefined) return crowned[lastWeek];
+  return transact(env, { 'club:heroes': {}, 'club:stats': {} }, (docs) => {
+    const heroes = docs['club:heroes'];
+    if (heroes[lastWeek] !== undefined) return heroes[lastWeek];
+    const all = docs['club:stats'];
+    const best = Object.entries(all)
+      .filter(([id, stats]) => members[id] && !members[id].banned && (stats.weeks?.[lastWeek] || 0) > 0)
+      .sort((a, b) => b[1].weeks[lastWeek] - a[1].weeks[lastWeek])[0];
+    heroes[lastWeek] = best ? { id: best[0], liters: best[1].weeks[lastWeek] } : null;
+    if (best) {
+      const stats = statsFor(all, best[0]);
+      stats.heroes += 1;
+      pushNews(stats, { type: 'hero', week: lastWeek, liters: heroes[lastWeek].liters, at: Date.now() });
+      awardBadges(stats, Date.now());
+    }
+    return heroes[lastWeek];
+  });
 }
 
 // ---------------------------------------------------------------- club
@@ -737,11 +953,6 @@ function clubEnabled(env) {
   return !!env.CLUB_OWNER_KEY;
 }
 
-async function readDoc(env, key, fallback) {
-  const raw = await env.REPORTS.get(key, { type: 'json' });
-  return raw && typeof raw === 'object' ? raw : fallback;
-}
-
 async function readJson(request) {
   try {
     return await request.json();
@@ -751,11 +962,13 @@ async function readJson(request) {
 }
 
 async function clubSecret(env) {
-  const stored = await env.REPORTS.get('club:secret');
-  if (stored) return stored;
-  const created = b64u.encode(crypto.getRandomValues(new Uint8Array(32)));
-  await env.REPORTS.put('club:secret', created);
-  return created;
+  // Every member's pass is signed with it: two first requests at once must
+  // settle on one secret, or some passes would stop working.
+  return remembered(env, 'club:secret', () => transact(env, { 'club:secret': null }, (docs) => {
+    if (typeof docs['club:secret'] === 'string' && docs['club:secret']) return docs['club:secret'];
+    docs['club:secret'] = b64u.encode(crypto.getRandomValues(new Uint8Array(32)));
+    return docs['club:secret'];
+  }));
 }
 
 async function clubSign(env, value) {
@@ -815,7 +1028,7 @@ function inviteAllowance(member, invites) {
 async function clubRoutes(request, env, url, ctx) {
   const path = url.pathname;
   if (request.method === 'GET' && path === '/club/health') {
-    return json({ club: clubEnabled(env), version: CLUB_VERSION, batch: true }, request, env);
+    return json({ club: clubEnabled(env), version: CLUB_VERSION, batch: true, late_marks: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -825,12 +1038,13 @@ async function clubRoutes(request, env, url, ctx) {
     if (!constantEqual(String(body.key || ''), String(env.CLUB_OWNER_KEY))) {
       return json({ error: 'wrong_owner_key' }, request, env, 403);
     }
-    const members = await readDoc(env, 'club:members', {});
-    const owner = members.owner || { id: 'owner', role: 'owner', joined: Date.now(), sponsor: null };
-    owner.name = cleanName(body.name) || owner.name || 'Владелец';
-    owner.banned = false;
-    members.owner = owner;
-    await env.REPORTS.put('club:members', JSON.stringify(members));
+    const owner = await transact(env, { 'club:members': {} }, (docs) => {
+      const members = docs['club:members'];
+      members.owner = members.owner || { id: 'owner', role: 'owner', joined: Date.now(), sponsor: null };
+      members.owner.name = cleanName(body.name) || members.owner.name || 'Владелец';
+      members.owner.banned = false;
+      return members.owner;
+    });
     return json({ token: await issueToken(env, 'owner'), member: publicMember(owner) }, request, env);
   }
 
@@ -841,24 +1055,27 @@ async function clubRoutes(request, env, url, ctx) {
     const name = cleanName(body.name);
     if (!code || !name) return json({ error: 'expected_code_and_name' }, request, env, 400);
     if (body.accept !== true) return json({ error: 'rules_not_accepted' }, request, env, 400);
-    const invites = await readDoc(env, 'club:invites', {});
-    const invite = invites[code];
-    if (!invite || invite.revoked) return json({ error: 'invite_unknown' }, request, env, 404);
-    if (invite.used_by) return json({ error: 'invite_used' }, request, env, 409);
-    if (invite.expires < Date.now()) return json({ error: 'invite_expired' }, request, env, 410);
-    const members = await readDoc(env, 'club:members', {});
-    const sponsor = members[invite.by];
-    if (!sponsor || sponsor.banned) return json({ error: 'sponsor_banned' }, request, env, 403);
-    let id;
-    do {
-      id = b64u.encode(crypto.getRandomValues(new Uint8Array(6)));
-    } while (members[id]);
-    members[id] = { id, name, role: 'member', sponsor: invite.by, joined: Date.now(), accepted_rules: Date.now() };
-    invite.used_by = id;
-    invite.used_at = Date.now();
-    await env.REPORTS.put('club:members', JSON.stringify(members));
-    await env.REPORTS.put('club:invites', JSON.stringify(invites));
-    return json({ token: await issueToken(env, id), member: publicMember(members[id]) }, request, env);
+    // The new member and the spent code are written together: two people
+    // joining at the same moment both stay members, and one code lets in one.
+    const joined = await transact(env, { 'club:members': {}, 'club:invites': {} }, (docs) => {
+      const members = docs['club:members'];
+      const invite = docs['club:invites'][code];
+      if (!invite || invite.revoked) return { error: 'invite_unknown', status: 404 };
+      if (invite.used_by) return { error: 'invite_used', status: 409 };
+      if (invite.expires < Date.now()) return { error: 'invite_expired', status: 410 };
+      const sponsor = members[invite.by];
+      if (!sponsor || sponsor.banned) return { error: 'sponsor_banned', status: 403 };
+      let id;
+      do {
+        id = b64u.encode(crypto.getRandomValues(new Uint8Array(6)));
+      } while (members[id]);
+      members[id] = { id, name, role: 'member', sponsor: invite.by, joined: Date.now(), accepted_rules: Date.now() };
+      invite.used_by = id;
+      invite.used_at = Date.now();
+      return { member: members[id] };
+    });
+    if (joined.error) return json({ error: joined.error }, request, env, joined.status);
+    return json({ token: await issueToken(env, joined.member.id), member: publicMember(joined.member) }, request, env);
   }
 
   const members = await readDoc(env, 'club:members', {});
@@ -867,7 +1084,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
 
   if (request.method === 'GET' && path === '/club/me') {
-    const invites = await readDoc(env, 'club:invites', {});
+    const { 'club:invites': invites, 'club:stats': all } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {} });
     const mine = Object.entries(invites)
       .filter(([, invite]) => invite.by === member.id && !invite.revoked)
       .map(([code, invite]) => ({
@@ -875,7 +1092,6 @@ async function clubRoutes(request, env, url, ctx) {
         used_by: invite.used_by ? (members[invite.used_by]?.name || '—') : null,
       }))
       .sort((a, b) => b.created - a.created);
-    const all = await readDoc(env, 'club:stats', {});
     const stats = statsFor(all, member.id);
     const since = Number(url.searchParams.get('since')) || 0;
     const news = (stats.news || []).filter((item) => item.at > since)
@@ -888,30 +1104,34 @@ async function clubRoutes(request, env, url, ctx) {
 
   if (request.method === 'POST' && path === '/club/invite') {
     if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
-    const invites = await readDoc(env, 'club:invites', {});
-    const allowance = inviteAllowance(member, invites);
-    if (allowance === 0) return json({ error: 'no_invites_left' }, request, env, 403);
-    // Unused codes that ran out a month ago are only clutter.
-    for (const [code, invite] of Object.entries(invites)) {
-      if (!invite.used_by && invite.expires < Date.now() - 30 * 24 * 60 * 60 * 1000) delete invites[code];
-    }
-    let code;
-    do {
-      code = inviteCode();
-    } while (invites[code]);
-    invites[code] = { by: member.id, created: Date.now(), expires: Date.now() + INVITE_TTL_MS };
-    await env.REPORTS.put('club:invites', JSON.stringify(invites));
-    return json({ code, expires: invites[code].expires, invites_left: inviteAllowance(member, invites) }, request, env);
+    const created = await transact(env, { 'club:invites': {} }, (docs) => {
+      const invites = docs['club:invites'];
+      if (inviteAllowance(member, invites) === 0) return { error: 'no_invites_left' };
+      // Unused codes that ran out a month ago are only clutter.
+      for (const [code, invite] of Object.entries(invites)) {
+        if (!invite.used_by && invite.expires < Date.now() - 30 * 24 * 60 * 60 * 1000) delete invites[code];
+      }
+      let code;
+      do {
+        code = inviteCode();
+      } while (invites[code]);
+      invites[code] = { by: member.id, created: Date.now(), expires: Date.now() + INVITE_TTL_MS };
+      return { code, expires: invites[code].expires, invites_left: inviteAllowance(member, invites) };
+    });
+    if (created.error) return json({ error: created.error }, request, env, 403);
+    return json(created, request, env);
   }
 
   if (request.method === 'POST' && path === '/club/invite/revoke') {
     const body = (await readJson(request)) || {};
-    const invites = await readDoc(env, 'club:invites', {});
-    const invite = invites[normalizeCode(body.code)];
-    if (!invite || (invite.by !== member.id && member.role !== 'owner')) return json({ error: 'invite_unknown' }, request, env, 404);
-    if (invite.used_by) return json({ error: 'invite_used' }, request, env, 409);
-    invite.revoked = true;
-    await env.REPORTS.put('club:invites', JSON.stringify(invites));
+    const revoked = await transact(env, { 'club:invites': {} }, (docs) => {
+      const invite = docs['club:invites'][normalizeCode(body.code)];
+      if (!invite || (invite.by !== member.id && member.role !== 'owner')) return { error: 'invite_unknown', status: 404 };
+      if (invite.used_by) return { error: 'invite_used', status: 409 };
+      invite.revoked = true;
+      return { ok: true };
+    });
+    if (revoked.error) return json({ error: revoked.error }, request, env, revoked.status);
     return json({ ok: true }, request, env);
   }
 
@@ -922,40 +1142,44 @@ async function clubRoutes(request, env, url, ctx) {
     const target = (await readAll(env)).find((report) => report.who === authorId && report.station === String(body.station || '')
       && report.grade === String(body.grade || '') && report.at === Number(body.at));
     if (!target || !members[authorId] || members[authorId].banned) return json({ error: 'mark_gone' }, request, env, 404);
-    const all = await readDoc(env, 'club:stats', {});
-    const giver = statsFor(all, member.id);
-    const today = dayKey(Date.now());
-    if ((giver.given_days[today] || 0) >= THANKS_PER_DAY) return json({ error: 'too_many_thanks' }, request, env, 429);
-    const author = statsFor(all, authorId);
-    const key = markKey(target);
-    const thankedBy = author.thanked[key] || [];
-    if (thankedBy.includes(member.id)) return json({ error: 'already_thanked', thanks: thankedBy.length }, request, env, 409);
-    for (const old of Object.keys(author.thanked)) {
-      if (Date.now() - Number(old.split(':').pop()) > 3 * 24 * 60 * 60 * 1000) delete author.thanked[old];
-    }
-    author.thanked[key] = [...thankedBy, member.id];
-    author.thanks += 1;
-    if (!target.seen) author.saved += 1;
     const now = Date.now();
-    const levelUp = addLiters(author, LITERS.thanks, now, 'thanks', { by: member.id, station: target.station, grade: target.grade, seen: target.seen });
-    awardBadges(author, now);
-    giver.given += 1;
-    giver.given_days = { [today]: (giver.given_days[today] || 0) + 1 };
-    const giverBadges = awardBadges(giver, now);
-    await env.REPORTS.put('club:stats', JSON.stringify(all));
+    const today = dayKey(now);
+    const key = markKey(target);
+    const thanked = await transact(env, { 'club:stats': {} }, (docs) => {
+      const all = docs['club:stats'];
+      if ((all[member.id]?.given_days?.[today] || 0) >= THANKS_PER_DAY) return { error: 'too_many_thanks', status: 429 };
+      const thankedBy = all[authorId]?.thanked?.[key] || [];
+      if (thankedBy.includes(member.id)) return { error: 'already_thanked', status: 409, thanks: thankedBy.length };
+      const giver = statsFor(all, member.id);
+      const author = statsFor(all, authorId);
+      for (const old of Object.keys(author.thanked)) {
+        if (now - Number(old.split(':').pop()) > 3 * 24 * 60 * 60 * 1000) delete author.thanked[old];
+      }
+      author.thanked[key] = [...thankedBy, member.id];
+      author.thanks += 1;
+      if (!target.seen) author.saved += 1;
+      const levelUp = addLiters(author, LITERS.thanks, now, 'thanks', { by: member.id, station: target.station, grade: target.grade, seen: target.seen });
+      awardBadges(author, now);
+      giver.given += 1;
+      giver.given_days = { [today]: (giver.given_days[today] || 0) + 1 };
+      return { thanks: author.thanked[key].length, levelUp, badges: awardBadges(giver, now) };
+    });
+    if (thanked.error) {
+      return json({ error: thanked.error, ...(thanked.thanks != null ? { thanks: thanked.thanks } : {}) }, request, env, thanked.status);
+    }
     const grade = GRADE_LABELS[target.grade] || target.grade;
     ctx.waitUntil(notifyMember(env, authorId, {
       title: `🙏 ${member.name || 'Свой'} говорит спасибо`,
-      body: `За отметку «${grade} ${target.seen ? 'есть' : 'нет'}» · +${LITERS.thanks} л${levelUp ? ` · новый уровень: ${levelUp.icon} ${levelUp.title}` : ''}`,
+      body: `За отметку «${grade} ${target.seen ? 'есть' : 'нет'}» · +${LITERS.thanks} л${thanked.levelUp ? ` · новый уровень: ${thanked.levelUp.icon} ${thanked.levelUp.title}` : ''}`,
       station: target.station,
       tag: `spbfi-thanks-${target.station}`,
     }).catch(() => {}));
-    return json({ ok: true, thanks: author.thanked[key].length, author_name: members[authorId].name, badges: giverBadges }, request, env);
+    return json({ ok: true, thanks: thanked.thanks, author_name: members[authorId].name, badges: thanked.badges }, request, env);
   }
 
   if (request.method === 'GET' && path === '/club/leaderboard') {
+    const hero = await crownLastWeek(env, members);
     const all = await readDoc(env, 'club:stats', {});
-    const hero = await crownLastWeek(env, members, all);
     const week = weekKey(Date.now());
     const rows = Object.values(members)
       .filter((item) => !item.banned)
@@ -977,9 +1201,10 @@ async function clubRoutes(request, env, url, ctx) {
   }
 
   if (request.method === 'GET' && path === '/club/reports') {
-    const clubStats = await readDoc(env, 'club:stats', {});
-    const reports = (await readAll(env))
-      .filter((report) => !members[report.who]?.banned)
+    const { 'club:stats': clubStats, reports: stored } = await loadDocs(env, { 'club:stats': {}, reports: [] });
+    const cutoff = Date.now() - WINDOW_MS;
+    const reports = stored
+      .filter((report) => report && report.at > cutoff && !members[report.who]?.banned)
       .map((report) => {
         const author = (clubStats[report.who] || {});
         const thankedBy = author.thanked?.[markKey(report)] || [];
@@ -991,7 +1216,7 @@ async function clubRoutes(request, env, url, ctx) {
           thanked: thankedBy.includes(member.id),
         };
       });
-    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, reports }, request, env);
+    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
   }
 
   if (member.role !== 'owner') return json({ error: 'owner_only' }, request, env, 403);
@@ -1002,26 +1227,25 @@ async function clubRoutes(request, env, url, ctx) {
     const text = String(body.text || '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 80);
     if (!target || target.banned) return json({ error: 'member_unknown' }, request, env, 404);
     if (!text) return json({ error: 'expected_text' }, request, env, 400);
-    const all = await readDoc(env, 'club:stats', {});
-    const stats = statsFor(all, target.id);
     const now = Date.now();
-    stats.awards = [...(stats.awards || []), { text, at: now }].slice(-20);
-    const levelUp = addLiters(stats, LITERS.award, now, 'award', { text });
-    awardBadges(stats, now);
-    await env.REPORTS.put('club:stats', JSON.stringify(all));
+    const { levelUp, liters } = await transact(env, { 'club:stats': {} }, (docs) => {
+      const stats = statsFor(docs['club:stats'], target.id);
+      stats.awards = [...(stats.awards || []), { text, at: now }].slice(-20);
+      const raised = addLiters(stats, LITERS.award, now, 'award', { text });
+      awardBadges(stats, now);
+      return { levelUp: raised, liters: stats.liters };
+    });
     ctx.waitUntil(notifyMember(env, target.id, {
       title: '🏅 Благодарность клуба',
       body: `${text} · +${LITERS.award} л${levelUp ? ` · новый уровень: ${levelUp.icon} ${levelUp.title}` : ''}`,
       tag: 'spbfi-award',
     }).catch(() => {}));
-    return json({ ok: true, liters: stats.liters }, request, env);
+    return json({ ok: true, liters }, request, env);
   }
 
   if (request.method === 'GET' && path === '/club/members') {
-    const ownerStats = await readDoc(env, 'club:stats', {});
+    const { 'club:stats': ownerStats, 'club:flags': flags, 'club:invites': invites } = await loadDocs(env, { 'club:stats': {}, 'club:flags': [], 'club:invites': {} });
     const reports = await readAll(env);
-    const flags = await readDoc(env, 'club:flags', []);
-    const invites = await readDoc(env, 'club:invites', {});
     const monthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const rows = Object.values(members).map((item) => {
       const marks = reports.filter((report) => report.who === item.id);
@@ -1046,22 +1270,24 @@ async function clubRoutes(request, env, url, ctx) {
 
   if (request.method === 'POST' && path === '/club/ban') {
     const body = (await readJson(request)) || {};
-    const target = members[String(body.id || '')];
-    if (!target || target.role === 'owner') return json({ error: 'member_unknown' }, request, env, 404);
-    target.banned = body.banned !== false;
-    target.banned_reason = target.banned ? String(body.reason || '').slice(0, 120) : '';
-    target.banned_at = target.banned ? Date.now() : null;
-    await env.REPORTS.put('club:members', JSON.stringify(members));
-    if (target.banned) {
+    const id = String(body.id || '');
+    const changed = await transact(env, { 'club:members': {} }, (docs) => {
+      const target = docs['club:members'][id];
+      if (!target || target.role === 'owner') return null;
+      target.banned = body.banned !== false;
+      target.banned_reason = target.banned ? String(body.reason || '').slice(0, 120) : '';
+      target.banned_at = target.banned ? Date.now() : null;
+      return publicMember(target);
+    });
+    if (!changed) return json({ error: 'member_unknown' }, request, env, 404);
+    if (changed.banned) {
       // What a banned member said stops counting at once, not in three hours.
-      const reports = await readAll(env);
-      const kept = reports.filter((report) => report.who !== target.id);
-      if (kept.length !== reports.length) await env.REPORTS.put('reports', JSON.stringify(kept));
-      const subscriptions = await readSubscriptions(env);
-      const subs = subscriptions.filter((sub) => sub.who !== target.id);
-      if (subs.length !== subscriptions.length) await env.REPORTS.put('subscriptions', JSON.stringify(subs));
+      await transact(env, { reports: [], subscriptions: [] }, (docs) => {
+        docs.reports = docs.reports.filter((report) => report?.who !== id);
+        docs.subscriptions = docs.subscriptions.filter((sub) => sub?.who !== id);
+      });
     }
-    return json({ ok: true, member: publicMember(target) }, request, env);
+    return json({ ok: true, member: changed }, request, env);
   }
 
   return json({ error: 'not found' }, request, env, 404);
@@ -1080,84 +1306,100 @@ async function recordDisputes(env, reports, looks) {
       && item.who !== report.who && item.seen !== report.seen && item.at >= report.at - DISPUTE_WINDOW_MS)
     .map((item) => ({ target: item.who, by: report.who, station: report.station, grade: report.grade, at: report.at })));
   if (!pairs.length) return;
-  const flags = await readDoc(env, 'club:flags', []);
-  const list = Array.isArray(flags) ? flags : [];
-  list.push(...pairs);
-  await env.REPORTS.put('club:flags', JSON.stringify(list.slice(-MAX_FLAGS)));
+  await transact(env, { 'club:flags': [] }, (docs) => {
+    docs['club:flags'] = [...docs['club:flags'], ...pairs].slice(-MAX_FLAGS);
+  });
 }
 
 // ---------------------------------------------------------------- routes
 
-export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+function failureReason(error) {
+  if (error instanceof StorageBusy) return 'storage_busy';
+  const text = String(error?.message || error);
+  // KV says "KV put() limit exceeded for the day."; D1 says its daily limits
+  // were exceeded. Both come back at 00:00 UTC.
+  if (/for the day|daily|per day|quota|limit.*exceeded|exceeded.*limit/i.test(text)) return 'storage_limit';
+  // KV takes one write a second to the same key.
+  if (/\b429\b|too many requests/i.test(text)) return 'storage_busy';
+  return 'worker_error';
+}
 
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: cors(request, env) });
-    }
+// A phone that had no signal at the pump sends the mark once it is back, dated
+// the moment the person looked. Half an hour late it is still worth knowing;
+// later it is history. A push about it goes out only while it is news.
+const LATE_MARK_MS = 30 * 60 * 1000;
+const LATE_PUSH_MS = 10 * 60 * 1000;
 
-    if (!env.REPORTS) {
-      return json({ error: 'KV namespace REPORTS is not bound' }, request, env, 500);
-    }
+async function route(request, env, ctx) {
+  const url = new URL(request.url);
 
-    if (url.pathname.startsWith('/club/')) {
-      return clubRoutes(request, env, url, ctx);
-    }
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: cors(request, env) });
+  }
 
-    if (request.method === 'GET' && url.pathname === '/analytics/health') {
-      return json({ ok: true, version: ANALYTICS_VERSION, storage: 'aggregate-kv', retention_days: 180 }, request, env);
-    }
+  if (!env.DB && !env.REPORTS) {
+    return json({ error: 'bind a D1 database as DB or a KV namespace as REPORTS' }, request, env, 500);
+  }
 
-    if (request.method === 'POST' && url.pathname === '/analytics/events') {
-      return storeAnalytics(request, env);
-    }
+  if (url.pathname.startsWith('/club/')) {
+    return clubRoutes(request, env, url, ctx);
+  }
 
-    if (request.method === 'GET' && url.pathname === '/analytics/dashboard') {
-      return analyticsDashboard(request, env, url);
-    }
+  if (request.method === 'GET' && url.pathname === '/analytics/health') {
+    return json({ ok: true, version: ANALYTICS_VERSION, storage: 'aggregate-kv', retention_days: 180 }, request, env);
+  }
 
-    if (request.method === 'GET' && (url.pathname === '/reports' || url.pathname === '/')) {
-      let reports = await readAll(env);
-      if (clubEnabled(env)) {
-        const members = await readDoc(env, 'club:members', {});
-        if (env.CLUB_READER_KEY && !constantEqual(request.headers.get('X-Reader-Key') || '', String(env.CLUB_READER_KEY))) {
-          const member = await clubMember(request, env, members);
-          if (!member || member.banned) return json({ error: 'club_required' }, request, env, 401);
-        }
-        // Names stay inside the club; the public read carries member ids only.
-        reports = reports.filter((report) => !members[report.who]?.banned);
+  if (request.method === 'POST' && url.pathname === '/analytics/events') {
+    return storeAnalytics(request, env);
+  }
+
+  if (request.method === 'GET' && url.pathname === '/analytics/dashboard') {
+    return analyticsDashboard(request, env, url);
+  }
+
+  if (request.method === 'GET' && (url.pathname === '/reports' || url.pathname === '/')) {
+    let reports = await readAll(env);
+    if (clubEnabled(env)) {
+      const members = await readDoc(env, 'club:members', {});
+      if (env.CLUB_READER_KEY && !constantEqual(request.headers.get('X-Reader-Key') || '', String(env.CLUB_READER_KEY))) {
+        const member = await clubMember(request, env, members);
+        if (!member || member.banned) return json({ error: 'club_required' }, request, env, 401);
       }
-      return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, reports }, request, env);
+      // Names stay inside the club; the public read carries member ids only.
+      reports = reports.filter((report) => !members[report.who]?.banned);
     }
+    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
+  }
 
-    if (request.method === 'GET' && url.pathname === '/vapid') {
-      const keys = await vapidKeys(env);
-      return json({ publicKey: keys.publicKey }, request, env);
+  if (request.method === 'GET' && url.pathname === '/vapid') {
+    const keys = await vapidKeys(env);
+    return json({ publicKey: keys.publicKey }, request, env);
+  }
+
+  if (request.method === 'POST' && url.pathname === '/subscribe') {
+    let clubWho = null;
+    if (clubEnabled(env)) {
+      const member = await clubMember(request, env);
+      if (!member) return json({ error: 'club_required' }, request, env, 401);
+      if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
+      clubWho = member.id;
+    } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+      return json({ error: 'wrong group key' }, request, env, 403);
     }
-
-    if (request.method === 'POST' && url.pathname === '/subscribe') {
-      let clubWho = null;
-      if (clubEnabled(env)) {
-        const member = await clubMember(request, env);
-        if (!member) return json({ error: 'club_required' }, request, env, 401);
-        if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
-        clubWho = member.id;
-      } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
-        return json({ error: 'wrong group key' }, request, env, 403);
-      }
-      let body;
-      try {
-        body = await request.json();
-      } catch {
-        return json({ error: 'expected JSON' }, request, env, 400);
-      }
-      const sub = body.subscription;
-      if (!sub || typeof sub.endpoint !== 'string' || !sub.keys?.p256dh || !sub.keys?.auth || !sub.endpoint.startsWith('https://')) {
-        return json({ error: 'expected {subscription:{endpoint, keys:{p256dh, auth}}}' }, request, env, 400);
-      }
-      const lat = Number(body.lat);
-      const lon = Number(body.lon);
-      const kept = (await readSubscriptions(env)).filter((item) => item.endpoint !== sub.endpoint);
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: 'expected JSON' }, request, env, 400);
+    }
+    const sub = body.subscription;
+    if (!sub || typeof sub.endpoint !== 'string' || !sub.keys?.p256dh || !sub.keys?.auth || !sub.endpoint.startsWith('https://')) {
+      return json({ error: 'expected {subscription:{endpoint, keys:{p256dh, auth}}}' }, request, env, 400);
+    }
+    const lat = Number(body.lat);
+    const lon = Number(body.lon);
+    const count = await transact(env, { subscriptions: [] }, (docs) => {
+      const kept = docs.subscriptions.filter((item) => item.endpoint !== sub.endpoint);
       kept.push({
         endpoint: sub.endpoint,
         keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) },
@@ -1166,103 +1408,137 @@ export default {
         lon: Number.isFinite(lon) ? Math.round(lon * 1e4) / 1e4 : null,
         at: Date.now(),
       });
-      await env.REPORTS.put('subscriptions', JSON.stringify(kept.slice(-MAX_SUBSCRIPTIONS)));
-      return json({ ok: true, count: kept.length }, request, env);
-    }
+      docs.subscriptions = kept.slice(-MAX_SUBSCRIPTIONS);
+      return kept.length;
+    });
+    return json({ ok: true, count }, request, env);
+  }
 
-    if (request.method === 'POST' && url.pathname === '/unsubscribe') {
-      let body;
-      try {
-        body = await request.json();
-      } catch {
-        return json({ error: 'expected JSON' }, request, env, 400);
-      }
-      const kept = (await readSubscriptions(env)).filter((item) => item.endpoint !== body.endpoint);
-      await env.REPORTS.put('subscriptions', JSON.stringify(kept));
-      return json({ ok: true, count: kept.length }, request, env);
+  if (request.method === 'POST' && url.pathname === '/unsubscribe') {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: 'expected JSON' }, request, env, 400);
     }
+    const count = await transact(env, { subscriptions: [] }, (docs) => {
+      docs.subscriptions = docs.subscriptions.filter((item) => item.endpoint !== body.endpoint);
+      return docs.subscriptions.length;
+    });
+    return json({ ok: true, count }, request, env);
+  }
 
-    if (request.method === 'POST' && url.pathname === '/report') {
-      let clubMemberRecord = null;
-      if (clubEnabled(env)) {
-        clubMemberRecord = await clubMember(request, env);
-        if (!clubMemberRecord) return json({ error: 'club_required' }, request, env, 401);
-        if (clubMemberRecord.banned) return json({ error: 'banned', reason: clubMemberRecord.banned_reason || '' }, request, env, 403);
-      } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
-        return json({ error: 'wrong group key' }, request, env, 403);
-      }
-      if (await overRate(request, env)) {
-        return json({ error: 'too many reports, try again in a minute' }, request, env, 429);
-      }
-      let body;
-      try {
-        body = await request.json();
-      } catch {
-        return json({ error: 'expected JSON' }, request, env, 400);
-      }
-      const station = String(body.station || '').slice(0, 64);
-      // One look at a station can list several grades, and they arrive in one
-      // request. Separate requests each rewrote the same KV list and raced:
-      // on 13 Sep 2026 a member marked 92, 95 and 98 and only 98 survived.
-      const wanted = Array.isArray(body.grades) ? body.grades : [{ grade: body.grade, seen: body.seen }];
-      const looks = [];
-      for (const item of wanted.slice(0, 12)) {
-        const grade = String(item?.grade || '');
-        if (!GRADES.has(grade) || typeof item?.seen !== 'boolean' || looks.some((look) => look.grade === grade)) continue;
-        looks.push({ grade, seen: item.seen });
-      }
-      if (!station || !looks.length) {
-        return json({ error: 'expected {station, grade, seen} or {station, grades: [{grade, seen}]}' }, request, env, 400);
-      }
-      const reports = await readAll(env);
-      const who = clubMemberRecord?.id || String(body.who || '').slice(0, 32) || (request.headers.get('CF-Connecting-IP') || 'anon');
-      // Coordinates travel with the report: our canonical station id is derived
-      // from the snapshot and can change when matching improves, but the
-      // forecourt does not move.
-      const lat = Number(body.lat);
-      const lon = Number(body.lon);
-      const now = Date.now();
-      const fresh = looks.map(({ grade, seen }) => ({
-        station,
-        grade,
-        seen,
-        at: now,
-        who,
-        lat: Number.isFinite(lat) ? Math.round(lat * 1e6) / 1e6 : null,
-        lon: Number.isFinite(lon) ? Math.round(lon * 1e6) / 1e6 : null,
-        queue: typeof body.queue === 'number' ? Math.max(0, Math.min(500, body.queue)) : null,
-      }));
+  if (request.method === 'POST' && url.pathname === '/report') {
+    let clubMemberRecord = null;
+    if (clubEnabled(env)) {
+      clubMemberRecord = await clubMember(request, env);
+      if (!clubMemberRecord) return json({ error: 'club_required' }, request, env, 401);
+      if (clubMemberRecord.banned) return json({ error: 'banned', reason: clubMemberRecord.banned_reason || '' }, request, env, 403);
+    } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+      return json({ error: 'wrong group key' }, request, env, 403);
+    }
+    if (await overRate(request, env)) {
+      return json({ error: 'too many reports, try again in a minute' }, request, env, 429);
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: 'expected JSON' }, request, env, 400);
+    }
+    const station = String(body.station || '').slice(0, 64);
+    // One look at a station can list several grades, and they arrive in one
+    // request. Separate requests each rewrote the same list and raced: on 13
+    // Sep 2026 a member marked 92, 95 and 98 and only 98 survived.
+    const wanted = Array.isArray(body.grades) ? body.grades : [{ grade: body.grade, seen: body.seen }];
+    const looks = [];
+    for (const item of wanted.slice(0, 12)) {
+      const grade = String(item?.grade || '');
+      if (!GRADES.has(grade) || typeof item?.seen !== 'boolean' || looks.some((look) => look.grade === grade)) continue;
+      looks.push({ grade, seen: item.seen });
+    }
+    if (!station || !looks.length) {
+      return json({ error: 'expected {station, grade, seen} or {station, grades: [{grade, seen}]}' }, request, env, 400);
+    }
+    const now = Date.now();
+    const observed = Number(body.observed_at);
+    // A phone's clock may run ahead: a look is never dated after it arrived.
+    const at = Number.isFinite(observed) && observed > 0 ? Math.min(now, Math.round(observed)) : now;
+    if (now - at > LATE_MARK_MS) {
+      return json({ error: 'too_late', minutes: Math.round((now - at) / 60000) }, request, env, 410);
+    }
+    const who = clubMemberRecord?.id || String(body.who || '').slice(0, 32) || (request.headers.get('CF-Connecting-IP') || 'anon');
+    // Coordinates travel with the report: our canonical station id is derived
+    // from the snapshot and can change when matching improves, but the
+    // forecourt does not move.
+    const lat = Number(body.lat);
+    const lon = Number(body.lon);
+    const fresh = looks.map(({ grade, seen }) => ({
+      station,
+      grade,
+      seen,
+      at,
+      who,
+      lat: Number.isFinite(lat) ? Math.round(lat * 1e6) / 1e6 : null,
+      lon: Number.isFinite(lon) ? Math.round(lon * 1e6) / 1e6 : null,
+      queue: typeof body.queue === 'number' ? Math.max(0, Math.min(500, body.queue)) : null,
+    }));
+    const { before, accepted, count } = await transact(env, { reports: [] }, (docs) => {
+      const cutoff = Date.now() - WINDOW_MS;
+      const current = docs.reports.filter((item) => item && item.at > cutoff);
+      // A mark that arrives late never replaces what the same person has said
+      // about the same grade since.
+      const taken = fresh.filter((look) => !current.some((item) => item.station === station && item.who === who && item.grade === look.grade && item.at > look.at));
       // One report per person per station and grade: a later look replaces an
       // earlier one rather than stacking into a fake crowd.
-      const kept = reports.filter((item) => !(item.station === station && item.who === who && looks.some((look) => look.grade === item.grade)));
-      kept.push(...fresh);
-      const trimmed = kept.slice(-MAX_REPORTS);
-      await env.REPORTS.put('reports', JSON.stringify(trimmed));
-      if (clubMemberRecord) ctx.waitUntil(recordDisputes(env, reports, fresh).catch(() => {}));
-      // The name and address are only for the notification text; they are not
-      // stored, the app resolves the station from its own data.
-      const summary = String(body.summary || '').slice(0, 120)
-        || (fresh.length > 1 ? looks.map((look) => `${GRADE_LABELS[look.grade] || look.grade} ${look.seen ? 'есть' : 'нет'}`).join(', ') : '');
-      const named = {
-        ...fresh[0],
-        name: String(body.name || '').slice(0, 60),
-        address: String(body.address || '').slice(0, 80),
-        summary,
-        reporter: clubMemberRecord?.name || '',
-      };
-      if (body.notify !== false) ctx.waitUntil(notifyGroup(env, named));
-      let rewards = null;
-      if (clubMemberRecord) {
-        try {
-          rewards = await rewardMark(env, await readDoc(env, 'club:members', {}), reports, fresh, { blindSpot: body.blind_spot === true });
-        } catch {
-          // A failed payout must never lose the mark itself.
-          rewards = null;
-        }
-      }
-      return json({ ok: true, count: trimmed.length, accepted: fresh.length, ...(rewards ? { rewards } : {}) }, request, env);
+      const kept = current.filter((item) => !(item.station === station && item.who === who && taken.some((look) => look.grade === item.grade)));
+      kept.push(...taken);
+      docs.reports = kept.slice(-MAX_REPORTS);
+      return { before: current, accepted: taken, count: docs.reports.length };
+    });
+    if (!accepted.length) {
+      return json({ ok: true, count, accepted: 0, superseded: true }, request, env);
     }
+    if (clubMemberRecord) ctx.waitUntil(recordDisputes(env, before, accepted).catch(() => {}));
+    // The name and address are only for the notification text; they are not
+    // stored, the app resolves the station from its own data.
+    const summary = (accepted.length === fresh.length ? String(body.summary || '').slice(0, 120) : '')
+      || (accepted.length > 1 ? accepted.map((look) => `${GRADE_LABELS[look.grade] || look.grade} ${look.seen ? 'есть' : 'нет'}`).join(', ') : '');
+    const named = {
+      ...accepted[0],
+      name: String(body.name || '').slice(0, 60),
+      address: String(body.address || '').slice(0, 80),
+      summary,
+      reporter: clubMemberRecord?.name || '',
+    };
+    if (body.notify !== false && now - at < LATE_PUSH_MS) ctx.waitUntil(notifyGroup(env, named).catch(() => {}));
+    let rewards = null;
+    if (clubMemberRecord) {
+      try {
+        rewards = await rewardMark(env, await readDoc(env, 'club:members', {}), before, accepted, { blindSpot: body.blind_spot === true });
+      } catch {
+        // A failed payout must never lose the mark itself.
+        rewards = null;
+      }
+    }
+    return json({ ok: true, count, accepted: accepted.length, ...(rewards ? { rewards } : {}) }, request, env);
+  }
 
-    return json({ error: 'not found' }, request, env, 404);
+  return json({ error: 'not found' }, request, env, 404);
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    try {
+      return await route(request, env, ctx);
+    } catch (error) {
+      // Left alone, an exception becomes Cloudflare's own error page without
+      // CORS headers: the phone cannot read it, takes it for a lost connection,
+      // and the mark silently stays on the phone. A plain answer lets the app
+      // tell the person what happened.
+      const reason = failureReason(error);
+      console.error(`spbfi-reports ${request.method} ${new URL(request.url).pathname}: ${reason}: ${error?.stack || error}`);
+      return json({ error: reason }, request, env, 503);
+    }
   },
 };
