@@ -2159,7 +2159,7 @@ async function loadLeaderboard() {
 const CLUB_TOKEN_KEY = 'spbfi-club-token-v1';
 const CLUB_MEMBER_KEY = 'spbfi-club-member-v1';
 const CLUB_RULES = [
-  'Клуб — только для своих. Приглашайте тех, за кого ручаетесь сами. Код одноразовый: не пересылайте его дальше.',
+  'Клуб — только для своих. Приглашайте тех, за кого ручаетесь сами. Код приглашения — только для того, кого пригласили: не пересылайте его дальше.',
   'Отмечайте только то, что видите своими глазами прямо сейчас. Не пересказывайте чаты и слухи.',
   'Не уверены — не отмечайте. Лучше промолчать, чем отправить своих на пустую заправку.',
   'За ложные отметки владелец исключает из клуба. Кто пригласил — отвечает за приглашённого.',
@@ -2167,7 +2167,14 @@ const CLUB_RULES = [
 ];
 const CLUB_ERRORS = {
   invite_unknown: 'Такого кода нет. Проверьте буквы: в кодах не бывает О, 0, I и 1.',
-  invite_used: 'Этот код уже использован. Он одноразовый — попросите новый у того, кто пригласил.',
+  invite_used: 'Этим кодом уже вступили. Если это были вы — войдите через «🔑 Я уже в клубе» или попросите код для входа у владельца клуба.',
+  login_code_used: 'Этот код для входа уже сработал. Новый покажет телефон, где вы в клубе: «👥 Клуб» → «Войти на другом устройстве».',
+  login_code_expired: 'Срок кода для входа истёк. Новый покажет телефон, где вы в клубе: «👥 Клуб» → «Войти на другом устройстве».',
+  passkey_failed: 'Не получилось проверить вход. Попробуйте ещё раз.',
+  passkey_unknown: 'Этот вход больше не действует — возможно, вас удалили из клуба. Попросите у своих новое приглашение.',
+  member_banned: 'Участник исключён. Сначала верните его в клуб.',
+  member_unknown: 'Такого участника в клубе уже нет.',
+  not_your_code: 'Тогда этот код не ваш: им уже вступил другой человек. Попросите своё приглашение у того, кто вас пригласил.',
   invite_expired: 'Срок кода истёк: он действует 7 дней. Попросите новый.',
   sponsor_banned: 'Пригласивший исключён из клуба, поэтому код недействителен.',
   rules_not_accepted: 'Чтобы вступить, нужно принять правила клуба.',
@@ -2229,6 +2236,218 @@ function clubMessage(result, fallback) {
   return CLUB_ERRORS[result?.data?.error] || fallback || `Не получилось (${result?.status || 'нет связи'}).`;
 }
 
+// ---------------------------------------------------------------- getting back in
+// The pass lives in the phone's storage and goes with it: site data cleared, the
+// icon deleted, a new phone. A member comes back without anybody's help — by
+// Face ID or a fingerprint (a passkey kept by the phone's own account), with the
+// same invitation code while it runs, or with a code from a device still inside.
+const PASSKEY_KEY = 'spbfi-club-passkey-v1';
+const PASSKEY_FRESH_MS = 4 * 60 * 1000;
+let passkeyChallenge = null;
+let passkeyTimer = null;
+
+function bytesFromB64u(value) {
+  const clean = String(value).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(clean + '='.repeat((4 - (clean.length % 4)) % 4));
+  return Uint8Array.from(raw, (char) => char.charCodeAt(0));
+}
+
+function b64uFromBytes(buffer) {
+  let raw = '';
+  for (const byte of new Uint8Array(buffer)) raw += String.fromCharCode(byte);
+  return btoa(raw).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function passkeysOffered() {
+  return !!(state.club.features?.passkeys && window.PublicKeyCredential && navigator.credentials?.get);
+}
+
+// What the device itself calls its lock.
+function unlockWords() {
+  const ua = navigator.userAgent;
+  if (platformInfo().iOS) return 'Face ID';
+  if (/Android/i.test(ua)) return 'отпечатку или PIN-коду';
+  if (/Windows/i.test(ua)) return 'Windows Hello';
+  if (/Macintosh/i.test(ua)) return 'Touch ID';
+  return 'ключу доступа';
+}
+
+function hasRememberedLogin(member) {
+  try {
+    return !!member && localStorage.getItem(PASSKEY_KEY) === member.id;
+  } catch {
+    return false;
+  }
+}
+
+async function canRememberLogin() {
+  if (!passkeysOffered() || !navigator.credentials?.create) return false;
+  try {
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch {
+    return false;
+  }
+}
+
+function freshChallenge() {
+  return passkeyChallenge && Date.now() - passkeyChallenge.at < PASSKEY_FRESH_MS ? passkeyChallenge : null;
+}
+
+// Fetched ahead of the tap: Safari asks for Face ID only straight from a tap,
+// and a tap that first waits for the network is not one any more.
+async function preparePasskey() {
+  if (!passkeysOffered()) return null;
+  if (freshChallenge()) return passkeyChallenge;
+  try {
+    const result = await clubCall('/club/passkey/challenge', { timeout: 8000 });
+    if (!result.ok || !result.data?.challenge) return null;
+    passkeyChallenge = { value: result.data.challenge, rpId: result.data.rp_id || location.hostname, at: Date.now() };
+    return passkeyChallenge;
+  } catch {
+    return null;
+  }
+}
+
+function keepPasskeyReady() {
+  preparePasskey();
+  if (passkeyTimer) return;
+  passkeyTimer = setInterval(() => {
+    if (document.querySelector('#gatePasskey, #gateRememberButton, #clubRemember:not([hidden])')) preparePasskey();
+  }, 3 * 60 * 1000);
+}
+
+// With a challenge at hand the phone's prompt opens within the tap itself;
+// without one it is fetched first, and Safari may then want a second tap.
+async function withChallenge(ask) {
+  const ready = freshChallenge() || await preparePasskey();
+  if (!ready) throw Object.assign(new Error('no challenge'), { name: 'NetworkError' });
+  return ask(ready);
+}
+
+async function loginWithPasskey(button) {
+  const error = $('#gateError');
+  if (error) error.textContent = '';
+  let assertion = null;
+  try {
+    assertion = await withChallenge((challenge) => navigator.credentials.get({
+      publicKey: { challenge: bytesFromB64u(challenge.value), rpId: challenge.rpId, userVerification: 'preferred', timeout: 120000 },
+    }));
+  } catch (failure) {
+    if (error) {
+      error.textContent = failure?.name === 'NetworkError'
+        ? 'Нет связи с клубом. Проверьте интернет и нажмите ещё раз.'
+        : `Не получилось войти по ${unlockWords()}. Если вы отменили — нажмите ещё раз. Если вход не запоминали — введите тот же код приглашения или код для входа со своего другого устройства.`;
+      error.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    return;
+  }
+  if (!assertion) return;
+  const response = assertion.response;
+  enterClub('/club/passkey/login', {
+    id: b64uFromBytes(assertion.rawId),
+    client: b64uFromBytes(response.clientDataJSON),
+    auth: b64uFromBytes(response.authenticatorData),
+    signature: b64uFromBytes(response.signature),
+    user: response.userHandle ? b64uFromBytes(response.userHandle) : '',
+  }, button, { busy: '⏳ Входим в клуб…', passkey: true });
+}
+
+async function rememberLogin(button, onDone) {
+  const member = state.club.member;
+  const note = button.parentElement?.querySelector('.remember-note');
+  if (!member) return;
+  if (note) note.textContent = '';
+  button.disabled = true;
+  try {
+    const credential = await withChallenge((challenge) => navigator.credentials.create({
+      publicKey: {
+        challenge: bytesFromB64u(challenge.value),
+        rp: { id: challenge.rpId, name: 'Топливо СПб' },
+        user: { id: new TextEncoder().encode(member.id), name: member.name || 'Участник клуба', displayName: `${member.name || 'Участник'} · Топливо СПб` },
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { residentKey: 'required', requireResidentKey: true, userVerification: 'preferred' },
+        attestation: 'none',
+        timeout: 120000,
+      },
+    }));
+    if (!credential) throw Object.assign(new Error('no credential'), { name: 'NotAllowedError' });
+    const result = await clubCall('/club/passkey/save', {
+      method: 'POST',
+      timeout: 20000,
+      body: { id: b64uFromBytes(credential.rawId), client: b64uFromBytes(credential.response.clientDataJSON), attestation: b64uFromBytes(credential.response.attestationObject) },
+    });
+    if (handleClubRejection(result)) return;
+    if (!result.ok) throw Object.assign(new Error('not saved'), { name: 'SaveError', result });
+    try { localStorage.setItem(PASSKEY_KEY, member.id); } catch { /* the club keeps the key anyway */ }
+    onDone(result.data.passkeys || 1);
+  } catch (failure) {
+    button.disabled = false;
+    if (!note) return;
+    if (failure?.name === 'NetworkError') note.textContent = 'Нет связи с клубом. Попробуйте ещё раз.';
+    else if (failure?.name === 'SaveError') note.textContent = clubMessage(failure.result);
+    else if (failure?.name === 'NotAllowedError') note.textContent = 'Не запомнили: окно закрыли или телефон не разрешил. Можно попробовать ещё раз.';
+    else note.textContent = `На этом устройстве запомнить вход не получилось${/Android/i.test(navigator.userAgent) ? ' (нужны Google-аккаунт и блокировка экрана)' : ''}. Ничего страшного: вернуться поможет тот же код приглашения или код для входа со своего другого устройства.`;
+  }
+}
+
+function loginCodeCard(code, title, expires, hint) {
+  return `<div class="club-code"><span>${escapeHtml(title)}</span><b>${escapeHtml(code)}</b><small>${escapeHtml(expires)}</small>
+    <button type="button" class="gate-submit secondary" data-code-share="${escapeHtml(code)}">Отправить или скопировать код</button>
+    <small>${escapeHtml(hint)}</small></div>`;
+}
+
+function loginSection(passkeys) {
+  if (!state.club.features?.returning) return '';
+  const unlock = unlockWords();
+  return `<div class="drawer-status club-login" style="--status-color:#2563eb">
+      <strong>🔑 Если приложение сбросится</strong>
+      <p id="clubLoginState">${passkeys
+        ? `Вход по ${unlock} запомнен${passkeys > 1 ? ` (ключей: ${passkeys})` : ''}. Если приложение сбросится или смените телефон — на экране входа нажмите «🔑 Я уже в клубе».`
+        : `Запомните вход — и если приложение сбросится или смените телефон, вернётесь по ${unlock}, без нового приглашения.`}</p>
+      <button type="button" class="list-more" id="clubRemember" hidden>🔑 Запомнить вход на этом устройстве</button>
+      <small class="remember-note" role="status"></small>
+      <button type="button" class="list-more" id="clubDeviceCode">💻 Войти на другом устройстве</button>
+      <div id="clubDeviceCodeResult"></div>
+    </div>`;
+}
+
+function bindLoginSection() {
+  const remember = $('#clubRemember');
+  if (remember && !hasRememberedLogin(state.club.member)) {
+    canRememberLogin().then((can) => {
+      if (!can || !remember.isConnected) return;
+      remember.hidden = false;
+      keepPasskeyReady();
+    });
+  }
+  remember?.addEventListener('click', () => rememberLogin(remember, (count) => {
+    remember.hidden = true;
+    const line = $('#clubLoginState');
+    if (line) line.textContent = `✅ Вход по ${unlockWords()} запомнен${count > 1 ? ` (ключей: ${count})` : ''}. Если приложение сбросится — на экране входа нажмите «🔑 Я уже в клубе».`;
+    burst('🔑');
+  }));
+  $('#clubDeviceCode')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const box = $('#clubDeviceCodeResult');
+    button.disabled = true;
+    try {
+      const result = await clubCall('/club/code', { method: 'POST' });
+      if (handleClubRejection(result)) return;
+      if (!result.ok) {
+        box.innerHTML = `<p class="gate-error">${escapeHtml(clubMessage(result))}</p>`;
+        return;
+      }
+      box.innerHTML = loginCodeCard(result.data.code, 'Код для входа на другом устройстве', 'действует 10 минут, один раз',
+        'На компьютере или новом телефоне откройте приложение, введите код в поле «Код приглашения» и нажмите «Вступить в клуб». Имя и правила вводить не нужно — клуб вас узнает.');
+      bindInviteButtons(box);
+    } catch {
+      box.innerHTML = '<p class="gate-error">Нет связи с клубом. Попробуйте ещё раз.</p>';
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
 function inviteFromUrl() {
   const clean = String(new URLSearchParams(location.search).get('invite') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   return clean.length === 8 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : '';
@@ -2268,6 +2487,7 @@ async function checkClub() {
     return;
   }
   state.club.mode = clubModeFrom(health);
+  state.club.features = health.ok ? (health.data || {}) : {};
   // Until the door is closed only the phones that joined are inside; for
   // everyone else the app stays exactly as it was.
   state.club.enabled = state.club.mode === 'closed' || (state.club.mode !== 'off' && !!clubToken());
@@ -2276,7 +2496,7 @@ async function checkClub() {
     renderClubButton();
     // An invitation link, or the owner's, still opens the door on request.
     const wanted = new URLSearchParams(location.search).get('club');
-    if (state.club.mode !== 'off' && (inviteFromUrl() || wanted === 'owner')) showClubGate({ mode: wanted === 'owner' ? 'owner' : 'join' });
+    if (state.club.mode !== 'off' && (inviteFromUrl() || wanted === 'owner' || wanted === 'join')) showClubGate({ mode: wanted === 'owner' ? 'owner' : 'join' });
     return;
   }
   if (!clubToken()) {
@@ -2344,26 +2564,32 @@ function bindClubJoinLine(root) {
   root.querySelector('[data-club-join]')?.addEventListener('click', () => showClubGate({ mode: 'join' }));
 }
 
-function showWelcome(member, owner) {
+function showWelcome(member, owner, { returned = false } = {}) {
   const gate = $('#clubGate');
   if (!gate) return;
   const name = escapeHtml(member?.name || '');
-  gate.innerHTML = owner
-    ? `<div class="gate-card gate-welcome">
-        <span class="gate-welcome-icon" aria-hidden="true">🤝</span>
-        <p class="gate-kicker">Готово</p>
-        <h1>Вы вошли как владелец клуба</h1>
-        <p class="gate-lead">Вверху справа появилась кнопка клуба — с вашим уровнем 🔰 и рукопожатиями 🤝. В ней приглашения и участники.</p>
-        <button type="button" class="gate-submit" id="gateDone">Начать</button>
-      </div>`
-    : `<div class="gate-card gate-welcome">
-        <span class="gate-welcome-icon" aria-hidden="true">🤝</span>
-        <p class="gate-kicker">Готово</p>
-        <h1>${name ? `${name}, вы` : 'Вы'} в клубе!</h1>
-        <p class="gate-lead">Теперь ваши отметки видят свои — с вашим именем. Вверху справа появилась кнопка клуба — с вашим уровнем 🔰 и рукопожатиями 🤝. В ней приглашения и правила.</p>
-        <p class="gate-lead">Отмечайте только то, что видите на колонках своими глазами.</p>
-        <button type="button" class="gate-submit" id="gateDone">Начать</button>
-      </div>`;
+  const title = owner ? 'Вы вошли как владелец клуба' : returned ? `С возвращением${name ? `, ${name}` : ''}!` : `${name ? `${name}, вы` : 'Вы'} в клубе!`;
+  const lead = owner
+    ? 'Вверху справа появилась кнопка клуба — с вашим уровнем 🔰 и рукопожатиями 🤝. В ней приглашения и участники.'
+    : returned
+      ? 'Вы снова в клубе — тем же участником, со всеми рукопожатиями 🤝. Кнопка клуба — вверху справа.'
+      : 'Теперь ваши отметки видят свои — с вашим именем. Вверху справа появилась кнопка клуба — с вашим уровнем 🔰 и рукопожатиями 🤝. В ней приглашения и правила.';
+  // Asked right away, while the person is here: the day the phone forgets the
+  // pass is the day nobody remembers where the invitation went.
+  gate.innerHTML = `<div class="gate-card gate-welcome">
+      <span class="gate-welcome-icon" aria-hidden="true">🤝</span>
+      <p class="gate-kicker">Готово</p>
+      <h1>${title}</h1>
+      <p class="gate-lead">${lead}</p>
+      ${owner || returned ? '' : '<p class="gate-lead">Отмечайте только то, что видите на колонках своими глазами.</p>'}
+      <div class="gate-remember" id="gateRemember" hidden>
+        <strong>🔑 Запомните вход</strong>
+        <p>Если приложение сбросится или появится новый телефон, вы вернётесь по ${unlockWords()} — без нового приглашения и не спрашивая владельца.</p>
+        <button type="button" class="gate-submit" id="gateRememberButton">🔑 Запомнить вход</button>
+        <small class="remember-note" role="status"></small>
+      </div>
+      <button type="button" class="gate-submit" id="gateDone">Начать</button>
+    </div>`;
   gate.hidden = false;
   gate.scrollTop = 0;
   document.body.classList.add('club-locked');
@@ -2373,6 +2599,25 @@ function showWelcome(member, owner) {
     hideClubGate();
     renderGroupFeed();
   });
+  if (hasRememberedLogin(member)) return;
+  canRememberLogin().then((can) => {
+    const box = $('#gateRemember');
+    if (!can || !box) return;
+    box.hidden = false;
+    $('#gateDone').classList.add('secondary');
+    $('#gateDone').textContent = 'Позже — начать';
+    keepPasskeyReady();
+  });
+  $('#gateRememberButton').addEventListener('click', (event) => rememberLogin(event.currentTarget, () => {
+    const box = $('#gateRemember');
+    if (box) box.innerHTML = `<strong>✅ Вход запомнен</strong><p>Если приложение сбросится — на экране входа нажмите «🔑 Я уже в клубе» и подтвердите ${unlockWords()}.</p>`;
+    const done = $('#gateDone');
+    if (done) {
+      done.classList.remove('secondary');
+      done.textContent = 'Начать';
+    }
+    burst('🔑');
+  }));
 }
 
 function hideClubGate() {
@@ -2413,9 +2658,13 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
         <small id="gateError" role="alert"></small>
       </form>
       <button type="button" class="gate-link" id="gateBack">← У меня приглашение</button>`
-    : `<form id="gateJoinForm" class="gate-form"${installFirst ? ' hidden' : ''}>
-        <label>Код приглашения<input id="gateCode" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX" value="${escapeHtml(code)}" required><small>Можно вставить сюда всё сообщение с приглашением — код найдётся сам.</small></label>
-        <label>Как вас называть<input id="gateName" maxlength="24" autocomplete="given-name" placeholder="Например, Саша" required><small>Имя видят только участники — рядом с вашими отметками.</small></label>
+    : `${passkeysOffered() && !installFirst ? `<div class="gate-return">
+          <button type="button" class="gate-submit secondary" id="gatePasskey">🔑 Я уже в клубе — войти по ${unlockWords()}</button>
+          <small>Если вход в клуб запоминали на этом или другом своём устройстве.</small>
+        </div>` : ''}
+      <form id="gateJoinForm" class="gate-form"${installFirst ? ' hidden' : ''}>
+        <label>Код приглашения<input id="gateCode" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX" value="${escapeHtml(code)}" required><small>Можно вставить сюда всё сообщение с приглашением — код найдётся сам.${state.club.features?.returning ? ' Уже были в клубе? Подойдёт тот же код (неделю) или код для входа со своего телефона — имя и правила тогда не нужны.' : ''}</small></label>
+        <label>Как вас называть<input id="gateName" maxlength="24" autocomplete="given-name" placeholder="Например, Саша"><small>Имя видят только участники — рядом с вашими отметками.</small></label>
         ${rules}
         <label class="gate-accept"><input type="checkbox" id="gateAccept"><span>Принимаю правила и отмечаю только то, что вижу сам</span></label>
         <button type="submit" class="gate-submit">Вступить в клуб</button>
@@ -2460,13 +2709,13 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
     const found = codeIn(event.target.value);
     if (found) event.target.value = found;
   });
+  $('#gatePasskey')?.addEventListener('click', (event) => loginWithPasskey(event.currentTarget));
+  if ($('#gatePasskey')) keepPasskeyReady();
+  // A name and the rules matter to a newcomer only. The club knows who that is,
+  // so someone coming back with their own code is not stopped here.
   $('#gateJoinForm')?.addEventListener('submit', (event) => {
     event.preventDefault();
-    if (!$('#gateAccept').checked) {
-      $('#gateError').textContent = CLUB_ERRORS.rules_not_accepted;
-      return;
-    }
-    enterClub('/club/join', { code: $('#gateCode').value, name: $('#gateName').value, accept: true, device: deviceId() }, event.target.querySelector('.gate-submit'));
+    enterClub('/club/join', { code: $('#gateCode').value, name: $('#gateName').value, accept: $('#gateAccept').checked, device: deviceId() }, event.target.querySelector('.gate-submit'));
   });
   $('#gateOwnerForm')?.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -2474,43 +2723,59 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
   });
 }
 
-async function enterClub(path, body, button) {
+async function enterClub(path, body, button, { busy = '', passkey = false } = {}) {
   const error = $('#gateError');
-  error.textContent = '';
+  if (error) error.textContent = '';
   button.disabled = true;
   // Without a sign of life a person taps the button, sees nothing and gives up.
-  const label = button.textContent;
-  button.textContent = path === '/club/owner' ? '⏳ Проверяем ключ…' : '⏳ Вступаем в клуб…';
+  const label = button.dataset.label || button.textContent;
+  button.dataset.label = label;
+  button.textContent = busy || (path === '/club/owner' ? '⏳ Проверяем ключ…' : '⏳ Вступаем в клуб…');
+  let retry = null;
   try {
     // A slow mobile connection must not lose a sign-in that is only a second late.
     const result = await clubCall(path, { method: 'POST', body, timeout: 20000 });
     if (!result.ok || !result.data?.token) {
-      error.textContent = clubMessage(result);
+      const returning = result.data?.returning;
+      if (returning && !body.returning) {
+        // The code has let someone in already. If that was this person — the
+        // icon after Safari, a cleared phone, a computer — they come back as
+        // themselves; a friend it was passed on to does not become them.
+        if (confirm(`Этим кодом уже вступил(а) «${returning}». Это вы?\n\nНажмите «OK», чтобы вернуться в клуб как «${returning}» — со всеми рукопожатиями.`)) retry = { ...body, returning: true };
+        else if (error) error.textContent = CLUB_ERRORS.not_your_code;
+        return;
+      }
+      if (error) error.textContent = clubMessage(result);
       return;
     }
     try {
       localStorage.setItem(CLUB_TOKEN_KEY, result.data.token);
       localStorage.setItem(CLUB_MEMBER_KEY, JSON.stringify(result.data.member));
+      if (passkey) localStorage.setItem(PASSKEY_KEY, result.data.member.id);
     } catch {
-      error.textContent = 'Телефон не даёт сохранить вход. Если открыт частный режим Safari, откройте приложение обычным способом.';
+      if (error) error.textContent = 'Телефон не даёт сохранить вход. Если открыт частный режим Safari, откройте приложение обычным способом.';
       return;
     }
+    // Asks the browser not to clear the pass when the phone runs short of space.
+    navigator.storage?.persist?.().catch(() => {});
     state.club.member = result.data.member;
     state.club.enabled = true;
     if (/[?&](club|invite)=/.test(location.search)) history.replaceState(null, '', location.pathname);
     renderClubButton();
     // The gate used to close quietly with a toast at the top; a member took
     // that for nothing happening and joined a second time.
-    showWelcome(result.data.member, path === '/club/owner');
+    showWelcome(result.data.member, path === '/club/owner', { returned: !!result.data.returned });
     // Profile, news and the club's copy of the marks, as on any later start.
     checkClub();
   } catch (failure) {
     const reason = failure?.name === 'AbortError' ? 'сервер клуба не ответил за 20 секунд' : 'запрос не дошёл до сервера клуба';
-    error.textContent = `Нет связи с клубом: ${reason}. Проверьте интернет и попробуйте ещё раз.`;
+    if (error) error.textContent = `Нет связи с клубом: ${reason}. Проверьте интернет и попробуйте ещё раз.`;
   } finally {
     button.disabled = false;
     button.textContent = label;
-    if (error.isConnected && error.textContent) error.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    delete button.dataset.label;
+    if (error?.isConnected && error.textContent) error.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (retry) enterClub(path, retry, button, { busy: '⏳ Возвращаем вас в клуб…' });
   }
 }
 
@@ -2543,11 +2808,13 @@ function codeIn(text) {
 function inviteText(code) {
   const link = `${location.origin}${location.pathname}?invite=${encodeURIComponent(code)}`;
   return `Приглашаю в закрытый клуб «Топливо СПб»: где сейчас есть бензин — по отметкам своих.\n\n`
-    + `1. Откройте на iPhone в Safari: ${link}\n`
-    + `2. «Поделиться» → «На экран „Домой“».\n`
-    + `3. Откройте приложение с иконки и вставьте код: ${code}\n`
-    + `Можно скопировать это сообщение целиком и вставить в поле кода — приложение само найдёт код.\n\n`
-    + 'Код одноразовый и действует 7 дней. Пожалуйста, не пересылайте его дальше.';
+    + `Ссылка: ${link}\n`
+    + `Код: ${code}\n\n`
+    + 'Android: откройте ссылку, напишите имя, отметьте правила и нажмите «Вступить в клуб». '
+    + 'Потом в меню браузера (⋮) — «Добавить на главный экран» или «Установить приложение».\n\n'
+    + 'iPhone: откройте ссылку в Safari → «Поделиться» → «На экран „Домой“» → откройте приложение с иконки и введите код уже там.\n\n'
+    + 'Можно вставить это сообщение целиком в поле кода — приложение само найдёт код.\n'
+    + 'Код — только для вас и действует 7 дней. Пожалуйста, не пересылайте его дальше.';
 }
 
 // A code sent on its own can be copied whole from any messenger.
@@ -2618,21 +2885,32 @@ async function showClub() {
     <div id="clubBoard"></div>
     <div class="drawer-status" style="--status-color:#0d5a43">
       <strong>Пригласить человека</strong>
-      <p>Только того, за кого ручаетесь: за ложные отметки исключают, а пригласивший отвечает за приглашённого. Код одноразовый и действует 7 дней.${owner ? '' : ` Осталось приглашений: <b>${Number(left) || 0}</b>.`}</p>
+      <p>Только того, за кого ручаетесь: за ложные отметки исключают, а пригласивший отвечает за приглашённого. Код пускает одного человека и действует 7 дней.${owner ? '' : ` Осталось приглашений: <b>${Number(left) || 0}</b>.`}</p>
       <button type="button" class="list-more" id="clubInvite"${!owner && !left ? ' disabled' : ''}>Создать приглашение</button>
       <div id="clubInviteResult"></div>
     </div>
     <h3 class="section-title">Мои приглашения</h3>
     <div class="source-list">${inviteRows}</div>
     ${owner ? '<h3 class="section-title">Участники</h3><div id="clubMembers" class="source-list"><div class="loading-state">Загружаем участников…</div></div>' : ''}
+    ${loginSection(me.data.passkeys || 0)}
     <h3 class="section-title">Правила клуба</h3>
     <ol class="club-rules">${CLUB_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol>
-    <button type="button" class="list-more club-leave" id="clubLeave">Выйти из клуба на этом телефоне</button>`;
+    <button type="button" class="list-more club-leave" id="clubLeave">Выйти из клуба на этом устройстве</button>`;
   $('#clubInvite')?.addEventListener('click', createInvite);
   bindInviteButtons($('#drawerContent'));
+  bindLoginSection();
   loadLeaderboard();
   $('#clubLeave').addEventListener('click', () => {
-    if (!confirm('Выйти из клуба на этом телефоне? Чтобы вернуться, понадобится новое приглашение.')) return;
+    // It used to say a new invitation would be needed, which scared people
+    // into staying signed in on shared devices; the way back is spelled out.
+    const way = owner
+      ? 'Вернуться можно ключом владельца: пять быстрых касаний по заголовку.'
+      : me.data.passkeys
+        ? `Вернуться можно по ${unlockWords()}: на экране входа — «🔑 Я уже в клубе».`
+        : state.club.features?.returning
+          ? 'Вход по Face ID или отпечатку не запомнен. Вернуться помогут код для входа с другого вашего устройства, тот же код приглашения (неделю) или код от владельца.'
+          : 'Чтобы вернуться, понадобится новое приглашение.';
+    if (!confirm(`Выйти из клуба на этом устройстве? ${way}`)) return;
     forgetClub();
     closeDrawer();
     if (state.club.mode === 'closed') {
@@ -2706,13 +2984,14 @@ async function loadClubMembers() {
       `${item.level_icon || '🔰'} ${item.liters || 0} 🤝`,
       `отметок за 3 ч: ${item.marks_3h}`,
       item.invited ? `привёл(а): ${item.invited}` : null,
+      item.passkeys ? '🔑 вход запомнен' : null,
     ].filter(Boolean).join(' · ');
     const disputed = item.disputed_30d
       ? `<span class="club-flag">С отметками не согласились ${item.disputed_30d} ${plural(item.disputed_30d, 'раз', 'раза', 'раз')} (${item.disputed_by_people_30d} ${plural(item.disputed_by_people_30d, 'человек', 'человека', 'человек')}) за 30 дней</span>`
       : '';
     const action = item.role === 'owner' ? '' : item.banned
       ? `<button type="button" class="club-small" data-unban="${escapeHtml(item.id)}">Вернуть в клуб</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`
-      : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button><button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`;
+      : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button>${state.club.features?.returning ? `<button type="button" class="club-small" data-login-code="${escapeHtml(item.id)}">🔑 Код для входа</button>` : ''}<button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`;
     return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? ' — исключён(а)' : ''}</strong><small>${facts}</small>${disputed}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
   }).join('');
   const invites = result.data.invites.length
@@ -2759,6 +3038,24 @@ async function loadClubMembers() {
       showToast(`«${button.dataset.name}» удалён из клуба`, 'Пришлите новый код — он сможет вступить заново.');
       loadClubMembers();
       pollGroupMarks();
+    });
+  });
+  // The last resort, for someone who lost every device and never saved a
+  // passkey: they come back as themselves, not as a new member.
+  box.querySelectorAll('[data-login-code]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const res = await clubCall('/club/code', { method: 'POST', body: { id: button.dataset.loginCode } }).catch(() => null);
+      if (res && handleClubRejection(res)) return;
+      if (!res?.ok) {
+        alert(clubMessage(res));
+        return;
+      }
+      const holder = document.createElement('div');
+      holder.innerHTML = loginCodeCard(res.data.code, `Код для входа: ${res.data.name}`, `действует до ${formatDay(res.data.expires)}, один раз`,
+        'Отправьте код этому участнику отдельным сообщением. Он откроет приложение, введёт код в поле «Код приглашения» и вернётся в клуб собой — со всеми рукопожатиями.');
+      button.closest('.club-member')?.append(holder);
+      bindInviteButtons(holder);
+      button.disabled = true;
     });
   });
   box.querySelectorAll('[data-unban]').forEach((button) => {

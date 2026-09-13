@@ -14,6 +14,8 @@ const runs = [
   ['batch.test.mjs', 'd1'],
   ['club-modes.test.mjs', 'kv'],
   ['club-modes.test.mjs', 'd1'],
+  ['club-return.test.mjs', 'kv'],
+  ['club-return.test.mjs', 'd1'],
   ['storage.test.mjs', 'kv+d1'],
 ];
 

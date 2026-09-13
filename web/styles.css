@@ -554,6 +554,15 @@ body.club-locked { overflow: hidden; }
 .gate-welcome { padding-top: 12vh; }
 .gate-welcome-icon { font-size: 72px; line-height: 1; }
 .gate-close { justify-self: end; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(245, 244, 238, .35); background: none; color: rgba(245, 244, 238, .85); font: inherit; font-size: 14px; cursor: pointer; }
+.gate-card .gate-submit.secondary { background: none; color: #c9f06b; border: 2px solid rgba(201, 240, 107, .65); }
+.gate-return { display: grid; gap: 6px; }
+.gate-return small { color: rgba(245, 244, 238, .65); font-size: 13px; line-height: 1.4; }
+.gate-remember { display: grid; gap: 8px; padding: 14px; border-radius: 14px; background: rgba(201, 240, 107, .12); border: 1px solid rgba(201, 240, 107, .4); font-size: 14px; line-height: 1.45; }
+.gate-remember p { margin: 0; }
+.remember-note { display: block; min-height: 1em; font-size: 13px; line-height: 1.4; }
+.gate-remember .remember-note { color: #ffd9a8; }
+.club-login .list-more { margin-top: 8px; }
+.club-login .remember-note { color: #a52a2a; }
 .feed-club-join { margin: 0 0 8px; padding: 10px 14px; border-radius: 12px; background: rgba(13, 51, 40, .07); color: var(--brand-dark, #0d3328); font-size: 14px; font-weight: 600; }
 .feed-club-join button { margin-left: 6px; padding: 6px 12px; border-radius: 999px; border: 0; background: var(--brand-dark, #0d3328); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 #heroTitle { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }

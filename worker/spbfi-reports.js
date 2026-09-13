@@ -18,8 +18,11 @@
  * and kept in KV, so nothing has to be pasted into the dashboard for it.
  *
  * Closed club. Membership is by invitation: the owner signs in with the owner
- * key, every member gets a signed token, invite codes are single-use and
- * remember who vouched for whom, and the owner can ban. It opens in stages.
+ * key, every member gets a signed token, an invite code lets one person in and
+ * remembers who vouched for whom, and the owner can ban. A member whose phone
+ * forgot the token gets back in without anyone's help: with a passkey, with
+ * the same invite code while it runs, or with a short code shown by a device
+ * still inside. It opens in stages.
  * With CLUB_OWNER_KEY alone it is a test: members see it on their own phones,
  * and for everyone else the app stays as it was. CLUB_GATE=invite offers
  * joining to everyone; CLUB_GATE=closed shuts the door, and only members can
@@ -1066,8 +1069,187 @@ function publicMember(member) {
 
 function inviteAllowance(member, invites) {
   if (member.role === 'owner') return null;
-  const spent = Object.values(invites).filter((invite) => invite.by === member.id && (!invite.revoked || invite.used_by)).length;
+  const spent = Object.values(invites).filter((invite) => invite.by === member.id && !invite.for && (!invite.revoked || invite.used_by)).length;
   return Math.max(0, MEMBER_INVITES - spent);
+}
+
+// ---------------------------------------------------------------- getting back in
+//
+// A pass lives in the phone's storage, and storage goes: site data cleared, the
+// icon deleted and added again, a new phone, a computer. In a club of a hundred
+// people the owner cannot hand out a way back to each of them, so a member
+// comes back on their own: with a passkey the phone keeps behind Face ID, a
+// fingerprint or the screen lock (iCloud and Google carry it to a new phone),
+// with the same invitation code while it runs, or with a short code shown by a
+// device that is still inside. A code from the owner is the last resort.
+const LOGIN_CODE_MS = 10 * 60 * 1000;
+const RETURN_CODE_MS = 7 * 24 * 60 * 60 * 1000;
+const PASSKEY_CHALLENGE_MS = 5 * 60 * 1000;
+const PASSKEYS_PER_MEMBER = 6;
+const MAX_DEVICES = 8;
+const fromUtf8 = new TextDecoder();
+
+function appOrigin(env) {
+  return env.ORIGIN || DEFAULT_ORIGIN;
+}
+
+function knowsDevice(member, device) {
+  return !!device && (member.device === device || (member.devices || []).includes(device));
+}
+
+function rememberDevice(member, device) {
+  if (!device || knowsDevice(member, device)) return;
+  member.devices = [...(member.devices || []), device].slice(-MAX_DEVICES);
+}
+
+function safeDecode(value, limit = 4096) {
+  try {
+    return b64u.decode(String(value || '').slice(0, limit));
+  } catch {
+    return null;
+  }
+}
+
+function constantBytes(left, right) {
+  if (left.length !== right.length) return false;
+  let result = 0;
+  for (let i = 0; i < left.length; i++) result |= left[i] ^ right[i];
+  return result === 0;
+}
+
+/** The part of CBOR (RFC 8949) that WebAuthn uses: definite lengths only. */
+function cborDecode(input) {
+  const data = new Uint8Array(input);
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  let offset = 0;
+  const need = (count) => {
+    if (offset + count > data.length) throw new Error('cbor: truncated');
+  };
+  const size = (info) => {
+    if (info < 24) return info;
+    if (info === 24) { need(1); return data[offset++]; }
+    if (info === 25) { need(2); offset += 2; return view.getUint16(offset - 2); }
+    if (info === 26) { need(4); offset += 4; return view.getUint32(offset - 4); }
+    if (info === 27) { need(8); offset += 8; return view.getUint32(offset - 8) * 2 ** 32 + view.getUint32(offset - 4); }
+    throw new Error('cbor: unsupported length');
+  };
+  const item = (depth) => {
+    if (depth > 16) throw new Error('cbor: too deep');
+    need(1);
+    const head = data[offset++];
+    const major = head >> 5;
+    const info = head & 31;
+    if (major === 7) {
+      if (info === 20) return false;
+      if (info === 21) return true;
+      if (info === 22 || info === 23) return null;
+      if (info === 26) { need(4); offset += 4; return view.getFloat32(offset - 4); }
+      if (info === 27) { need(8); offset += 8; return view.getFloat64(offset - 8); }
+      throw new Error('cbor: unsupported simple value');
+    }
+    const length = size(info);
+    if (major === 0) return length;
+    if (major === 1) return -1 - length;
+    if (major === 2 || major === 3) {
+      need(length);
+      offset += length;
+      const chunk = data.subarray(offset - length, offset);
+      return major === 2 ? chunk : fromUtf8.decode(chunk);
+    }
+    if (major === 4 || major === 5) {
+      // Every entry takes at least a byte, so a longer count is a lie.
+      if (length > data.length - offset) throw new Error('cbor: truncated');
+      if (major === 4) return Array.from({ length }, () => item(depth + 1));
+      const map = new Map();
+      for (let i = 0; i < length; i++) {
+        const key = item(depth + 1);
+        map.set(key, item(depth + 1));
+      }
+      return map;
+    }
+    if (major === 6) return item(depth + 1);
+    throw new Error('cbor: unsupported type');
+  };
+  return item(0);
+}
+
+// WebAuthn sends ES256 signatures in DER; WebCrypto verifies the bare r‖s.
+function derSignature(signature) {
+  const der = new Uint8Array(signature);
+  if (der[0] !== 0x30) throw new Error('der: not a sequence');
+  let offset = der[1] & 0x80 ? 2 + (der[1] & 0x7f) : 2;
+  const raw = new Uint8Array(64);
+  for (let part = 0; part < 2; part++) {
+    if (der[offset] !== 0x02) throw new Error('der: not an integer');
+    const length = der[offset + 1];
+    let integer = der.subarray(offset + 2, offset + 2 + length);
+    offset += 2 + length;
+    while (integer.length > 32 && integer[0] === 0) integer = integer.subarray(1);
+    if (!integer.length || integer.length > 32) throw new Error('der: bad integer');
+    raw.set(integer, 32 * (part + 1) - integer.length);
+  }
+  return raw;
+}
+
+// Phones make P-256 keys (ES256); Windows Hello may make RSA (RS256).
+function passkeyFromCose(cose) {
+  if (!(cose instanceof Map)) return null;
+  const [kty, alg, a, b, c] = [cose.get(1), cose.get(3), cose.get(-1), cose.get(-2), cose.get(-3)];
+  if (kty === 2 && alg === -7 && a === 1 && b?.length === 32 && c?.length === 32) {
+    return { alg: -7, jwk: { kty: 'EC', crv: 'P-256', x: b64u.encode(b), y: b64u.encode(c) } };
+  }
+  if (kty === 3 && alg === -257 && a?.length >= 256 && b?.length) {
+    return { alg: -257, jwk: { kty: 'RSA', n: b64u.encode(a), e: b64u.encode(b) } };
+  }
+  return null;
+}
+
+function importPasskey(record) {
+  return record.alg === -7
+    ? crypto.subtle.importKey('jwk', record.jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
+    : crypto.subtle.importKey('jwk', { ...record.jwk, alg: 'RS256' }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+}
+
+// Stateless: signed and dated, good for five minutes. The app fetches one
+// before the person taps, because Safari asks for Face ID only straight from
+// a tap, not after a wait for the network.
+async function passkeyChallenge(env) {
+  const body = `pk.${Date.now().toString(36)}.${b64u.encode(crypto.getRandomValues(new Uint8Array(12)))}`;
+  return b64u.encode(utf8.encode(`${body}.${await clubSign(env, body)}`));
+}
+
+async function passkeyChallengeOk(env, challenge) {
+  let parts;
+  try {
+    parts = fromUtf8.decode(b64u.decode(challenge)).split('.');
+  } catch {
+    return false;
+  }
+  if (parts.length !== 4 || parts[0] !== 'pk') return false;
+  const age = Date.now() - parseInt(parts[1], 36);
+  if (!(age > -60000 && age <= PASSKEY_CHALLENGE_MS)) return false;
+  return constantEqual(parts[3], await clubSign(env, parts.slice(0, 3).join('.')));
+}
+
+/** What the browser says it signed: for this site, for our challenge, as asked. */
+async function passkeyClient(env, encoded, type) {
+  try {
+    const bytes = b64u.decode(String(encoded || '').slice(0, 4096));
+    const data = JSON.parse(fromUtf8.decode(bytes));
+    if (data?.type !== type || data.origin !== appOrigin(env)) return null;
+    return (await passkeyChallengeOk(env, data.challenge)) ? { bytes, data } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The authenticator's own data: made for this site, with the person present. */
+async function passkeyAuthData(env, bytes) {
+  const data = new Uint8Array(bytes || []);
+  if (data.length < 37) return null;
+  const site = new Uint8Array(await crypto.subtle.digest('SHA-256', utf8.encode(new URL(appOrigin(env)).hostname)));
+  if (!constantBytes(data.subarray(0, 32), site) || !(data[32] & 0x01)) return null;
+  return { data, flags: data[32] };
 }
 
 async function clubRoutes(request, env, url, ctx) {
@@ -1075,7 +1257,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -1101,36 +1283,105 @@ async function clubRoutes(request, env, url, ctx) {
     const body = (await readJson(request)) || {};
     const code = normalizeCode(body.code);
     const name = cleanName(body.name);
-    if (!code || !name) return json({ error: 'expected_code_and_name' }, request, env, 400);
-    if (body.accept !== true) return json({ error: 'rules_not_accepted' }, request, env, 400);
+    // A name and the rules are asked of a newcomer only: someone coming back is
+    // known already.
+    if (!code) return json({ error: 'expected_code_and_name' }, request, env, 400);
     // The new member and the spent code are written together: two people
     // joining at the same moment both stay members, and one code lets in one.
     const device = String(body.device || '').slice(0, 64);
     const joined = await transact(env, { 'club:members': {}, 'club:invites': {} }, (docs) => {
       const members = docs['club:members'];
       const invite = docs['club:invites'][code];
+      const now = Date.now();
       // A phone that has joined already — its answer lost on the way, or its
       // owner trying again with a second code — gets that membership back
       // instead of a twin. On 13 Sep 2026 one person became two members so.
-      const again = device ? Object.values(members).find((item) => item.device === device && item.role !== 'owner') : null;
+      const again = device ? Object.values(members).find((item) => item.role !== 'owner' && knowsDevice(item, device)) : null;
       if (again?.banned) return { error: 'banned', status: 403, reason: again.banned_reason || '' };
       if (again) return { member: again };
       if (!invite || invite.revoked) return { error: 'invite_unknown', status: 404 };
-      if (invite.used_by) return { error: 'invite_used', status: 409 };
-      if (invite.expires < Date.now()) return { error: 'invite_expired', status: 410 };
+      if (invite.for) {
+        // A code for getting back in, shown by the member's own device or made
+        // by the owner: it works once and only while it runs.
+        const target = members[invite.for];
+        if (!target) return { error: 'invite_unknown', status: 404 };
+        if (target.banned) return { error: 'banned', status: 403, reason: target.banned_reason || '' };
+        if (invite.used_by) return { error: 'login_code_used', status: 409 };
+        if (invite.expires < now) return { error: 'login_code_expired', status: 410 };
+        invite.used_by = target.id;
+        invite.used_at = now;
+        rememberDevice(target, device);
+        return { member: target, returned: true };
+      }
+      if (invite.used_by) {
+        // Whoever joined with this code may enter it again while it runs — in
+        // the icon after Safari, on a computer, after the phone was cleared —
+        // and is asked first: a code passed on to a friend must not quietly
+        // turn the friend into them.
+        const target = members[invite.used_by];
+        if (!target || target.banned || invite.expires < now) return { error: 'invite_used', status: 409 };
+        if (body.returning !== true) return { error: 'invite_used', status: 409, returning: target.name };
+        rememberDevice(target, device);
+        return { member: target, returned: true };
+      }
+      if (invite.expires < now) return { error: 'invite_expired', status: 410 };
+      if (!name) return { error: 'expected_code_and_name', status: 400 };
+      if (body.accept !== true) return { error: 'rules_not_accepted', status: 400 };
       const sponsor = members[invite.by];
       if (!sponsor || sponsor.banned) return { error: 'sponsor_banned', status: 403 };
       let id;
       do {
         id = b64u.encode(crypto.getRandomValues(new Uint8Array(6)));
       } while (members[id]);
-      members[id] = { id, name, role: 'member', sponsor: invite.by, joined: Date.now(), accepted_rules: Date.now(), ...(device ? { device } : {}) };
+      members[id] = { id, name, role: 'member', sponsor: invite.by, joined: now, accepted_rules: now, ...(device ? { device } : {}) };
       invite.used_by = id;
-      invite.used_at = Date.now();
+      invite.used_at = now;
       return { member: members[id] };
     });
-    if (joined.error) return json({ error: joined.error, ...(joined.reason != null ? { reason: joined.reason } : {}) }, request, env, joined.status);
-    return json({ token: await issueToken(env, joined.member.id), member: publicMember(joined.member) }, request, env);
+    if (joined.error) {
+      const extra = { ...(joined.reason != null ? { reason: joined.reason } : {}), ...(joined.returning != null ? { returning: joined.returning } : {}) };
+      return json({ error: joined.error, ...extra }, request, env, joined.status);
+    }
+    return json({ token: await issueToken(env, joined.member.id), member: publicMember(joined.member), ...(joined.returned ? { returned: true } : {}) }, request, env);
+  }
+
+  if (request.method === 'GET' && path === '/club/passkey/challenge') {
+    if (limited(request, 'club-passkey', 30)) return json({ error: 'too_many_attempts' }, request, env, 429);
+    return json({ challenge: await passkeyChallenge(env), rp_id: new URL(appOrigin(env)).hostname, ttl: PASSKEY_CHALLENGE_MS }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/club/passkey/login') {
+    if (limited(request, 'club-join', 10)) return json({ error: 'too_many_attempts' }, request, env, 429);
+    const body = (await readJson(request)) || {};
+    const id = String(body.id || '').slice(0, 1400);
+    const client = await passkeyClient(env, body.client, 'webauthn.get');
+    const auth = client ? await passkeyAuthData(env, safeDecode(body.auth)) : null;
+    if (!id || !client || !auth) return json({ error: 'passkey_failed' }, request, env, 403);
+    const { 'club:passkeys': keys, 'club:members': everyone } = await loadDocs(env, { 'club:passkeys': {}, 'club:members': {} });
+    const record = keys[id];
+    if (!record) return json({ error: 'passkey_unknown' }, request, env, 404);
+    let valid = false;
+    try {
+      const signed = concat(auth.data, await crypto.subtle.digest('SHA-256', client.bytes));
+      const signature = b64u.decode(String(body.signature || '').slice(0, 1400));
+      const key = await importPasskey(record);
+      valid = record.alg === -7
+        ? await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, derSignature(signature), signed)
+        : await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, signature, signed);
+    } catch {
+      valid = false;
+    }
+    if (!valid) return json({ error: 'passkey_failed' }, request, env, 403);
+    const who = everyone[record.member];
+    if (!who) {
+      // Removed from the club: the key the phone keeps opens nothing now.
+      await transact(env, { 'club:passkeys': {} }, (docs) => {
+        delete docs['club:passkeys'][id];
+      });
+      return json({ error: 'passkey_unknown' }, request, env, 404);
+    }
+    if (who.banned) return json({ error: 'banned', reason: who.banned_reason || '' }, request, env, 403);
+    return json({ token: await issueToken(env, who.id), member: publicMember(who), returned: true }, request, env);
   }
 
   const members = await readDoc(env, 'club:members', {});
@@ -1139,9 +1390,9 @@ async function clubRoutes(request, env, url, ctx) {
   if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
 
   if (request.method === 'GET' && path === '/club/me') {
-    const { 'club:invites': invites, 'club:stats': all } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {} });
+    const { 'club:invites': invites, 'club:stats': all, 'club:passkeys': keys } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {}, 'club:passkeys': {} });
     const mine = Object.entries(invites)
-      .filter(([, invite]) => invite.by === member.id && !invite.revoked)
+      .filter(([, invite]) => invite.by === member.id && !invite.revoked && !invite.for)
       .map(([code, invite]) => ({
         code, created: invite.created, expires: invite.expires,
         used_by: invite.used_by ? (members[invite.used_by]?.name || '—') : null,
@@ -1153,8 +1404,76 @@ async function clubRoutes(request, env, url, ctx) {
       .map((item) => ({ ...item, by_name: item.by ? (members[item.by]?.name || '') : undefined }));
     return json({
       member: publicMember(member), invites: mine, invites_left: inviteAllowance(member, invites),
+      passkeys: Object.values(keys).filter((key) => key.member === member.id).length,
       profile: profileOf(stats), news, now: Date.now(),
     }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/club/passkey/save') {
+    if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
+    const body = (await readJson(request)) || {};
+    const id = String(body.id || '');
+    const client = await passkeyClient(env, body.client, 'webauthn.create');
+    let credential = null;
+    try {
+      const attestation = client ? cborDecode(safeDecode(body.attestation, 32768) || []) : null;
+      const auth = attestation instanceof Map ? await passkeyAuthData(env, attestation.get('authData')) : null;
+      // After the flags and the counter: 16 bytes naming the authenticator
+      // model, the length of the key's id, the id, then the public key.
+      if (auth && auth.flags & 0x40 && auth.data.length > 55) {
+        const length = (auth.data[53] << 8) | auth.data[54];
+        const rawId = auth.data.subarray(55, 55 + length);
+        if (id && id.length <= 1400 && rawId.length === length && b64u.encode(rawId) === id) {
+          credential = passkeyFromCose(cborDecode(auth.data.subarray(55 + length)));
+          if (credential) await importPasskey(credential);
+        }
+      }
+    } catch {
+      credential = null;
+    }
+    if (!credential) return json({ error: 'passkey_failed' }, request, env, 400);
+    const saved = await transact(env, { 'club:passkeys': {} }, (docs) => {
+      const keys = docs['club:passkeys'];
+      if (keys[id] && keys[id].member !== member.id) return null;
+      keys[id] = { member: member.id, alg: credential.alg, jwk: credential.jwk, created: keys[id]?.created || Date.now() };
+      const mine = Object.entries(keys).filter(([, key]) => key.member === member.id).sort((a, b) => a[1].created - b[1].created);
+      for (const [old] of mine.slice(0, -PASSKEYS_PER_MEMBER)) delete keys[old];
+      return Math.min(mine.length, PASSKEYS_PER_MEMBER);
+    });
+    if (saved == null) return json({ error: 'passkey_failed' }, request, env, 400);
+    return json({ ok: true, passkeys: saved }, request, env);
+  }
+
+  // A way back that needs nobody: a device still inside shows a short code for
+  // a computer or a new phone. The owner can make one for someone who has lost
+  // every device and has no passkey.
+  if (request.method === 'POST' && path === '/club/code') {
+    if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
+    const body = (await readJson(request)) || {};
+    const forId = String(body.id || member.id);
+    const own = forId === member.id;
+    if (!own && member.role !== 'owner') return json({ error: 'owner_only' }, request, env, 403);
+    const target = members[forId];
+    if (!target || (!own && target.role === 'owner')) return json({ error: 'member_unknown' }, request, env, 404);
+    if (target.banned) return json({ error: 'member_banned' }, request, env, 403);
+    const made = await transact(env, { 'club:invites': {} }, (docs) => {
+      const invites = docs['club:invites'];
+      const now = Date.now();
+      for (const [code, invite] of Object.entries(invites)) {
+        if (!invite.for) continue;
+        // Codes for coming back that ran out a day ago are clutter; of the live
+        // ones only the latest for a person works.
+        if (invite.expires < now - 24 * 60 * 60 * 1000) delete invites[code];
+        else if (invite.for === forId && !invite.used_by) invite.revoked = true;
+      }
+      let code;
+      do {
+        code = inviteCode();
+      } while (invites[code]);
+      invites[code] = { by: member.id, for: forId, created: now, expires: now + (own ? LOGIN_CODE_MS : RETURN_CODE_MS) };
+      return { code, expires: invites[code].expires };
+    });
+    return json({ ...made, name: target.name }, request, env);
   }
 
   if (request.method === 'POST' && path === '/club/invite') {
@@ -1299,7 +1618,7 @@ async function clubRoutes(request, env, url, ctx) {
   }
 
   if (request.method === 'GET' && path === '/club/members') {
-    const { 'club:stats': ownerStats, 'club:flags': flags, 'club:invites': invites } = await loadDocs(env, { 'club:stats': {}, 'club:flags': [], 'club:invites': {} });
+    const { 'club:stats': ownerStats, 'club:flags': flags, 'club:invites': invites, 'club:passkeys': keys } = await loadDocs(env, { 'club:stats': {}, 'club:flags': [], 'club:invites': {}, 'club:passkeys': {} });
     const reports = await readAll(env);
     const monthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const rows = Object.values(members).map((item) => {
@@ -1314,11 +1633,12 @@ async function clubRoutes(request, env, url, ctx) {
         disputed_by_people_30d: new Set(disputes.map((flag) => flag.by)).size,
         liters: (ownerStats[item.id]?.liters) || 0,
         level_icon: levelFor((ownerStats[item.id]?.liters) || 0).icon,
-        invited: Object.values(invites).filter((invite) => invite.by === item.id && invite.used_by).length,
+        invited: Object.values(invites).filter((invite) => invite.by === item.id && invite.used_by && !invite.for).length,
+        passkeys: Object.values(keys).filter((key) => key.member === item.id).length,
       };
     }).sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : (b.joined || 0) - (a.joined || 0)));
     const active = Object.entries(invites)
-      .filter(([, invite]) => !invite.used_by && !invite.revoked && invite.expires > Date.now())
+      .filter(([, invite]) => !invite.for && !invite.used_by && !invite.revoked && invite.expires > Date.now())
       .map(([code, invite]) => ({ code, by: members[invite.by]?.name || '—', expires: invite.expires }));
     return json({ members: rows, invites: active }, request, env);
   }
@@ -1337,11 +1657,15 @@ async function clubRoutes(request, env, url, ctx) {
       return publicMember(target);
     });
     if (!removed) return json({ error: 'member_unknown' }, request, env, 404);
-    await transact(env, { reports: [], subscriptions: [], 'club:invites': {} }, (docs) => {
+    await transact(env, { reports: [], subscriptions: [], 'club:invites': {}, 'club:passkeys': {} }, (docs) => {
       docs.reports = docs.reports.filter((report) => report?.who !== id);
       docs.subscriptions = docs.subscriptions.filter((sub) => sub?.who !== id);
       for (const invite of Object.values(docs['club:invites'])) {
-        if (invite.by === id && !invite.used_by) invite.revoked = true;
+        if ((invite.by === id || invite.for === id) && !invite.used_by) invite.revoked = true;
+      }
+      // The phone still keeps the passkey; here it stops opening anything.
+      for (const [key, record] of Object.entries(docs['club:passkeys'])) {
+        if (record.member === id) delete docs['club:passkeys'][key];
       }
     });
     return json({ ok: true, removed }, request, env);
