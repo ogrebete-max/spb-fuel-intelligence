@@ -1833,6 +1833,23 @@ bootstrap();
 // like an app that never updates.
 const SNAPSHOT_POLL_MS = 120000;
 
+// Every automatic reload goes through here. Two triggers exist (a new build
+// and a new service worker) and on an iPhone home-screen app a page served
+// from cache can keep asking for "newer" — without a cap that is a reload
+// loop the user sees as a white screen.
+function reloadOnce() {
+  try {
+    const last = Number(sessionStorage.getItem('spbfi-auto-reload-at') || 0);
+    if (Date.now() - last < 60000) return false;
+    sessionStorage.setItem('spbfi-auto-reload-at', String(Date.now()));
+  } catch {
+    // No session storage: better a stale page than a loop.
+    return false;
+  }
+  location.reload();
+  return true;
+}
+
 async function pollForNewSnapshot() {
   try {
     staticCache.delete('static-data/meta.json');
@@ -1840,8 +1857,7 @@ async function pollForNewSnapshot() {
     // A newer build is live: reload rather than run old code against new data.
     // Only when the tab is visible, so a phone in a pocket does not flicker.
     if (meta.build && window.SPBFI_BUILD && meta.build !== window.SPBFI_BUILD && !document.hidden) {
-      location.reload();
-      return;
+      if (reloadOnce()) return;
     }
     if (meta.snapshot_at && meta.snapshot_at !== state.meta?.snapshot_at) {
       staticCache.clear();
@@ -1871,7 +1887,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloading) return;
     reloading = true;
-    location.reload();
+    reloadOnce();
   });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then((registration) => {
