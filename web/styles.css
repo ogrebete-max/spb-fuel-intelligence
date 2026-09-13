@@ -543,6 +543,7 @@ body.club-locked { overflow: hidden; }
 .gate-submit { min-height: 52px; border: 0; border-radius: 14px; background: #c9f06b; color: #0d3328; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
 .gate-submit:disabled { opacity: .6; }
 #gateError, .gate-error { color: #ffb4b4; font-size: 14px; min-height: 1em; }
+#gateError:not(:empty) { display: block; padding: 10px 12px; border-radius: 10px; background: rgba(184, 51, 58, .3); border: 1px solid rgba(255, 150, 150, .5); color: #fff; font-weight: 600; }
 .drawer .gate-error { color: #a52a2a; }
 .gate-link { justify-self: start; padding: 6px 0; background: none; border: 0; color: rgba(245, 244, 238, .75); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; }
 .gate-field { display: grid; gap: 6px; }
@@ -550,6 +551,8 @@ body.club-locked { overflow: hidden; }
 .gate-secret { position: relative; }
 .gate-form .gate-secret input { padding-right: 132px; }
 .gate-show { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 38px; padding: 0 12px; border-radius: 10px; border: 0; background: #e8efe4; color: #0d3328; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.gate-welcome { padding-top: 12vh; }
+.gate-welcome-icon { font-size: 72px; line-height: 1; }
 .gate-close { justify-self: end; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(245, 244, 238, .35); background: none; color: rgba(245, 244, 238, .85); font: inherit; font-size: 14px; cursor: pointer; }
 .feed-club-join { margin: 0 0 8px; padding: 10px 14px; border-radius: 12px; background: rgba(13, 51, 40, .07); color: var(--brand-dark, #0d3328); font-size: 14px; font-weight: 600; }
 .feed-club-join button { margin-left: 6px; padding: 6px 12px; border-radius: 999px; border: 0; background: var(--brand-dark, #0d3328); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
@@ -559,6 +562,8 @@ body.club-locked { overflow: hidden; }
 .club-code span, .club-code small { color: rgba(255, 255, 255, .72); font-size: 12px; }
 .club-code b { font-size: 30px; letter-spacing: .12em; color: #c9f06b; }
 .club-code .gate-submit { margin-top: 10px; }
+.club-code .gate-submit.secondary { background: #fff; color: #0d3328; border: 2px solid #c9f06b; }
+.club-code small { display: block; margin-top: 8px; color: var(--muted); }
 .club-small { margin: 6px 6px 0 0; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
 .club-small.danger { color: #a52a2a; border-color: rgba(165, 42, 42, .4); }
 .club-member.banned { opacity: .7; }

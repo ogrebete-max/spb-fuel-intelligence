@@ -100,7 +100,7 @@ async function run(label, browserType, device) {
   await sashaPage.waitForSelector('.station-card .card-main', { timeout: 30000 });
   check('member skips the gate', await sashaPage.isHidden('#clubGate'));
 
-  // Sasha marks a station: +1 л and the first badge are celebrated.
+  // Sasha marks a station: +1 🤝 and the first badge are celebrated.
   await sashaPage.click('.station-card .card-main');
   await sashaPage.waitForSelector('.mark-composer');
   const stationId = await sashaPage.getAttribute('.mark-composer', 'data-compose-station');
@@ -108,8 +108,8 @@ async function run(label, browserType, device) {
   await sashaPage.click('[data-compose-grade="DT"][data-compose-seen="0"]');
   await sashaPage.click('[data-compose-queue="3"]');
   await sashaPage.click('.compose-send');
-  await sashaPage.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('+1 л')), null, { timeout: 8000 });
-  check('a mark celebrates +1 л once, not per grade', (await sashaPage.$$eval('.toast', (ts) => ts.filter((t) => t.textContent.includes('+1 л')).length)) === 1);
+  await sashaPage.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('+1 🤝')), null, { timeout: 8000 });
+  check('a mark celebrates +1 🤝 once, not per grade', (await sashaPage.$$eval('.toast', (ts) => ts.filter((t) => t.textContent.includes('+1 🤝')).length)) === 1);
   await sashaPage.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('Первая отметка')), null, { timeout: 8000 });
   check('the first badge pops up', true);
   await sashaPage.screenshot({ path: path.join(OUT, `${label}-r1-celebrate.png`) });
@@ -146,7 +146,7 @@ async function run(label, browserType, device) {
   check('author gets the confirmation', true);
   await sashaPage.screenshot({ path: path.join(OUT, `${label}-r3-news.png`) });
   const clubLabel = await sashaPage.textContent('#clubButton');
-  check(`club button shows litres (${clubLabel.trim()})`, /6 л/.test(clubLabel));
+  check(`club button shows handshakes (${clubLabel.trim()})`, /6 🤝/.test(clubLabel));
 
   // Sasha opens the club: tank, badges, weekly board.
   await sashaPage.click('#clubButton');

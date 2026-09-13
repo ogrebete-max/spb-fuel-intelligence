@@ -75,7 +75,7 @@ assert.equal(me.profile.liters, 1 + 3);
 assert.equal(me.profile.counts.confirmed, 1);
 assert(me.news.some((item) => item.type === 'confirmed' && item.by_name === 'Оля'));
 
-// «Спасибо»: +2 л to the author, once per person per mark, never to yourself.
+// «Спасибо»: +2 🤝 to the author, once per person per mark, never to yourself.
 const reports = (await call(env, '/club/reports', { token: olya.token })).data.reports;
 const sashaMark = reports.find((report) => report.name === 'Саша' && report.grade === 'AI95');
 assert.equal(sashaMark.thanks, 0);

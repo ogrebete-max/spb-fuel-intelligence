@@ -106,6 +106,8 @@ async function run(label, browserType, device) {
   await owner.fill('#gateOwnerKey', OWNER_KEY);
   await owner.fill('#gateOwnerName', 'Егор');
   await owner.click('#gateOwnerForm .gate-submit');
+  check('the owner sees they are in', await appears(owner, '#clubGate .gate-welcome #gateDone'));
+  await owner.click('#gateDone');
   check('the owner is inside', await appears(owner, '#clubButton:not([hidden])') && await becomes(owner, () => document.querySelector('#clubGate').hidden));
   await owner.click('#clubButton');
   await owner.click('#clubInvite');
@@ -136,6 +138,8 @@ async function run(label, browserType, device) {
   await stranger.fill('#gateName', 'Саша');
   await stranger.check('#gateAccept');
   await stranger.click('#gateJoinForm .gate-submit');
+  check('the invited phone sees «вы в клубе»', await appears(stranger, '#clubGate .gate-welcome #gateDone') && (await stranger.textContent('#clubGate .gate-welcome')).includes('вы в клубе'));
+  await stranger.click('#gateDone');
   check('the invited phone is inside', await appears(stranger, '#clubButton:not([hidden])') && await becomes(stranger, () => document.querySelector('#clubGate').hidden));
   check('and the invite line is gone', await becomes(stranger, () => !document.querySelector('[data-club-join]')));
 

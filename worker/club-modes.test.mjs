@@ -171,6 +171,29 @@ assert.equal(inside.find((report) => report.station === 'st-plain').name, '');
   assert(!(stranger.endpoint in closedHeard), 'behind a closed door a phone outside the club hears nothing');
 }
 
+// ------------------------------------------------------------ joining twice from one phone gives the same membership back
+{
+  const club = { ...storage(), CLUB_OWNER_KEY: OWNER_KEY };
+  const boss = (await call(club, '/club/owner', { method: 'POST', body: { key: OWNER_KEY, name: 'Егор' } })).data;
+  const code = async () => (await call(club, '/club/invite', { method: 'POST', token: boss.token })).data.code;
+  const first = await code();
+  const joined = (await call(club, '/club/join', { method: 'POST', body: { code: first, name: 'Дизель', accept: true, device: 'phone-diesel' } })).data;
+  const retried = await call(club, '/club/join', { method: 'POST', body: { code: first, name: 'Дизель', accept: true, device: 'phone-diesel' } });
+  assert.equal(retried.status, 200, 'the same code again from the same phone is not «already used»');
+  assert.equal(retried.data.member.id, joined.member.id);
+  const second = await code();
+  const again = await call(club, '/club/join', { method: 'POST', body: { code: second, name: 'Дизель', accept: true, device: 'phone-diesel' } });
+  assert.equal(again.data.member.id, joined.member.id, 'a second code from the same phone makes no twin');
+  const names = (await call(club, '/club/members', { token: boss.token })).data.members.map((member) => member.name);
+  assert.deepEqual(names.filter((name) => name === 'Дизель'), ['Дизель']);
+  assert.equal((await call(club, '/club/join', { method: 'POST', body: { code: second, name: 'Саша', accept: true, device: 'phone-sasha' } })).status, 200, 'the unused second code still lets in someone else');
+  assert.equal((await call(club, '/club/join', { method: 'POST', body: { code: first, name: 'Кто-то', accept: true } })).data.error, 'invite_used', 'without a known phone a spent code stays spent');
+  await call(club, '/club/ban', { method: 'POST', token: boss.token, body: { id: joined.member.id, banned: true, reason: 'тест' } });
+  const barred = await call(club, '/club/join', { method: 'POST', body: { code: await code(), name: 'Дизель', accept: true, device: 'phone-diesel' } });
+  assert.equal(barred.status, 403, 'a banned phone does not come back with a new code');
+  assert.equal(barred.data.reason, 'тест');
+}
+
 // ------------------------------------------------------------ the owner key forgives what a phone does to a phrase
 {
   const keyed = { ...storage(), CLUB_OWNER_KEY: 'Синий ёж ловит кота' };

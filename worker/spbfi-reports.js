@@ -545,8 +545,10 @@ function queueWords(cars) {
   if (cars == null) return null;
   if (cars === 0) return 'нет';
   if (cars <= 5) return 'до 5 машин';
-  if (cars <= 20) return '5–20 машин';
-  return 'больше 20 машин';
+  if (cars <= 20) return 'до 20 машин';
+  if (cars <= 50) return 'до 50 машин';
+  if (cars <= 100) return 'до 100 машин';
+  return 'больше 100 машин';
 }
 
 // ---------------------------------------------------------------- base64url
@@ -733,8 +735,8 @@ const BADGES = [
   { id: 'night_watch', icon: '🌙', title: 'Ночной дозор', hint: '5 отметок с 23:00 до 6:00', test: (s) => s.night >= 5 },
   { id: 'whole_city', icon: '🗺️', title: 'Весь город', hint: 'Отметки в 4 разных частях города и области', test: (s) => (s.zones || []).length >= 4 },
   { id: 'generous', icon: '🎁', title: 'Щедрая душа', hint: 'Сказать 10 «спасибо» другим', test: (s) => s.given >= 10 },
-  { id: 'sponsor', icon: '🤝', title: 'Поручитель', hint: 'Приглашённый вами сделал 5 отметок', test: (s) => s.sponsor >= 1 },
-  { id: 'hero', icon: '🦸', title: 'Герой недели', hint: 'Больше всех литров за неделю', test: (s) => s.heroes >= 1 },
+  { id: 'sponsor', icon: '🔗', title: 'Поручитель', hint: 'Приглашённый вами сделал 5 отметок', test: (s) => s.sponsor >= 1 },
+  { id: 'hero', icon: '🦸', title: 'Герой недели', hint: 'Больше всех рукопожатий за неделю', test: (s) => s.heroes >= 1 },
   { id: 'club_award', icon: '🏅', title: 'Благодарность клуба', hint: 'Её вручает владелец', test: (s) => (s.awards || []).length >= 1 },
 ];
 
@@ -819,7 +821,9 @@ function queueBucket(cars) {
   if (cars === 0) return 0;
   if (cars <= 5) return 1;
   if (cars <= 20) return 2;
-  return 3;
+  if (cars <= 50) return 3;
+  if (cars <= 100) return 4;
+  return 5;
 }
 
 function markKey(report) {
@@ -1101,9 +1105,16 @@ async function clubRoutes(request, env, url, ctx) {
     if (body.accept !== true) return json({ error: 'rules_not_accepted' }, request, env, 400);
     // The new member and the spent code are written together: two people
     // joining at the same moment both stay members, and one code lets in one.
+    const device = String(body.device || '').slice(0, 64);
     const joined = await transact(env, { 'club:members': {}, 'club:invites': {} }, (docs) => {
       const members = docs['club:members'];
       const invite = docs['club:invites'][code];
+      // A phone that has joined already — its answer lost on the way, or its
+      // owner trying again with a second code — gets that membership back
+      // instead of a twin. On 13 Sep 2026 one person became two members so.
+      const again = device ? Object.values(members).find((item) => item.device === device && item.role !== 'owner') : null;
+      if (again?.banned) return { error: 'banned', status: 403, reason: again.banned_reason || '' };
+      if (again) return { member: again };
       if (!invite || invite.revoked) return { error: 'invite_unknown', status: 404 };
       if (invite.used_by) return { error: 'invite_used', status: 409 };
       if (invite.expires < Date.now()) return { error: 'invite_expired', status: 410 };
@@ -1113,12 +1124,12 @@ async function clubRoutes(request, env, url, ctx) {
       do {
         id = b64u.encode(crypto.getRandomValues(new Uint8Array(6)));
       } while (members[id]);
-      members[id] = { id, name, role: 'member', sponsor: invite.by, joined: Date.now(), accepted_rules: Date.now() };
+      members[id] = { id, name, role: 'member', sponsor: invite.by, joined: Date.now(), accepted_rules: Date.now(), ...(device ? { device } : {}) };
       invite.used_by = id;
       invite.used_at = Date.now();
       return { member: members[id] };
     });
-    if (joined.error) return json({ error: joined.error }, request, env, joined.status);
+    if (joined.error) return json({ error: joined.error, ...(joined.reason != null ? { reason: joined.reason } : {}) }, request, env, joined.status);
     return json({ token: await issueToken(env, joined.member.id), member: publicMember(joined.member) }, request, env);
   }
 
@@ -1214,7 +1225,7 @@ async function clubRoutes(request, env, url, ctx) {
     const grade = GRADE_LABELS[target.grade] || target.grade;
     ctx.waitUntil(notifyMember(env, authorId, {
       title: `🙏 ${member.name || 'Свой'} говорит спасибо`,
-      body: `За отметку «${grade} ${target.seen ? 'есть' : 'нет'}» · +${LITERS.thanks} л${thanked.levelUp ? ` · новый уровень: ${thanked.levelUp.icon} ${thanked.levelUp.title}` : ''}`,
+      body: `За отметку «${grade} ${target.seen ? 'есть' : 'нет'}» · +${LITERS.thanks} 🤝${thanked.levelUp ? ` · новый уровень: ${thanked.levelUp.icon} ${thanked.levelUp.title}` : ''}`,
       station: target.station,
       tag: `spbfi-thanks-${target.station}`,
     }).catch(() => {}));
@@ -1281,7 +1292,7 @@ async function clubRoutes(request, env, url, ctx) {
     });
     ctx.waitUntil(notifyMember(env, target.id, {
       title: '🏅 Благодарность клуба',
-      body: `${text} · +${LITERS.award} л${levelUp ? ` · новый уровень: ${levelUp.icon} ${levelUp.title}` : ''}`,
+      body: `${text} · +${LITERS.award} 🤝${levelUp ? ` · новый уровень: ${levelUp.icon} ${levelUp.title}` : ''}`,
       tag: 'spbfi-award',
     }).catch(() => {}));
     return json({ ok: true, liters }, request, env);

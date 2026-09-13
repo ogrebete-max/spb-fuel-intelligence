@@ -15,7 +15,7 @@
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
   <!-- Safari ignores SVG here; the home-screen icon must be a PNG. -->
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-  <title>SPB Fuel Intelligence</title>
+  <title>Топливо СПб — закрытый клуб своих</title>
   <link rel="stylesheet" href="vendor/leaflet.css">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -23,9 +23,9 @@
   <div class="club-gate" id="clubGate" hidden></div>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="SPB Fuel Intelligence">
+      <a class="brand" href="./" aria-label="Топливо СПб">
         <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <span><strong>Fuel Intelligence</strong><small>Санкт-Петербург</small></span>
+        <span><strong>Топливо СПб</strong><small id="brandTag">Санкт-Петербург</small></span>
       </a>
       <div class="topbar-actions">
         <button class="club-button" id="clubButton" type="button" aria-label="Клуб" hidden><span aria-hidden="true">👥</span><span class="club-label"> Клуб</span></button>
@@ -80,7 +80,7 @@
             <span aria-hidden="true">⌕</span>
             <input id="searchInput" type="search" placeholder="Адрес места или АЗС" autocomplete="off" enterkeyhint="search">
           </label>
-          <button id="nearbySearchButton" class="nearby-search-button" type="button">⌖ Найти рядом</button>
+          <button id="nearbySearchButton" class="nearby-search-button" type="button">⌕ Проверить по адресу</button>
           <select id="sortSelect" aria-label="Сортировка">
             <option value="go">Куда ехать</option>
             <option value="nearest_available">Ближайшие доступные</option>
@@ -92,7 +92,7 @@
           </select>
         </div>
         <div class="search-context" id="searchContext" aria-live="polite">
-          <span>Введите адрес места и нажмите «Найти рядом» — покажем АЗС в радиусе 5 км.</span>
+          <span>Введите адрес и нажмите «Проверить по адресу» — покажем АЗС в радиусе 5 км вокруг него.</span>
         </div>
       </section>
 

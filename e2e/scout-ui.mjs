@@ -87,12 +87,12 @@ async function run(label, browserType, device) {
     await page.screenshot({ path: path.join(OUT, `${label}-s1-scout.png`) });
     await page.click('.scout-item');
     await page.waitForSelector('.blind-hint', { timeout: 10000 });
-    check('the drawer explains the bonus', (await page.textContent('.blind-hint')).includes('+2 л'));
+    check('the drawer explains the bonus', (await page.textContent('.blind-hint')).includes('+2 🤝'));
     // Cards and the «вы у АЗС» panel carry their own composers now; use the drawer's.
     await page.click('#drawerContent [data-compose-grade="AI95"][data-compose-seen="1"]');
     await page.click('#drawerContent .compose-send');
-    await page.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('+3 л')), null, { timeout: 8000 }).catch(() => null);
-    check('a blind-spot mark pays +3 л', await page.evaluate(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('+3 л'))));
+    await page.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('+3 🤝')), null, { timeout: 8000 }).catch(() => null);
+    check('a blind-spot mark pays +3 🤝', await page.evaluate(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('+3 🤝'))));
     await page.screenshot({ path: path.join(OUT, `${label}-s2-bonus.png`) });
   }
   check(`no page errors (${errors.length})`, errors.length === 0);

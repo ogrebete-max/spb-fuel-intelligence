@@ -87,6 +87,9 @@ async function run(label, browserType, device) {
   await owner.fill('#gateOwnerKey', OWNER_KEY);
   await owner.fill('#gateOwnerName', 'Егор');
   await owner.click('#gateOwnerForm .gate-submit');
+  await owner.waitForSelector('#clubGate .gate-welcome #gateDone', { timeout: 10000 });
+  check('the owner is told plainly they are in', (await owner.textContent('#clubGate .gate-welcome')).includes('владелец'));
+  await owner.click('#gateDone');
   await owner.waitForSelector('#clubGate', { state: 'hidden', timeout: 10000 });
   check('owner is inside', await owner.isVisible('#clubButton'));
 
@@ -123,6 +126,10 @@ async function run(label, browserType, device) {
   await guest.check('#gateAccept');
   await guest.screenshot({ path: path.join(OUT, `${label}-4-join.png`) });
   await guest.click('#gateJoinForm .gate-submit');
+  await guest.waitForSelector('#clubGate .gate-welcome #gateDone', { timeout: 10000 });
+  check('the guest is told plainly they are in', (await guest.textContent('#clubGate .gate-welcome')).includes('Саша, вы в клубе'));
+  await guest.screenshot({ path: path.join(OUT, `${label}-4b-welcome.png`) });
+  await guest.click('#gateDone');
   await guest.waitForSelector('#clubGate', { state: 'hidden', timeout: 10000 });
   check('guest joined', await guest.isVisible('#clubButton'));
 

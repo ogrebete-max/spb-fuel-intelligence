@@ -420,7 +420,7 @@ function bindControls() {
     leaveOwnOnly();
     if (state.searchScope) clearSearchScope({ keepText: true, reload: false });
     // Typing a street used to filter nothing at all until the user guessed to
-    // press "Найти рядом"; filtering by address now happens as you type, and
+    // press "Проверить по адресу"; filtering by address now happens as you type, and
     // the button stays for turning the same text into a place on the map.
     searchTimer = setTimeout(loadStations, 250);
     renderSearchContext();
@@ -513,9 +513,9 @@ function renderSearchContext({ waitingAccuracy = null } = {}) {
   } else if (state.searchScope === 'map') {
     context.innerHTML = `<strong>${escapeHtml(state.searchLabel)}</strong> <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.search.trim()) {
-    context.textContent = 'Ищем точное совпадение по сети или адресу АЗС. Нажмите «Найти рядом», если это адрес места.';
+    context.textContent = 'Ищем точное совпадение по сети или адресу АЗС. Нажмите «Проверить по адресу», если это адрес места.';
   } else {
-    context.textContent = 'Введите адрес, посёлок или название АЗС. Ввод фильтрует список; «Найти рядом» ищет вокруг этого места, расширяя радиус, пока не найдётся из чего выбрать.';
+    context.textContent = 'Введите адрес, посёлок или название АЗС. Ввод фильтрует список; «Проверить по адресу» ищет вокруг этого места, расширяя радиус, пока не найдётся из чего выбрать.';
   }
   context.querySelector('[data-clear-scope]')?.addEventListener('click', () => {
     leaveOwnOnly();
@@ -623,7 +623,7 @@ async function findNearby() {
     track('search_failed', { reason: 'geocoder' });
   } finally {
     button.disabled = false;
-    button.textContent = '⌖ Найти рядом';
+    button.textContent = '⌕ Проверить по адресу';
   }
 }
 
@@ -1079,6 +1079,10 @@ function metaFor(station) {
       : `${GRADE_LABELS[state.grade]} ${value} — цена не подтверждена`);
   }
   return parts.join(' · ');
+}
+
+function handshakes(count) {
+  return `${count} ${plural(Number(count) || 0, 'рукопожатие', 'рукопожатия', 'рукопожатий')}`;
 }
 
 function plural(count, one, few, many) {
@@ -1743,7 +1747,7 @@ function celebrate(rewards) {
     }
     if (moment.levelUp) {
       burst('🎉');
-      showToast(`🎉 Новый уровень: ${moment.levelUp.icon} ${moment.levelUp.title}`, `У вас ${moment.total} л. Своим с вами везёт!`);
+      showToast(`🎉 Новый уровень: ${moment.levelUp.icon} ${moment.levelUp.title}`, `У вас ${handshakes(moment.total)}. Своим с вами везёт!`);
     }
     moment.badges.forEach((badge, index) => {
       setTimeout(() => {
@@ -1752,11 +1756,11 @@ function celebrate(rewards) {
       }, 700 * (index + 1));
     });
     if (moment.confirmed.size) {
-      showToast(`✅ Вы подтвердили: ${[...moment.confirmed].join(', ')}`, 'Им +3 л за точность — спасибо, что проверили.');
+      showToast(`✅ Вы подтвердили: ${[...moment.confirmed].join(', ')}`, 'Им +3 🤝 за точность — спасибо, что проверили.');
     }
     if (moment.liters > 0 && !moment.levelUp) {
       const next = moment.level?.next;
-      showToast(`+${moment.liters} л ⛽ спасибо за отметку`, next ? `Всего ${moment.total} л · до «${next.title}» ещё ${next.left} л` : `Всего ${moment.total} л`);
+      showToast(`+${moment.liters} 🤝 спасибо за отметку`, next ? `Всего ${handshakes(moment.total)} · до «${next.title}» ещё ${next.left} 🤝` : `Всего ${handshakes(moment.total)}`);
     }
   }, 900);
 }
@@ -1782,17 +1786,17 @@ function handleNews(news = [], now = Date.now()) {
       count('badge') && `${count('badge')} ${plural(count('badge'), 'значок', 'значка', 'значков')}`,
     ].filter(Boolean).join(', ');
     burst('⛽');
-    showToast(`⛽ Пока вас не было: +${liters} л`, parts || 'Загляните в «Клуб».');
+    showToast(`🤝 Пока вас не было: +${liters}`, parts || 'Загляните в «Клуб».');
     return;
   }
   items.forEach((item, index) => {
     setTimeout(() => {
-      if (item.type === 'thanks') showToast(`🙏 ${item.by_name || 'Свой'} говорит спасибо`, `За отметку «${GRADE_LABELS[item.grade] || ''} ${item.seen ? 'есть' : 'нет'}» · +${item.liters} л`, item.station);
-      else if (item.type === 'confirmed') showToast(`✅ ${item.by_name || 'Свой'} подтвердил(а) вашу отметку`, `+${item.liters} л за точность`, item.station);
+      if (item.type === 'thanks') showToast(`🙏 ${item.by_name || 'Свой'} говорит спасибо`, `За отметку «${GRADE_LABELS[item.grade] || ''} ${item.seen ? 'есть' : 'нет'}» · +${item.liters} 🤝`, item.station);
+      else if (item.type === 'confirmed') showToast(`✅ ${item.by_name || 'Свой'} подтвердил(а) вашу отметку`, `+${item.liters} 🤝 за точность`, item.station);
       else if (item.type === 'badge') { burst(item.icon); showToast(`${item.icon} Новый значок: ${item.title}`, 'Все значки — в разделе «Клуб».'); }
       else if (item.type === 'level') { burst('🎉'); showToast(`🎉 Новый уровень: ${item.icon} ${item.title}`, 'Так держать!'); }
-      else if (item.type === 'award') { burst('🏅'); showToast('🏅 Благодарность клуба', `${item.text} · +${item.liters} л`); }
-      else if (item.type === 'hero') { burst('🦸'); showToast('🦸 Вы — герой прошлой недели!', `${item.liters} л за неделю. Спасибо от всего клуба.`); }
+      else if (item.type === 'award') { burst('🏅'); showToast('🏅 Благодарность клуба', `${item.text} · +${item.liters} 🤝`); }
+      else if (item.type === 'hero') { burst('🦸'); showToast('🦸 Вы — герой прошлой недели!', `${handshakes(item.liters)} за неделю. Спасибо от всего клуба.`); }
       else if (item.type === 'sponsor') showToast('🤝 Ваш приглашённый стал активным', 'Значок «Поручитель» — ваш.');
     }, 600 * index);
   });
@@ -1820,7 +1824,7 @@ function scoutHint() {
     .slice(0, 3);
   if (!near.length) return '';
   const items = near.map((station) => `<button type="button" class="scout-item" data-scout-station="${escapeHtml(station.id)}">${escapeHtml(shortNetwork(station.network))} · ${escapeHtml(formatDistance(station.distance_km))}</button>`).join('');
-  return `<div class="scout-hint"><strong>🔦 Нужны глаза рядом</strong><span>По ${escapeHtml(GRADE_LABELS[state.grade])} здесь у приложения нет свежих данных. Будете мимо — отметьте: <b>+2 л</b> бонусом.</span><div class="scout-list">${items}</div></div>`;
+  return `<div class="scout-hint"><strong>🔦 Нужны глаза рядом</strong><span>По ${escapeHtml(GRADE_LABELS[state.grade])} здесь у приложения нет свежих данных. Будете мимо — отметьте: <b>+2 🤝</b> бонусом.</span><div class="scout-list">${items}</div></div>`;
 }
 
 function bindScout(root) {
@@ -2041,7 +2045,7 @@ async function sendThanks(stationId, button) {
   }
   if (thanked.length) {
     burst('🙏');
-    showToast(`🙏 Спасибо отправлено: ${thanked.join(', ')}`, 'Им +2 л. Такие мелочи и держат клуб.');
+    showToast(`🙏 Спасибо отправлено: ${thanked.join(', ')}`, 'Им +2 🤝. Такие мелочи и держат клуб.');
   } else if (problem) {
     showToast('Не получилось', problem);
   }
@@ -2076,10 +2080,10 @@ function profileCard(profile) {
       <div class="tank-head">
         <span class="tank-icon">${level.icon}</span>
         <span class="tank-title"><small>Ваш уровень</small><strong>${escapeHtml(level.title)}</strong></span>
-        <span class="tank-liters"><b>${profile.liters}</b><small>литров</small></span>
+        <span class="tank-liters"><b>${profile.liters}</b><small>${plural(profile.liters, 'рукопожатие', 'рукопожатия', 'рукопожатий')}</small></span>
       </div>
       <div class="tank-bar" role="progressbar" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.max(4, Math.min(100, progress))}%"></i></div>
-      <p class="tank-next">${level.next ? `До уровня ${level.next.icon} «${escapeHtml(level.next.title)}» — ещё ${level.next.left} л` : 'Высший уровень. Вы — легенда клуба!'} · за неделю ${profile.week} л</p>
+      <p class="tank-next">${level.next ? `До уровня ${level.next.icon} «${escapeHtml(level.next.title)}» — ещё ${level.next.left} 🤝` : 'Высший уровень. Вы — легенда клуба!'} · за неделю ${profile.week} 🤝</p>
       <div class="tank-counts">
         <span><b>${counts.marks || 0}</b>отметок</span>
         <span><b>${counts.confirmed || 0}</b>подтвердили</span>
@@ -2091,16 +2095,16 @@ function profileCard(profile) {
     <div class="badge-grid">${badges}</div>
     ${awards}
     <details class="earn-help">
-      <summary>Как заработать литры</summary>
+      <summary>Как заработать рукопожатия 🤝</summary>
       <ul>
-        <li><b>+1 л</b> — отметка АЗС (одна за час на одной заправке, до 10 л в день)</li>
-        <li><b>+3 л</b> — другой участник подтвердил вашу отметку</li>
-        <li><b>+2 л</b> — вам сказали «спасибо»</li>
-        <li><b>+2 л</b> — первым увидели «есть» там, где было «нет»</li>
-        <li><b>+2 л</b> — отметка там, где у приложения не было свежих данных 🔦</li>
-        <li><b>+10 л</b> — благодарность от владельца клуба</li>
+        <li><b>+1 🤝</b> — отметка АЗС (одна за час на одной заправке, до 10 в день)</li>
+        <li><b>+3 🤝</b> — другой участник подтвердил вашу отметку</li>
+        <li><b>+2 🤝</b> — вам сказали «спасибо»</li>
+        <li><b>+2 🤝</b> — первым увидели «есть» там, где было «нет»</li>
+        <li><b>+2 🤝</b> — отметка там, где у приложения не было свежих данных 🔦</li>
+        <li><b>+10 🤝</b> — благодарность от владельца клуба</li>
       </ul>
-      <p>Литры — за пользу своим, а не за количество нажатий. Ложная отметка не окупается: её не подтвердят, а владелец видит споры.</p>
+      <p>Рукопожатия — не бензин и не деньги: так клуб отмечает пользу своим, а не количество нажатий. Ложная отметка не окупается: её не подтвердят, а владелец видит споры.</p>
     </details>`;
 }
 
@@ -2113,13 +2117,13 @@ async function loadLeaderboard() {
   const rows = result.data.members.map((row, index) => `<div class="board-row${row.me ? ' me' : ''}">
       <span class="board-rank">${row.week ? (medals[index] || index + 1) : '·'}</span>
       <span class="board-name">${row.icon} ${escapeHtml(row.name)}${row.me ? ' <em>вы</em>' : ''}</span>
-      <span class="board-week"><b>${row.week}</b> л</span>
-      <small class="board-meta">всего ${row.liters} л · значков ${row.badges}</small>
+      <span class="board-week"><b>${row.week}</b> 🤝</span>
+      <small class="board-meta">всего ${row.liters} 🤝 · значков ${row.badges}</small>
     </div>`).join('');
   const hero = result.data.hero_last_week
-    ? `<p class="board-hero">🦸 Герой прошлой недели — <b>${escapeHtml(result.data.hero_last_week.name)}</b>, ${result.data.hero_last_week.liters} л</p>`
+    ? `<p class="board-hero">🦸 Герой прошлой недели — <b>${escapeHtml(result.data.hero_last_week.name)}</b>, ${handshakes(result.data.hero_last_week.liters)}</p>`
     : '';
-  box.innerHTML = `<h3 class="section-title">Литры недели</h3>${hero}<div class="board">${rows}</div>`;
+  box.innerHTML = `<h3 class="section-title">Рукопожатия недели</h3>${hero}<div class="board">${rows}</div>`;
 }
 
 // ---------------------------------------------------------------- club
@@ -2264,7 +2268,7 @@ async function checkClub() {
       handleNews(me.data.news, me.data.now);
     }
   } catch { /* offline with a saved membership: let them in */ }
-  hideClubGate();
+  if (!$('#clubGate .gate-welcome')) hideClubGate();
   renderClubButton();
   pollGroupMarks();
   if (!state.club.newsTimer) {
@@ -2315,6 +2319,37 @@ function bindClubJoinLine(root) {
   root.querySelector('[data-club-join]')?.addEventListener('click', () => showClubGate({ mode: 'join' }));
 }
 
+function showWelcome(member, owner) {
+  const gate = $('#clubGate');
+  if (!gate) return;
+  const name = escapeHtml(member?.name || '');
+  gate.innerHTML = owner
+    ? `<div class="gate-card gate-welcome">
+        <span class="gate-welcome-icon" aria-hidden="true">🤝</span>
+        <p class="gate-kicker">Готово</p>
+        <h1>Вы вошли как владелец клуба</h1>
+        <p class="gate-lead">Вверху справа появилась кнопка клуба — с вашим уровнем 🔰 и рукопожатиями 🤝. В ней приглашения и участники.</p>
+        <button type="button" class="gate-submit" id="gateDone">Начать</button>
+      </div>`
+    : `<div class="gate-card gate-welcome">
+        <span class="gate-welcome-icon" aria-hidden="true">🤝</span>
+        <p class="gate-kicker">Готово</p>
+        <h1>${name ? `${name}, вы` : 'Вы'} в клубе!</h1>
+        <p class="gate-lead">Теперь ваши отметки видят свои — с вашим именем. Вверху справа появилась кнопка клуба — с вашим уровнем 🔰 и рукопожатиями 🤝. В ней приглашения и правила.</p>
+        <p class="gate-lead">Отмечайте только то, что видите на колонках своими глазами.</p>
+        <button type="button" class="gate-submit" id="gateDone">Начать</button>
+      </div>`;
+  gate.hidden = false;
+  gate.scrollTop = 0;
+  document.body.classList.add('club-locked');
+  burst('🤝');
+  if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+  $('#gateDone').addEventListener('click', () => {
+    hideClubGate();
+    renderGroupFeed();
+  });
+}
+
 function hideClubGate() {
   const gate = $('#clubGate');
   if (gate) {
@@ -2354,7 +2389,7 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
       </form>
       <button type="button" class="gate-link" id="gateBack">← У меня приглашение</button>`
     : `<form id="gateJoinForm" class="gate-form"${installFirst ? ' hidden' : ''}>
-        <label>Код приглашения<input id="gateCode" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX" value="${escapeHtml(code)}" required></label>
+        <label>Код приглашения<input id="gateCode" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX" value="${escapeHtml(code)}" required><small>Можно вставить сюда всё сообщение с приглашением — код найдётся сам.</small></label>
         <label>Как вас называть<input id="gateName" maxlength="24" autocomplete="given-name" placeholder="Например, Саша" required><small>Имя видят только участники — рядом с вашими отметками.</small></label>
         ${rules}
         <label class="gate-accept"><input type="checkbox" id="gateAccept"><span>Принимаю правила и отмечаю только то, что вижу сам</span></label>
@@ -2394,13 +2429,19 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
   });
   $('#gateOwner')?.addEventListener('click', () => showClubGate({ notice, banned, mode: 'owner' }));
   $('#gateBack')?.addEventListener('click', () => showClubGate({ notice, banned, mode: 'join' }));
+  // An invitation copied from a messenger arrives as one long message; the code
+  // inside it is picked out, so nobody has to copy it letter by letter.
+  $('#gateCode')?.addEventListener('input', (event) => {
+    const found = codeIn(event.target.value);
+    if (found) event.target.value = found;
+  });
   $('#gateJoinForm')?.addEventListener('submit', (event) => {
     event.preventDefault();
     if (!$('#gateAccept').checked) {
       $('#gateError').textContent = CLUB_ERRORS.rules_not_accepted;
       return;
     }
-    enterClub('/club/join', { code: $('#gateCode').value, name: $('#gateName').value, accept: true }, event.target.querySelector('.gate-submit'));
+    enterClub('/club/join', { code: $('#gateCode').value, name: $('#gateName').value, accept: true, device: deviceId() }, event.target.querySelector('.gate-submit'));
   });
   $('#gateOwnerForm')?.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -2412,6 +2453,9 @@ async function enterClub(path, body, button) {
   const error = $('#gateError');
   error.textContent = '';
   button.disabled = true;
+  // Without a sign of life a person taps the button, sees nothing and gives up.
+  const label = button.textContent;
+  button.textContent = path === '/club/owner' ? '⏳ Проверяем ключ…' : '⏳ Вступаем в клуб…';
   try {
     // A slow mobile connection must not lose a sign-in that is only a second late.
     const result = await clubCall(path, { method: 'POST', body, timeout: 20000 });
@@ -2429,20 +2473,26 @@ async function enterClub(path, body, button) {
     state.club.member = result.data.member;
     state.club.enabled = true;
     if (/[?&](club|invite)=/.test(location.search)) history.replaceState(null, '', location.pathname);
-    hideClubGate();
     renderClubButton();
+    // The gate used to close quietly with a toast at the top; a member took
+    // that for nothing happening and joined a second time.
+    showWelcome(result.data.member, path === '/club/owner');
     // Profile, news and the club's copy of the marks, as on any later start.
     checkClub();
-    showToast(`Добро пожаловать в клуб, ${result.data.member.name}`, 'Отмечайте только то, что видите сами. Пригласить своих — кнопка «Клуб» вверху.');
   } catch (failure) {
     const reason = failure?.name === 'AbortError' ? 'сервер клуба не ответил за 20 секунд' : 'запрос не дошёл до сервера клуба';
     error.textContent = `Нет связи с клубом: ${reason}. Проверьте интернет и попробуйте ещё раз.`;
   } finally {
     button.disabled = false;
+    button.textContent = label;
+    if (error.isConnected && error.textContent) error.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 }
 
 function renderClubButton() {
+  // Inside the club, or once its door is closed, the app says whose it is.
+  const tag = $('#brandTag');
+  if (tag) tag.textContent = state.club.mode === 'closed' || (state.club.enabled && state.club.member) ? 'закрытый клуб своих' : 'Санкт-Петербург';
   const button = $('#clubButton');
   if (!button) return;
   button.hidden = !(state.club.enabled && state.club.member);
@@ -2450,12 +2500,19 @@ function renderClubButton() {
   const icon = button.querySelector('[aria-hidden]');
   const label = button.querySelector('.club-label');
   if (icon) icon.textContent = profile?.level?.icon || '👥';
-  if (label) label.textContent = profile ? ` ${profile.liters} л` : ' Клуб';
-  button.setAttribute('aria-label', profile ? `Клуб: ${profile.level.title}, ${profile.liters} литров` : 'Клуб');
+  if (label) label.textContent = profile ? ` ${profile.liters} 🤝` : ' Клуб';
+  button.setAttribute('aria-label', profile ? `Клуб: ${profile.level.title}, ${handshakes(profile.liters)}` : 'Клуб');
 }
 
 function formatDay(ms) {
   return ms ? new Date(ms).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—';
+}
+
+function codeIn(text) {
+  const value = String(text || '');
+  if (value.replace(/[^A-Za-z0-9]/g, '').length <= 8) return '';
+  const match = value.toUpperCase().match(/\b([A-HJKMNP-Z2-9]{4})-([A-HJKMNP-Z2-9]{4})\b/);
+  return match ? `${match[1]}-${match[2]}` : '';
 }
 
 function inviteText(code) {
@@ -2463,8 +2520,27 @@ function inviteText(code) {
   return `Приглашаю в закрытый клуб «Топливо СПб»: где сейчас есть бензин — по отметкам своих.\n\n`
     + `1. Откройте на iPhone в Safari: ${link}\n`
     + `2. «Поделиться» → «На экран „Домой“».\n`
-    + `3. Откройте приложение с иконки и введите код: ${code}\n\n`
+    + `3. Откройте приложение с иконки и вставьте код: ${code}\n`
+    + `Можно скопировать это сообщение целиком и вставить в поле кода — приложение само найдёт код.\n\n`
     + 'Код одноразовый и действует 7 дней. Пожалуйста, не пересылайте его дальше.';
+}
+
+// A code sent on its own can be copied whole from any messenger.
+async function shareCode(code, button) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: code });
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(code);
+    if (button) button.textContent = 'Код скопирован';
+  } catch {
+    prompt('Скопируйте код:', code);
+  }
 }
 
 async function shareInvite(code, button) {
@@ -2508,7 +2584,7 @@ async function showClub() {
     const open = !invite.used_by && invite.expires > Date.now();
     const status = invite.used_by ? `вступил(а): ${escapeHtml(invite.used_by)}` : open ? `ждёт до ${formatDay(invite.expires)}` : 'срок истёк';
     return `<div class="source-row club-invite-row"><strong>${escapeHtml(invite.code)}</strong><span>${status}</span>${open
-      ? `<span><button type="button" class="club-small" data-invite-share="${escapeHtml(invite.code)}">Отправить</button><button type="button" class="club-small" data-invite-revoke="${escapeHtml(invite.code)}">Отозвать</button></span>` : ''}</div>`;
+      ? `<span><button type="button" class="club-small" data-invite-share="${escapeHtml(invite.code)}">Отправить</button><button type="button" class="club-small" data-code-share="${escapeHtml(invite.code)}">Код</button><button type="button" class="club-small" data-invite-revoke="${escapeHtml(invite.code)}">Отозвать</button></span>` : ''}</div>`;
   }).join('') : '<p class="drawer-address">Вы ещё никого не приглашали.</p>';
   $('#drawerContent').innerHTML = `
     <h2>Клуб «Топливо СПб»</h2>
@@ -2549,6 +2625,9 @@ function bindInviteButtons(root) {
   root.querySelectorAll('[data-invite-share]').forEach((button) => {
     button.addEventListener('click', () => shareInvite(button.dataset.inviteShare, button));
   });
+  root.querySelectorAll('[data-code-share]').forEach((button) => {
+    button.addEventListener('click', () => shareCode(button.dataset.codeShare, button));
+  });
   root.querySelectorAll('[data-invite-revoke]').forEach((button) => {
     button.addEventListener('click', async () => {
       if (!confirm(`Отозвать приглашение ${button.dataset.inviteRevoke}? По нему уже нельзя будет вступить.`)) return;
@@ -2576,7 +2655,9 @@ async function createInvite(event) {
     }
     const { code, expires } = result.data;
     box.innerHTML = `<div class="club-code"><span>Код приглашения</span><b>${escapeHtml(code)}</b><small>действует до ${formatDay(expires)}</small>
-      <button type="button" class="gate-submit" data-invite-share="${escapeHtml(code)}">Отправить приглашение</button></div>`;
+      <button type="button" class="gate-submit" data-invite-share="${escapeHtml(code)}">1. Отправить приглашение</button>
+      <button type="button" class="gate-submit secondary" data-code-share="${escapeHtml(code)}">2. Отправить код отдельным сообщением</button>
+      <small>Код отдельным сообщением легко скопировать и вставить в приложение.</small></div>`;
     bindInviteButtons(box);
   } catch {
     box.innerHTML = '<p class="gate-error">Нет связи с клубом. Попробуйте ещё раз.</p>';
@@ -2597,7 +2678,7 @@ async function loadClubMembers() {
     const facts = [
       item.role === 'owner' ? 'владелец' : `пригласил(а): ${escapeHtml(item.sponsor_name || '—')}`,
       `в клубе с ${formatDay(item.joined)}`,
-      `${item.level_icon || '🔰'} ${item.liters || 0} л`,
+      `${item.level_icon || '🔰'} ${item.liters || 0} 🤝`,
       `отметок за 3 ч: ${item.marks_3h}`,
       item.invited ? `привёл(а): ${item.invited}` : null,
     ].filter(Boolean).join(' · ');
@@ -2635,7 +2716,7 @@ async function loadClubMembers() {
         alert(clubMessage(res));
         return;
       }
-      showToast(`🏅 ${button.dataset.name} получает благодарность клуба`, `${text} · +10 л`);
+      showToast(`🏅 ${button.dataset.name} получает благодарность клуба`, `${text} · +10 🤝`);
       loadClubMembers();
       loadLeaderboard();
     });
@@ -2718,15 +2799,18 @@ function markButtons(stationId, { compact = false } = {}) {
 
 // Standing at a station a person sees every pump at once, so the drawer
 // asks about every grade and the queue together and sends it in one go.
-const QUEUE_CHOICES = [[0, 'нет очереди'], [3, 'до 5 машин'], [12, '5–20 машин'], [30, 'больше 20']];
+// At the worst stations the queue runs to a hundred cars and more.
+const QUEUE_CHOICES = [[0, 'нет'], [3, 'до 5'], [12, 'до 20'], [35, 'до 50'], [75, 'до 100'], [150, 'больше 100']];
 
 function queueWords(cars) {
   if (cars == null || cars === '') return null;
   const n = Number(cars);
   if (n === 0) return 'нет';
   if (n <= 5) return 'до 5 машин';
-  if (n <= 20) return '5–20 машин';
-  return 'больше 20 машин';
+  if (n <= 20) return 'до 20 машин';
+  if (n <= 50) return 'до 50 машин';
+  if (n <= 100) return 'до 100 машин';
+  return 'больше 100 машин';
 }
 
 function markComposer(stationId) {
@@ -3157,7 +3241,7 @@ async function openStation(id) {
       <div class="here-panel drawer-mark">
         <span class="here-kicker">Для своих</span>
         <strong>Видите эту АЗС своими глазами?</strong>
-        ${state.club.enabled && state.club.member && ['NO_FRESH_DATA', 'CONFLICT'].includes(selected.status) ? '<p class="blind-hint">🔦 У приложения нет свежих данных по этой АЗС — ваша отметка здесь нужнее всего: <b>+2 л</b> бонусом.</p>' : ''}
+        ${state.club.enabled && state.club.member && ['NO_FRESH_DATA', 'CONFLICT'].includes(selected.status) ? '<p class="blind-hint">🔦 У приложения нет свежих данных по этой АЗС — ваша отметка здесь нужнее всего: <b>+2 🤝</b> бонусом.</p>' : ''}
         ${eyewitnessLine(selected, station.id) ? `<p class="here-mine group ${eyewitnessLine(selected, station.id).tone}">${escapeHtml(eyewitnessLine(selected, station.id).text)}</p>` : ''}
         ${markLine(station.id, state.grade) ? `<p class="here-mine">✔ ${escapeHtml(markLine(station.id, state.grade))}</p>` : ''}
         ${thanksButton(station.id)}
