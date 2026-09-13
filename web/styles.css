@@ -545,6 +545,10 @@ body.club-locked { overflow: hidden; }
 #gateError, .gate-error { color: #ffb4b4; font-size: 14px; min-height: 1em; }
 .drawer .gate-error { color: #a52a2a; }
 .gate-link { justify-self: start; padding: 6px 0; background: none; border: 0; color: rgba(245, 244, 238, .75); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; }
+.gate-close { justify-self: end; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(245, 244, 238, .35); background: none; color: rgba(245, 244, 238, .85); font: inherit; font-size: 14px; cursor: pointer; }
+.feed-club-join { margin: 0 0 8px; padding: 10px 14px; border-radius: 12px; background: rgba(13, 51, 40, .07); color: var(--brand-dark, #0d3328); font-size: 14px; font-weight: 600; }
+.feed-club-join button { margin-left: 6px; padding: 6px 12px; border-radius: 999px; border: 0; background: var(--brand-dark, #0d3328); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+#heroTitle { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .club-button { min-height: 38px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 800; font-size: 13px; cursor: pointer; }
 .club-code { display: grid; gap: 4px; margin-top: 12px; padding: 16px; border-radius: 14px; background: #0d3328; color: #fff; text-align: center; }
 .club-code span, .club-code small { color: rgba(255, 255, 255, .72); font-size: 12px; }

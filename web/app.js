@@ -40,7 +40,7 @@ const state = {
   locationAt: 0, fixStartedAt: 0, pendingFix: null, locating: false, locationTimer: null, contextTimer: null,
   passed: {}, ownOnly: false, workerBatch: false,
   groupMarks: {}, stationInfo: {}, stationDetails: {}, total: 0,
-  club: { enabled: false, member: null, profile: null, newsTimer: null },
+  club: { enabled: false, mode: 'off', member: null, profile: null, newsTimer: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -251,6 +251,7 @@ async function bootstrap() {
   state.marks = loadMarks();
   try { state.club.member = JSON.parse(localStorage.getItem(CLUB_MEMBER_KEY) || 'null'); } catch { state.club.member = null; }
   $('#clubButton')?.addEventListener('click', showClub);
+  bindSecretClubEntry();
   checkClub();
   // A tapped notification lands here with the station in the URL.
   const wanted = new URLSearchParams(location.search).get('station');
@@ -1477,10 +1478,11 @@ async function renderGroupFeed() {
     return { stationId, items, latest, queue, people, names };
   }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
   if (!entries.length) {
-    box.innerHTML = `${outboxNote()}<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${ownLink()}${scoutHint()}`;
+    box.innerHTML = `${clubJoinLine()}${outboxNote()}<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${ownLink()}${scoutHint()}`;
     bindPushButton(box);
     bindScout(box);
     bindOwnLink(box);
+    bindClubJoinLine(box);
     return;
   }
   await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
@@ -1498,7 +1500,7 @@ async function renderGroupFeed() {
       ${thanksButton(entry.stationId)}
     </div>`;
   }).join('');
-  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div>${outboxNote()}<div class="feed-list">${cards}</div>${ownLink()}${scoutHint()}`;
+  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div>${clubJoinLine()}${outboxNote()}<div class="feed-list">${cards}</div>${ownLink()}${scoutHint()}`;
   box.querySelectorAll('[data-feed-station]').forEach((item) => {
     item.addEventListener('click', (event) => {
       if (event.target.closest('.thanks-button')) return;
@@ -1512,6 +1514,7 @@ async function renderGroupFeed() {
   bindScout(box);
   bindOwnLink(box);
   bindPushButton(box);
+  bindClubJoinLine(box);
 }
 
 // A mark someone else just filed nearby is worth interrupting for: a banner
@@ -2206,17 +2209,23 @@ function inviteFromUrl() {
 // phone never keeps pretending to be inside.
 function handleClubRejection(result) {
   if (!state.club.enabled) return false;
-  if (result.status === 401) {
-    forgetClub();
-    showClubGate({ notice: 'Вход на этом телефоне больше не действует. Попросите у своих новое приглашение.' });
+  const banned = result.status === 403 && result.data?.error === 'banned';
+  if (result.status !== 401 && !banned) return false;
+  forgetClub();
+  if (state.club.mode !== 'closed') {
+    // Until the door is closed a phone that is no longer inside simply goes
+    // back to the ordinary app.
+    state.club.enabled = false;
+    renderGroupFeed();
+    showToast(
+      banned ? 'Владелец клуба закрыл вам доступ' : 'Вход в клуб на этом телефоне больше не действует',
+      banned ? `${result.data.reason ? `Причина: ${result.data.reason}. ` : ''}Приложение работает как раньше.` : 'Попросите у своих новое приглашение.',
+    );
     return true;
   }
-  if (result.status === 403 && result.data?.error === 'banned') {
-    forgetClub();
-    showClubGate({ banned: result.data.reason || '' });
-    return true;
-  }
-  return false;
+  if (banned) showClubGate({ banned: result.data.reason || '' });
+  else showClubGate({ notice: 'Вход на этом телефоне больше не действует. Попросите у своих новое приглашение.' });
+  return true;
 }
 
 async function checkClub() {
@@ -2229,9 +2238,16 @@ async function checkClub() {
     // nobody is locked out of the station list because of a network hiccup.
     return;
   }
-  state.club.enabled = health.ok && health.data?.club === true;
+  state.club.mode = clubModeFrom(health);
+  // Until the door is closed only the phones that joined are inside; for
+  // everyone else the app stays exactly as it was.
+  state.club.enabled = state.club.mode === 'closed' || (state.club.mode !== 'off' && !!clubToken());
+  renderGroupFeed();
   if (!state.club.enabled) {
     renderClubButton();
+    // An invitation link, or the owner's, still opens the door on request.
+    const wanted = new URLSearchParams(location.search).get('club');
+    if (state.club.mode !== 'off' && (inviteFromUrl() || wanted === 'owner')) showClubGate({ mode: wanted === 'owner' ? 'owner' : 'join' });
     return;
   }
   if (!clubToken()) {
@@ -2255,6 +2271,48 @@ async function checkClub() {
     state.club.newsTimer = setInterval(pollClubNews, 120000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) pollClubNews(); });
   }
+}
+
+function clubModeFrom(health) {
+  if (!health?.ok) return 'off';
+  if (health.data?.club === true) return 'closed';
+  return ['test', 'invite'].includes(health.data?.mode) ? health.data.mode : 'off';
+}
+
+// While the club is a test nobody else is shown a way in: the owner opens it
+// by tapping the page title five times. Quick taps reach the page as touches
+// but the browser merges them into a single click, so the taps are counted
+// from the pointer itself; a finger that slid was scrolling, not tapping.
+function bindSecretClubEntry() {
+  const title = $('#heroTitle');
+  if (!title) return;
+  let taps = [];
+  let down = null;
+  title.addEventListener('pointerdown', (event) => {
+    down = { x: event.clientX, y: event.clientY, at: Date.now() };
+  });
+  title.addEventListener('pointercancel', () => { down = null; });
+  title.addEventListener('pointerup', (event) => {
+    const tapped = down && Math.hypot(event.clientX - down.x, event.clientY - down.y) < 12 && Date.now() - down.at < 700;
+    down = null;
+    if (!tapped) return;
+    const now = Date.now();
+    taps = [...taps.filter((at) => now - at < 3000), now];
+    if (taps.length < 5) return;
+    taps = [];
+    if (state.club.enabled && state.club.member) showClub();
+    else if (state.club.mode === 'off') showToast('Клуб пока не включён', 'Его включает владелец в настройках сервера.');
+    else showClubGate({ mode: 'owner' });
+  });
+}
+
+function clubJoinLine() {
+  if (state.club.mode !== 'invite' || state.club.enabled) return '';
+  return '<div class="feed-club-join">👥 Есть приглашение в клуб своих? <button type="button" data-club-join>Вступить</button></div>';
+}
+
+function bindClubJoinLine(root) {
+  root.querySelector('[data-club-join]')?.addEventListener('click', () => showClubGate({ mode: 'join' }));
 }
 
 function hideClubGate() {
@@ -2303,7 +2361,10 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
       </form>
       ${installFirst ? rules : ''}
       <button type="button" class="gate-link" id="gateOwner">Я владелец клуба</button>`;
+  // Until the door is closed the gate is an offer, not a wall.
+  const dismiss = state.club.mode !== 'closed' ? '<button type="button" class="gate-close" id="gateClose">Не сейчас ✕</button>' : '';
   gate.innerHTML = `<div class="gate-card">
+      ${dismiss}
       <span class="brand-mark" aria-hidden="true"><span></span></span>
       <p class="gate-kicker">Закрытый клуб</p>
       <h1>Топливо СПб — для своих</h1>
@@ -2313,6 +2374,10 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
   gate.hidden = false;
   gate.scrollTop = 0;
   document.body.classList.add('club-locked');
+  $('#gateClose')?.addEventListener('click', () => {
+    hideClubGate();
+    if (/[?&](club|invite)=/.test(location.search)) history.replaceState(null, '', location.pathname);
+  });
   $('#gateCopyCode')?.addEventListener('click', async (event) => {
     const button = event.currentTarget;
     try { await navigator.clipboard.writeText(code); button.textContent = 'Скопировано'; } catch { button.textContent = code; }
@@ -2351,10 +2416,12 @@ async function enterClub(path, body, button) {
       return;
     }
     state.club.member = result.data.member;
-    if (location.search.includes('invite=')) history.replaceState(null, '', location.pathname);
+    state.club.enabled = true;
+    if (/[?&](club|invite)=/.test(location.search)) history.replaceState(null, '', location.pathname);
     hideClubGate();
     renderClubButton();
-    pollGroupMarks();
+    // Profile, news and the club's copy of the marks, as on any later start.
+    checkClub();
     showToast(`Добро пожаловать в клуб, ${result.data.member.name}`, 'Отмечайте только то, что видите сами. Пригласить своих — кнопка «Клуб» вверху.');
   } catch {
     error.textContent = 'Нет связи с клубом. Проверьте интернет и попробуйте ещё раз.';
@@ -2455,7 +2522,13 @@ async function showClub() {
     if (!confirm('Выйти из клуба на этом телефоне? Чтобы вернуться, понадобится новое приглашение.')) return;
     forgetClub();
     closeDrawer();
-    showClubGate();
+    if (state.club.mode === 'closed') {
+      showClubGate();
+    } else {
+      state.club.enabled = false;
+      renderGroupFeed();
+      pollGroupMarks();
+    }
   });
   if (owner) loadClubMembers();
 }

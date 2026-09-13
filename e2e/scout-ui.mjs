@@ -58,7 +58,7 @@ const check = (label, condition) => { console.log(`${condition ? 'ok  ' : 'FAIL'
 
 async function run(label, browserType, device) {
   console.log(`\n=== ${label}`);
-  env = { REPORTS: new MemoryKV(), CLUB_OWNER_KEY: OWNER_KEY, ORIGIN: `http://localhost:${SITE_PORT}` };
+  env = { REPORTS: new MemoryKV(), CLUB_OWNER_KEY: OWNER_KEY, CLUB_GATE: 'closed', ORIGIN: `http://localhost:${SITE_PORT}` };
   const owner = await api('/club/owner', { method: 'POST', body: { key: OWNER_KEY, name: 'Егор' } });
   const browser = await browserType.launch();
   const context = await browser.newContext({

@@ -88,7 +88,7 @@ async function member(browser, device, token, memberRecord, { standalone = false
 
 async function run(label, browserType, device) {
   console.log(`\n=== ${label}`);
-  env = { ...storage(), CLUB_OWNER_KEY: OWNER_KEY, ORIGIN: `http://localhost:${SITE_PORT}` };
+  env = { ...storage(), CLUB_OWNER_KEY: OWNER_KEY, CLUB_GATE: 'closed', ORIGIN: `http://localhost:${SITE_PORT}` };
   const owner = await api('/club/owner', { method: 'POST', body: { key: OWNER_KEY, name: 'Егор' } });
   const { code } = await api('/club/invite', { method: 'POST', token: owner.token });
   const sasha = await api('/club/join', { method: 'POST', body: { code, name: 'Саша', accept: true } });

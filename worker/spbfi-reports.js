@@ -17,16 +17,20 @@
  * message itself. The VAPID key pair it signs with is generated on first use
  * and kept in KV, so nothing has to be pasted into the dashboard for it.
  *
- * Closed club. When CLUB_OWNER_KEY is set, only members can file marks, read
- * who filed them and receive pushes. Membership is by invitation: the owner
- * signs in with the owner key, every member gets a signed token, invite codes
- * are single-use and remember who vouched for whom, and the owner can ban.
- * Without CLUB_OWNER_KEY the worker behaves exactly as before.
+ * Closed club. Membership is by invitation: the owner signs in with the owner
+ * key, every member gets a signed token, invite codes are single-use and
+ * remember who vouched for whom, and the owner can ban. It opens in stages.
+ * With CLUB_OWNER_KEY alone it is a test: members see it on their own phones,
+ * and for everyone else the app stays as it was. CLUB_GATE=invite offers
+ * joining to everyone; CLUB_GATE=closed shuts the door, and only members can
+ * file marks, read who filed them and receive pushes. Without CLUB_OWNER_KEY
+ * the worker behaves exactly as before.
  *
  * Bindings:
  *   DB                   D1 database (recommended): marks, the club and push subscriptions
  *   REPORTS              KV namespace: storage when there is no DB, and what DB is filled from once
- *   CLUB_OWNER_KEY       secret; turns the closed club on and lets the owner in
+ *   CLUB_OWNER_KEY       secret; turns the club on (as a test) and lets the owner in
+ *   CLUB_GATE            optional: "invite" offers joining to everyone, "closed" requires it
  *   CLUB_READER_KEY      optional secret; when set, GET /reports needs it too
  *   GROUP_KEY            legacy shared passphrase, used only without the club
  *   ANALYTICS_ADMIN_KEY  optional secret; without it analytics store nothing
@@ -665,23 +669,28 @@ async function notifyGroup(env, report) {
   const subscriptions = await readSubscriptions(env);
   if (!subscriptions.length) return;
   const members = clubEnabled(env) ? await readDoc(env, 'club:members', {}) : null;
+  const closed = clubClosed(env);
   const here = report.lat != null && report.lon != null ? { lat: report.lat, lon: report.lon } : null;
   const grade = GRADE_LABELS[report.grade] || report.grade;
   const queue = queueWords(report.queue);
-  const payload = {
-    title: report.reporter ? `👁 ${report.reporter}: ${report.name || 'АЗС'}` : `👁 Свой отметил: ${report.name || 'АЗС'}`,
-    body: `${report.summary || `${grade} ${report.seen ? 'есть' : 'нет'}${queue ? `, очередь: ${queue}` : ''}`}${report.address ? ` · ${report.address}` : ''}`,
+  const body = `${report.summary || `${grade} ${report.seen ? 'есть' : 'нет'}${queue ? `, очередь: ${queue}` : ''}`}${report.address ? ` · ${report.address}` : ''}`;
+  // Names stay inside the club: a phone outside it hears the same mark unsigned.
+  const payloadFor = (member) => ({
+    title: member && report.reporter ? `👁 ${report.reporter}: ${report.name || 'АЗС'}` : `👁 Свой отметил: ${report.name || 'АЗС'}`,
+    body,
     station: report.station,
     tag: `spbfi-${report.station}`,
-  };
+  });
   const dead = new Set();
   await Promise.all(subscriptions.map(async (sub) => {
     if (sub.who && sub.who === report.who) return;
-    // In the club a phone that is not a member's, or a banned member's, hears nothing.
-    if (members && (!members[sub.who] || members[sub.who].banned)) return;
+    const member = members?.[sub.who];
+    // A banned member's phone hears nothing; behind a closed door neither does
+    // a phone outside the club.
+    if (member?.banned || (closed && !member)) return;
     if (here && sub.lat != null && sub.lon != null && distanceKm(here, sub) > NOTIFY_RADIUS_KM) return;
     try {
-      const status = await sendPush(env, sub, payload);
+      const status = await sendPush(env, sub, payloadFor(member));
       if (status === 404 || status === 410) dead.add(sub.endpoint);
     } catch {
       // One phone unreachable must not stop the others.
@@ -845,7 +854,9 @@ function payMark(all, members, reports, looks, { blindSpot = false } = {}) {
   const me = statsFor(all, report.who);
   const at = report.at;
   const result = { liters: 0, confirmed: [], badges: [], level_up: null };
-  const others = reports.filter((item) => item.who !== report.who && !members[item.who]?.banned);
+  // Only members' marks count: until the door is closed, marks from phones
+  // outside the club share the same list.
+  const others = reports.filter((item) => item.who !== report.who && members[item.who] && !members[item.who].banned);
   // One look at a station is one mark, however many grades it lists and
   // however often it is repeated within the hour.
   const repeat = reports.some((item) => item.who === report.who && item.station === report.station && at - item.at < SAME_STATION_MS);
@@ -953,6 +964,18 @@ function clubEnabled(env) {
   return !!env.CLUB_OWNER_KEY;
 }
 
+// 'off'; 'test' — only members see the club; 'invite' — everyone is offered
+// to join; 'closed' — nothing without membership.
+function clubMode(env) {
+  if (!clubEnabled(env)) return 'off';
+  const gate = String(env.CLUB_GATE || '').trim().toLowerCase();
+  return gate === 'invite' || gate === 'closed' ? gate : 'test';
+}
+
+function clubClosed(env) {
+  return clubMode(env) === 'closed';
+}
+
 async function readJson(request) {
   try {
     return await request.json();
@@ -1028,7 +1051,9 @@ function inviteAllowance(member, invites) {
 async function clubRoutes(request, env, url, ctx) {
   const path = url.pathname;
   if (request.method === 'GET' && path === '/club/health') {
-    return json({ club: clubEnabled(env), version: CLUB_VERSION, batch: true, late_marks: true, storage: storageKind(env) }, request, env);
+    // `club` still means "the door is closed": an app from before the stages
+    // shows its gate only then.
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -1361,7 +1386,8 @@ async function route(request, env, ctx) {
     let reports = await readAll(env);
     if (clubEnabled(env)) {
       const members = await readDoc(env, 'club:members', {});
-      if (env.CLUB_READER_KEY && !constantEqual(request.headers.get('X-Reader-Key') || '', String(env.CLUB_READER_KEY))) {
+      // Until the door is closed, phones outside the club read the marks too.
+      if (clubClosed(env) && env.CLUB_READER_KEY && !constantEqual(request.headers.get('X-Reader-Key') || '', String(env.CLUB_READER_KEY))) {
         const member = await clubMember(request, env, members);
         if (!member || member.banned) return json({ error: 'club_required' }, request, env, 401);
       }
@@ -1380,10 +1406,11 @@ async function route(request, env, ctx) {
     let clubWho = null;
     if (clubEnabled(env)) {
       const member = await clubMember(request, env);
-      if (!member) return json({ error: 'club_required' }, request, env, 401);
-      if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
-      clubWho = member.id;
-    } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+      if (member?.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
+      if (member) clubWho = member.id;
+      else if (clubClosed(env)) return json({ error: 'club_required' }, request, env, 401);
+    }
+    if (!clubWho && env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
       return json({ error: 'wrong group key' }, request, env, 403);
     }
     let body;
@@ -1432,9 +1459,11 @@ async function route(request, env, ctx) {
     let clubMemberRecord = null;
     if (clubEnabled(env)) {
       clubMemberRecord = await clubMember(request, env);
-      if (!clubMemberRecord) return json({ error: 'club_required' }, request, env, 401);
-      if (clubMemberRecord.banned) return json({ error: 'banned', reason: clubMemberRecord.banned_reason || '' }, request, env, 403);
-    } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+      if (clubMemberRecord?.banned) return json({ error: 'banned', reason: clubMemberRecord.banned_reason || '' }, request, env, 403);
+      // Until the door is closed a phone outside the club marks as it always did.
+      if (!clubMemberRecord && clubClosed(env)) return json({ error: 'club_required' }, request, env, 401);
+    }
+    if (!clubMemberRecord && env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
       return json({ error: 'wrong group key' }, request, env, 403);
     }
     if (await overRate(request, env)) {

@@ -11,9 +11,10 @@
     "rewards": "node club-rewards-ui.mjs",
     "scout": "node scout-ui.mjs",
     "outbox": "node outbox-ui.mjs",
+    "modes": "node club-test-mode-ui.mjs",
     "d1": "node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1",
     "live": "node live-open.mjs",
-    "all": "node field-ui.mjs && node own-mode-ui.mjs && node race-ui.mjs && node club-ui.mjs && node club-rewards-ui.mjs && node scout-ui.mjs && node outbox-ui.mjs && node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1"
+    "all": "node field-ui.mjs && node own-mode-ui.mjs && node race-ui.mjs && node club-ui.mjs && node club-rewards-ui.mjs && node scout-ui.mjs && node outbox-ui.mjs && node club-test-mode-ui.mjs && node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1"
   },
   "devDependencies": {
     "playwright": "1.63.0"
