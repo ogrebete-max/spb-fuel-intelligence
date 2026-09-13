@@ -1,0 +1,19 @@
+{
+  "name": "spbfi-e2e",
+  "private": true,
+  "description": "Browser checks of the app in WebKit (iPhone) and Chromium (Android, desktop) against an in-process copy of the worker.",
+  "scripts": {
+    "browsers": "playwright install webkit chromium",
+    "field": "node field-ui.mjs",
+    "own": "node own-mode-ui.mjs",
+    "race": "node race-ui.mjs",
+    "club": "node club-ui.mjs",
+    "rewards": "node club-rewards-ui.mjs",
+    "scout": "node scout-ui.mjs",
+    "live": "node live-open.mjs",
+    "all": "node field-ui.mjs && node own-mode-ui.mjs && node race-ui.mjs && node club-ui.mjs && node club-rewards-ui.mjs && node scout-ui.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

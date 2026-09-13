@@ -9,3 +9,7 @@ snapshot-manifest.json
 
 # Stray captures from ad-hoc research must never land in the repository.
 *.scratch.html
+
+# Browser checks: dependencies and screenshots stay local.
+e2e/node_modules/
+e2e/shots/

@@ -643,3 +643,8 @@ body.club-locked { overflow: hidden; }
 .own-pin.aging .pin-label { border-color: #d58a13; }
 .own-pin.stale .pin-label { opacity: .7; }
 .pin-grades i.yes { color: #158257; }
+
+/* «Свои» is a view of its own; the way back is always on screen. */
+.own-bar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 14px; background: rgba(31, 122, 77, .08); color: #1f5c3e; font-weight: 700; }
+.own-back { border: 1px solid #1f7a4d; background: #fff; color: #1f7a4d; border-radius: 99px; padding: 7px 14px; font: inherit; font-weight: 800; cursor: pointer; }
+.own-back:hover { background: #1f7a4d; color: #fff; }

@@ -390,6 +390,7 @@ function bindControls() {
     $$('[data-grade]').forEach((item) => { item.classList.toggle('active', item === button); item.setAttribute('aria-checked', item === button); });
     state.status = null;
     state.timeline = null;
+    leaveOwnOnly();
     track('grade_select');
     loadStations();
   });
@@ -398,6 +399,7 @@ function bindControls() {
     if (!button) return;
     state.area = button.dataset.area;
     $$('[data-area]').forEach((item) => item.classList.toggle('active', item === button));
+    leaveOwnOnly();
     track('area_select');
     loadStations();
   });
@@ -414,6 +416,7 @@ function bindControls() {
   $('#searchInput').addEventListener('input', (event) => {
     clearTimeout(searchTimer);
     state.search = event.target.value;
+    leaveOwnOnly();
     if (state.searchScope) clearSearchScope({ keepText: true, reload: false });
     // Typing a street used to filter nothing at all until the user guessed to
     // press "Найти рядом"; filtering by address now happens as you type, and
@@ -427,7 +430,7 @@ function bindControls() {
     findNearby();
   });
   $('#nearbySearchButton').addEventListener('click', findNearby);
-  $('#sortSelect').addEventListener('change', (event) => { state.sort = event.target.value; track('sort_change', { filter: state.sort }); loadStations(); });
+  $('#sortSelect').addEventListener('change', (event) => { state.sort = event.target.value; leaveOwnOnly(); track('sort_change', { filter: state.sort }); loadStations(); });
   $('#locateButton').addEventListener('click', locate);
   $('#mapAreaButton').addEventListener('click', () => {
     const bounds = state.map.getBounds();
@@ -440,6 +443,7 @@ function bindControls() {
     $('#searchInput').value = '';
     renderSearchContext();
     $('#mapAreaButton').style.display = 'none';
+    leaveOwnOnly();
     track('map_area_search', { zone: analytics.zoneFor(state.map.getCenter()) });
     loadStations();
   });
@@ -512,7 +516,10 @@ function renderSearchContext({ waitingAccuracy = null } = {}) {
   } else {
     context.textContent = 'Введите адрес, посёлок или название АЗС. Ввод фильтрует список; «Найти рядом» ищет вокруг этого места, расширяя радиус, пока не найдётся из чего выбрать.';
   }
-  context.querySelector('[data-clear-scope]')?.addEventListener('click', () => clearSearchScope({ keepText: false, reload: true }));
+  context.querySelector('[data-clear-scope]')?.addEventListener('click', () => {
+    leaveOwnOnly();
+    clearSearchScope({ keepText: false, reload: true });
+  });
 }
 
 function clearSearchScope({ keepText = false, reload = true } = {}) {
@@ -584,6 +591,7 @@ async function geocodePlace(query) {
 async function findNearby() {
   const query = $('#searchInput').value.trim();
   if (query.length < 3) return alert('Введите адрес, посёлок или название АЗС — например, «Невский проспект», «Мурино» или «Газпромнефть».');
+  leaveOwnOnly();
   track('search_start', { reason: 'place' });
   const button = $('#nearbySearchButton');
   button.disabled = true;
@@ -651,6 +659,8 @@ const PASSED_METRES = 250;
 const PASSED_KEEP_MS = 15 * 60 * 1000;
 
 function locate() {
+  // Asked for from inside «Свои», "рядом" means the nearby list itself.
+  if (leaveOwnOnly()) loadStations();
   // With "рядом" already on, the button means "update my place now". People
   // pressed it for exactly that and it used to switch the mode off; leaving is
   // the "Весь город" link.
@@ -907,15 +917,17 @@ function renderStatusStrip(counts, timelineCounts = {}) {
       return;
     }
     const temporal = event.target.closest('[data-timeline]');
+    const button = temporal ? null : event.target.closest('[data-status]');
+    if (!temporal && !button) return;
+    // Pressed from inside «Свои», a chip means "show me this", never "switch it off".
+    const leaving = leaveOwnOnly();
     if (temporal) {
-      state.timeline = state.timeline === temporal.dataset.timeline ? null : temporal.dataset.timeline;
+      state.timeline = !leaving && state.timeline === temporal.dataset.timeline ? null : temporal.dataset.timeline;
       track('status_filter', { filter: state.timeline || 'all' });
       loadStations();
       return;
     }
-    const button = event.target.closest('[data-status]');
-    if (!button) return;
-    state.status = state.status === button.dataset.status ? null : button.dataset.status;
+    state.status = !leaving && state.status === button.dataset.status ? null : button.dataset.status;
     track('status_filter', { filter: state.status || 'all' });
     loadStations();
   };
@@ -1760,12 +1772,29 @@ function toggleOwnOnly() {
   state.ownOnly = !state.ownOnly;
   track('status_filter', { filter: state.ownOnly ? 'own' : 'all' });
   if (state.ownOnly) {
+    // One view at a time: a status chip left lit inside «Свои» looked pressed
+    // and did nothing.
+    state.status = null;
+    state.timeline = null;
+    $$('#statusStrip .status-chip.active:not([data-own])').forEach((chip) => chip.classList.remove('active'));
     updateOwnChip();
     renderOwnList();
     renderMarkers();
   } else {
     loadStations();
   }
+}
+
+// «Свои» is a view of its own. Every other filter used to change quietly
+// underneath it: on 13 Sep 2026 a laptop lit up «Появилось недавно» and
+// «Можно заправиться» while the list stayed on the one station the group had
+// marked, and it all applied at once only when «Свои» was pressed again.
+// Touching any other filter now leaves the view first.
+function leaveOwnOnly() {
+  if (!state.ownOnly) return false;
+  state.ownOnly = false;
+  updateOwnChip();
+  return true;
 }
 
 async function renderOwnList() {
@@ -1792,7 +1821,8 @@ async function renderOwnList() {
     if (a.km != null && b.km != null && Math.abs(a.km - b.km) > 0.3) return a.km - b.km;
     return b.latest - a.latest;
   });
-  list.innerHTML = withDistance.map((entry) => {
+  const back = '<div class="own-bar"><span>Только отметки своих за 3 часа</span><button type="button" class="own-back" data-own-back>Показать все АЗС</button></div>';
+  list.innerHTML = back + withDistance.map((entry) => {
     const grades = entry.items.map(([grade, mark]) => `<span class="feed-grade ${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))} ${mark.seen ? '✓' : '✗'}</span>`).join('');
     const queue = queueWords(entry.queue);
     const who = entry.names.length ? ` · ${escapeHtml(entry.names.join(', '))}` : '';
@@ -1807,6 +1837,7 @@ async function renderOwnList() {
     </article>`;
   }).join('');
   list.querySelectorAll('[data-own-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.ownStation)));
+  list.querySelector('[data-own-back]').addEventListener('click', () => toggleOwnOnly());
   bindThanks(list);
 }
 
