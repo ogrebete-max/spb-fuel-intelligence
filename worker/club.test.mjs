@@ -82,10 +82,11 @@ assert.equal(sasha.data.member.sponsor, 'owner');
 const sashaToken = sasha.data.token;
 assert.equal((await call(env, '/club/join', { method: 'POST', body: { code: invite1.data.code, name: 'Другой', accept: true } })).data.error, 'invite_used');
 
-// A plain mark is one KV write: no rate-limit counter, no dispute record.
+// A plain mark is two KV writes — the mark and the club scoreboard — with no
+// rate-limit counter and no dispute record.
 const writes = env.REPORTS.writes;
 assert.equal((await call(env, '/report', { method: 'POST', token: sashaToken, body: mark('s-1', true) })).status, 200);
-assert.equal(env.REPORTS.writes - writes, 1, 'one mark must cost one KV write');
+assert.equal(env.REPORTS.writes - writes, 2, 'one mark must cost two KV writes');
 
 const publicRead = await call(env, '/reports');
 assert.equal(publicRead.data.reports[0].who, sasha.data.member.id);

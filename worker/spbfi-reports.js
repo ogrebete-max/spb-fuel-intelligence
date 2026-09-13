@@ -483,6 +483,228 @@ async function notifyGroup(env, report) {
   }
 }
 
+// ---------------------------------------------------------------- club rewards
+
+// Litres, levels and badges. They pay for usefulness to the others — a mark
+// someone else confirms, a thank-you from someone who drove there — far more
+// than for taps, so hammering the buttons earns next to nothing.
+const LITERS = { mark: 1, confirmed: 3, thanks: 2, first_seen: 2, award: 10 };
+const MARK_LITERS_PER_DAY = 10;
+const THANKS_PER_DAY = 20;
+const CONFIRM_WINDOW_MS = 45 * 60 * 1000;
+const SAME_STATION_MS = 60 * 60 * 1000;
+const LEVELS = [
+  { min: 0, icon: '🔰', title: 'Новичок' },
+  { min: 10, icon: '⛽', title: 'Заправщик' },
+  { min: 30, icon: '🧭', title: 'Штурман' },
+  { min: 70, icon: '🔭', title: 'Разведчик колонок' },
+  { min: 150, icon: '🛡️', title: 'Хранитель бака' },
+  { min: 300, icon: '🏆', title: 'Легенда трассы' },
+];
+const BADGES = [
+  { id: 'first_mark', icon: '🎯', title: 'Первая отметка', hint: 'Отметить любую АЗС', test: (s) => s.marks >= 1 },
+  { id: 'sharp_eye', icon: '👁️', title: 'Зоркий глаз', hint: '10 ваших отметок подтвердили другие', test: (s) => s.confirmed >= 10 },
+  { id: 'thanked', icon: '🙏', title: 'Спасибо от своих', hint: 'Получить 10 «спасибо»', test: (s) => s.thanks >= 10 },
+  { id: 'trip_saver', icon: '🛟', title: 'Сберёг поездку', hint: '3 «спасибо» за отметки «нет»', test: (s) => s.saved >= 3 },
+  { id: 'first_seen', icon: '⚡', title: 'Первым увидел', hint: '3 раза отметить «есть» там, где до вас было «нет»', test: (s) => s.first_seen >= 3 },
+  { id: 'scout', icon: '🔭', title: 'Разведчик', hint: '5 отметок там, где три часа никто не отмечался', test: (s) => s.scout >= 5 },
+  { id: 'queue_master', icon: '🚦', title: 'Знаток очередей', hint: '5 раз другие подтвердили очередь, которую вы указали', test: (s) => s.queue_confirmed >= 5 },
+  { id: 'night_watch', icon: '🌙', title: 'Ночной дозор', hint: '5 отметок с 23:00 до 6:00', test: (s) => s.night >= 5 },
+  { id: 'whole_city', icon: '🗺️', title: 'Весь город', hint: 'Отметки в 4 разных частях города и области', test: (s) => (s.zones || []).length >= 4 },
+  { id: 'generous', icon: '🎁', title: 'Щедрая душа', hint: 'Сказать 10 «спасибо» другим', test: (s) => s.given >= 10 },
+  { id: 'sponsor', icon: '🤝', title: 'Поручитель', hint: 'Приглашённый вами сделал 5 отметок', test: (s) => s.sponsor >= 1 },
+  { id: 'hero', icon: '🦸', title: 'Герой недели', hint: 'Больше всех литров за неделю', test: (s) => s.heroes >= 1 },
+  { id: 'club_award', icon: '🏅', title: 'Благодарность клуба', hint: 'Её вручает владелец', test: (s) => (s.awards || []).length >= 1 },
+];
+
+function emptyStats() {
+  return {
+    liters: 0, marks: 0, confirmed: 0, thanks: 0, saved: 0, given: 0, scout: 0, first_seen: 0,
+    night: 0, queue_confirmed: 0, sponsor: 0, heroes: 0, zones: [], weeks: {}, days: {}, given_days: {},
+    badges: {}, awards: [], news: [], thanked: {}, confirms: {},
+  };
+}
+
+function statsFor(all, id) {
+  all[id] = { ...emptyStats(), ...(all[id] || {}) };
+  return all[id];
+}
+
+// The group lives on Moscow time: a "day" and a "week" end at local midnight.
+function moscowDate(ms) {
+  return new Date(ms + 3 * 60 * 60 * 1000);
+}
+
+function dayKey(ms) {
+  return moscowDate(ms).toISOString().slice(0, 10);
+}
+
+function weekKey(ms) {
+  const date = moscowDate(ms);
+  const weekday = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - weekday + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const week = 1 + Math.round(((date - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function levelFor(liters) {
+  let index = 0;
+  LEVELS.forEach((level, i) => { if (liters >= level.min) index = i; });
+  const next = LEVELS[index + 1];
+  return { ...LEVELS[index], rank: index, next: next ? { icon: next.icon, title: next.title, left: next.min - liters, min: next.min } : null };
+}
+
+function pushNews(stats, item) {
+  stats.news = [...(stats.news || []), item].slice(-30);
+}
+
+function addLiters(stats, amount, at, type, extra = {}) {
+  const before = levelFor(stats.liters).rank;
+  stats.liters += amount;
+  const week = weekKey(at);
+  stats.weeks[week] = (stats.weeks[week] || 0) + amount;
+  for (const key of Object.keys(stats.weeks).sort().slice(0, -8)) delete stats.weeks[key];
+  pushNews(stats, { type, liters: amount, at, ...extra });
+  const after = levelFor(stats.liters);
+  if (after.rank > before) pushNews(stats, { type: 'level', icon: after.icon, title: after.title, at });
+  return after.rank > before ? after : null;
+}
+
+function awardBadges(stats, at) {
+  const fresh = [];
+  for (const badge of BADGES) {
+    if (!stats.badges[badge.id] && badge.test(stats)) {
+      stats.badges[badge.id] = at;
+      fresh.push({ id: badge.id, icon: badge.icon, title: badge.title });
+      pushNews(stats, { type: 'badge', icon: badge.icon, title: badge.title, at });
+    }
+  }
+  return fresh;
+}
+
+function zoneOf(lat, lon) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < 59.68 || lat > 60.2 || lon < 29.65 || lon > 30.85) return 'lo_other';
+  if (lat >= 60.02) return 'spb_north';
+  if (lat <= 59.86) return 'spb_south';
+  if (lon <= 30.17) return 'spb_west';
+  if (lon >= 30.48) return 'spb_east';
+  return 'spb_centre';
+}
+
+function queueBucket(cars) {
+  if (cars == null) return null;
+  if (cars === 0) return 0;
+  if (cars <= 5) return 1;
+  if (cars <= 20) return 2;
+  return 3;
+}
+
+function markKey(report) {
+  return `${report.station}:${report.grade}:${report.at}`;
+}
+
+function profileOf(stats, now = Date.now()) {
+  return {
+    liters: stats.liters,
+    week: stats.weeks[weekKey(now)] || 0,
+    level: levelFor(stats.liters),
+    counts: { marks: stats.marks, confirmed: stats.confirmed, thanks: stats.thanks, saved: stats.saved, given: stats.given },
+    badges: BADGES.map((badge) => ({ id: badge.id, icon: badge.icon, title: badge.title, hint: badge.hint, earned: stats.badges[badge.id] || null })),
+    awards: stats.awards || [],
+  };
+}
+
+/**
+ * Pays out for a new mark: to its author for looking, and to everyone whose
+ * recent mark it agrees with, because a second pair of eyes is what makes a
+ * mark worth trusting. Returns what happened so the phone can celebrate.
+ */
+async function rewardMark(env, members, reports, report) {
+  const all = await readDoc(env, 'club:stats', {});
+  const me = statsFor(all, report.who);
+  const at = report.at;
+  const result = { liters: 0, confirmed: [], badges: [], level_up: null };
+  const others = reports.filter((item) => item.who !== report.who && !members[item.who]?.banned);
+  // One look at a station is one mark, however many grades it lists and
+  // however often it is repeated within the hour.
+  const repeat = reports.some((item) => item.who === report.who && item.station === report.station && at - item.at < SAME_STATION_MS);
+  if (!repeat) {
+    me.marks += 1;
+    const today = dayKey(at);
+    const earned = me.days[today] || 0;
+    if (earned < MARK_LITERS_PER_DAY) {
+      me.days = { [today]: earned + LITERS.mark };
+      result.level_up = addLiters(me, LITERS.mark, at, 'mark', { station: report.station }) || result.level_up;
+      result.liters += LITERS.mark;
+    }
+    if (!others.some((item) => item.station === report.station)) me.scout += 1;
+    const hour = moscowDate(at).getUTCHours();
+    if (hour >= 23 || hour < 6) me.night += 1;
+    const zone = zoneOf(report.lat, report.lon);
+    if (zone && !me.zones.includes(zone)) me.zones = [...me.zones, zone];
+    const sponsorId = members[report.who]?.sponsor;
+    if (sponsorId && me.marks >= 5 && !me.sponsor_credited) {
+      me.sponsor_credited = true;
+      const sponsor = statsFor(all, sponsorId);
+      sponsor.sponsor += 1;
+      pushNews(sponsor, { type: 'sponsor', by: report.who, at });
+      awardBadges(sponsor, at);
+    }
+  }
+  const sameGrade = others.filter((item) => item.station === report.station && item.grade === report.grade).sort((a, b) => b.at - a.at);
+  if (report.seen && sameGrade[0] && sameGrade[0].seen === false) {
+    me.first_seen += 1;
+    result.level_up = addLiters(me, LITERS.first_seen, at, 'first_seen', { station: report.station }) || result.level_up;
+    result.liters += LITERS.first_seen;
+  }
+  for (const prior of sameGrade) {
+    if (prior.seen !== report.seen || at - prior.at > CONFIRM_WINDOW_MS) continue;
+    const author = statsFor(all, prior.who);
+    // A confirmer pays each author once per station an hour, not once per grade.
+    const pairKey = `${report.who}:${report.station}`;
+    for (const [key, when] of Object.entries(author.confirms)) if (at - when > SAME_STATION_MS) delete author.confirms[key];
+    if (author.confirms[pairKey]) continue;
+    author.confirms[pairKey] = at;
+    author.confirmed += 1;
+    if (queueBucket(prior.queue) != null && queueBucket(prior.queue) === queueBucket(report.queue)) author.queue_confirmed += 1;
+    addLiters(author, LITERS.confirmed, at, 'confirmed', { by: report.who, station: report.station, grade: report.grade });
+    awardBadges(author, at);
+    result.confirmed.push(members[prior.who]?.name || '');
+  }
+  result.badges = awardBadges(me, at);
+  result.total = me.liters;
+  result.level = levelFor(me.liters);
+  await env.REPORTS.put('club:stats', JSON.stringify(all));
+  return result;
+}
+
+async function notifyMember(env, memberId, payload) {
+  const subscriptions = (await readSubscriptions(env)).filter((sub) => sub.who === memberId);
+  await Promise.all(subscriptions.map((sub) => sendPush(env, sub, payload).catch(() => null)));
+}
+
+/** Once a week the member with the most litres last week becomes its hero. */
+async function crownLastWeek(env, members, all) {
+  const lastWeek = weekKey(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const heroes = await readDoc(env, 'club:heroes', {});
+  if (heroes[lastWeek] !== undefined) return heroes[lastWeek];
+  const best = Object.entries(all)
+    .filter(([id, stats]) => members[id] && !members[id].banned && (stats.weeks?.[lastWeek] || 0) > 0)
+    .sort((a, b) => b[1].weeks[lastWeek] - a[1].weeks[lastWeek])[0];
+  heroes[lastWeek] = best ? { id: best[0], liters: best[1].weeks[lastWeek] } : null;
+  if (best) {
+    const stats = statsFor(all, best[0]);
+    stats.heroes += 1;
+    pushNews(stats, { type: 'hero', week: lastWeek, liters: heroes[lastWeek].liters, at: Date.now() });
+    awardBadges(stats, Date.now());
+    await env.REPORTS.put('club:stats', JSON.stringify(all));
+  }
+  await env.REPORTS.put('club:heroes', JSON.stringify(heroes));
+  return heroes[lastWeek];
+}
+
 // ---------------------------------------------------------------- club
 
 const CLUB_VERSION = 1;
@@ -573,7 +795,7 @@ function inviteAllowance(member, invites) {
   return Math.max(0, MEMBER_INVITES - spent);
 }
 
-async function clubRoutes(request, env, url) {
+async function clubRoutes(request, env, url, ctx) {
   const path = url.pathname;
   if (request.method === 'GET' && path === '/club/health') {
     return json({ club: clubEnabled(env), version: CLUB_VERSION }, request, env);
@@ -636,7 +858,15 @@ async function clubRoutes(request, env, url) {
         used_by: invite.used_by ? (members[invite.used_by]?.name || '—') : null,
       }))
       .sort((a, b) => b.created - a.created);
-    return json({ member: publicMember(member), invites: mine, invites_left: inviteAllowance(member, invites) }, request, env);
+    const all = await readDoc(env, 'club:stats', {});
+    const stats = statsFor(all, member.id);
+    const since = Number(url.searchParams.get('since')) || 0;
+    const news = (stats.news || []).filter((item) => item.at > since)
+      .map((item) => ({ ...item, by_name: item.by ? (members[item.by]?.name || '') : undefined }));
+    return json({
+      member: publicMember(member), invites: mine, invites_left: inviteAllowance(member, invites),
+      profile: profileOf(stats), news, now: Date.now(),
+    }, request, env);
   }
 
   if (request.method === 'POST' && path === '/club/invite') {
@@ -668,16 +898,110 @@ async function clubRoutes(request, env, url) {
     return json({ ok: true }, request, env);
   }
 
+  if (request.method === 'POST' && path === '/club/thanks') {
+    const body = (await readJson(request)) || {};
+    const authorId = String(body.author || '');
+    if (authorId === member.id) return json({ error: 'cannot_thank_self' }, request, env, 400);
+    const target = (await readAll(env)).find((report) => report.who === authorId && report.station === String(body.station || '')
+      && report.grade === String(body.grade || '') && report.at === Number(body.at));
+    if (!target || !members[authorId] || members[authorId].banned) return json({ error: 'mark_gone' }, request, env, 404);
+    const all = await readDoc(env, 'club:stats', {});
+    const giver = statsFor(all, member.id);
+    const today = dayKey(Date.now());
+    if ((giver.given_days[today] || 0) >= THANKS_PER_DAY) return json({ error: 'too_many_thanks' }, request, env, 429);
+    const author = statsFor(all, authorId);
+    const key = markKey(target);
+    const thankedBy = author.thanked[key] || [];
+    if (thankedBy.includes(member.id)) return json({ error: 'already_thanked', thanks: thankedBy.length }, request, env, 409);
+    for (const old of Object.keys(author.thanked)) {
+      if (Date.now() - Number(old.split(':').pop()) > 3 * 24 * 60 * 60 * 1000) delete author.thanked[old];
+    }
+    author.thanked[key] = [...thankedBy, member.id];
+    author.thanks += 1;
+    if (!target.seen) author.saved += 1;
+    const now = Date.now();
+    const levelUp = addLiters(author, LITERS.thanks, now, 'thanks', { by: member.id, station: target.station, grade: target.grade, seen: target.seen });
+    awardBadges(author, now);
+    giver.given += 1;
+    giver.given_days = { [today]: (giver.given_days[today] || 0) + 1 };
+    const giverBadges = awardBadges(giver, now);
+    await env.REPORTS.put('club:stats', JSON.stringify(all));
+    const grade = GRADE_LABELS[target.grade] || target.grade;
+    ctx.waitUntil(notifyMember(env, authorId, {
+      title: `🙏 ${member.name || 'Свой'} говорит спасибо`,
+      body: `За отметку «${grade} ${target.seen ? 'есть' : 'нет'}» · +${LITERS.thanks} л${levelUp ? ` · новый уровень: ${levelUp.icon} ${levelUp.title}` : ''}`,
+      station: target.station,
+      tag: `spbfi-thanks-${target.station}`,
+    }).catch(() => {}));
+    return json({ ok: true, thanks: author.thanked[key].length, author_name: members[authorId].name, badges: giverBadges }, request, env);
+  }
+
+  if (request.method === 'GET' && path === '/club/leaderboard') {
+    const all = await readDoc(env, 'club:stats', {});
+    const hero = await crownLastWeek(env, members, all);
+    const week = weekKey(Date.now());
+    const rows = Object.values(members)
+      .filter((item) => !item.banned)
+      .map((item) => {
+        const stats = statsFor(all, item.id);
+        const level = levelFor(stats.liters);
+        return {
+          id: item.id, name: item.name, icon: level.icon, title: level.title,
+          week: stats.weeks[week] || 0, liters: stats.liters,
+          badges: Object.keys(stats.badges || {}).length, me: item.id === member.id,
+        };
+      })
+      .sort((a, b) => b.week - a.week || b.liters - a.liters);
+    return json({
+      week, members: rows,
+      hero_last_week: hero ? { name: members[hero.id]?.name || '', liters: hero.liters } : null,
+      rules: LITERS, mark_liters_per_day: MARK_LITERS_PER_DAY,
+    }, request, env);
+  }
+
   if (request.method === 'GET' && path === '/club/reports') {
+    const clubStats = await readDoc(env, 'club:stats', {});
     const reports = (await readAll(env))
       .filter((report) => !members[report.who]?.banned)
-      .map((report) => ({ ...report, name: members[report.who]?.name || '' }));
+      .map((report) => {
+        const author = (clubStats[report.who] || {});
+        const thankedBy = author.thanked?.[markKey(report)] || [];
+        return {
+          ...report,
+          name: members[report.who]?.name || '',
+          level_icon: levelFor(author.liters || 0).icon,
+          thanks: thankedBy.length,
+          thanked: thankedBy.includes(member.id),
+        };
+      });
     return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, reports }, request, env);
   }
 
   if (member.role !== 'owner') return json({ error: 'owner_only' }, request, env, 403);
 
+  if (request.method === 'POST' && path === '/club/award') {
+    const body = (await readJson(request)) || {};
+    const target = members[String(body.id || '')];
+    const text = String(body.text || '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 80);
+    if (!target || target.banned) return json({ error: 'member_unknown' }, request, env, 404);
+    if (!text) return json({ error: 'expected_text' }, request, env, 400);
+    const all = await readDoc(env, 'club:stats', {});
+    const stats = statsFor(all, target.id);
+    const now = Date.now();
+    stats.awards = [...(stats.awards || []), { text, at: now }].slice(-20);
+    const levelUp = addLiters(stats, LITERS.award, now, 'award', { text });
+    awardBadges(stats, now);
+    await env.REPORTS.put('club:stats', JSON.stringify(all));
+    ctx.waitUntil(notifyMember(env, target.id, {
+      title: '🏅 Благодарность клуба',
+      body: `${text} · +${LITERS.award} л${levelUp ? ` · новый уровень: ${levelUp.icon} ${levelUp.title}` : ''}`,
+      tag: 'spbfi-award',
+    }).catch(() => {}));
+    return json({ ok: true, liters: stats.liters }, request, env);
+  }
+
   if (request.method === 'GET' && path === '/club/members') {
+    const ownerStats = await readDoc(env, 'club:stats', {});
     const reports = await readAll(env);
     const flags = await readDoc(env, 'club:flags', []);
     const invites = await readDoc(env, 'club:invites', {});
@@ -692,6 +1016,8 @@ async function clubRoutes(request, env, url) {
         last_mark: marks.reduce((latest, report) => Math.max(latest, report.at), 0) || null,
         disputed_30d: disputes.length,
         disputed_by_people_30d: new Set(disputes.map((flag) => flag.by)).size,
+        liters: (ownerStats[item.id]?.liters) || 0,
+        level_icon: levelFor((ownerStats[item.id]?.liters) || 0).icon,
         invited: Object.values(invites).filter((invite) => invite.by === item.id && invite.used_by).length,
       };
     }).sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : (b.joined || 0) - (a.joined || 0)));
@@ -757,7 +1083,7 @@ export default {
     }
 
     if (url.pathname.startsWith('/club/')) {
-      return clubRoutes(request, env, url);
+      return clubRoutes(request, env, url, ctx);
     }
 
     if (request.method === 'GET' && url.pathname === '/analytics/health') {
@@ -897,7 +1223,16 @@ export default {
         reporter: clubMemberRecord?.name || '',
       };
       if (body.notify !== false) ctx.waitUntil(notifyGroup(env, named));
-      return json({ ok: true, count: trimmed.length }, request, env);
+      let rewards = null;
+      if (clubMemberRecord) {
+        try {
+          rewards = await rewardMark(env, await readDoc(env, 'club:members', {}), reports, report);
+        } catch {
+          // A failed payout must never lose the mark itself.
+          rewards = null;
+        }
+      }
+      return json({ ok: true, count: trimmed.length, ...(rewards ? { rewards } : {}) }, request, env);
     }
 
     return json({ error: 'not found' }, request, env, 404);

@@ -555,7 +555,51 @@ body.club-locked { overflow: hidden; }
 .club-leave { margin-top: 18px; }
 @media (max-width: 480px) {
   /* Three buttons and the brand do not fit a phone's top bar side by side. */
-  .club-button { padding: 0 10px; font-size: 18px; }
-  .club-label { display: none; }
+  .club-button { padding: 0 9px; font-size: 13px; }
   .topbar-actions { gap: 6px; }
+}
+
+/* ---- club rewards ---- */
+.feed-item:focus-visible { outline: 3px solid #c9f06b; outline-offset: 2px; }
+.thanks-button { justify-self: start; margin-top: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid #1f7a4d; background: #fff; color: #1f7a4d; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.thanks-button.done { border-color: transparent; background: rgba(31, 122, 77, .1); color: #3b6b53; cursor: default; }
+.drawer-mark .thanks-button { margin-top: 10px; }
+.tank-card { margin: 14px 0 6px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #0d3328, #1f5c45); color: #fff; }
+.tank-head { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+.tank-icon { font-size: 40px; line-height: 1; }
+.tank-title small, .tank-liters small { display: block; color: rgba(255, 255, 255, .7); font-size: 12px; }
+.tank-title strong { font-size: 19px; }
+.tank-liters { text-align: right; }
+.tank-liters b { font-size: 30px; color: #c9f06b; line-height: 1; }
+.tank-bar { margin: 12px 0 6px; height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .15); overflow: hidden; }
+.tank-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #c9f06b, #8fdc5b); }
+.tank-next { margin: 0; font-size: 13px; color: rgba(255, 255, 255, .85); }
+.tank-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; text-align: center; font-size: 11px; color: rgba(255, 255, 255, .75); }
+.tank-counts b { display: block; font-size: 18px; color: #fff; }
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.badge { display: grid; gap: 2px; padding: 10px; border-radius: 14px; border: 1px dashed var(--line); background: rgba(13, 51, 40, .03); color: var(--muted); text-align: center; }
+.badge .badge-icon { font-size: 26px; filter: grayscale(1); opacity: .45; }
+.badge b { font-size: 13px; }
+.badge small { font-size: 11px; line-height: 1.3; }
+.badge.earned { border: 1px solid rgba(31, 122, 77, .35); background: #eef8f1; color: var(--ink); }
+.badge.earned .badge-icon { filter: none; opacity: 1; }
+.earn-help { margin: 12px 0; padding: 12px 14px; border-radius: 14px; background: rgba(13, 51, 40, .05); font-size: 14px; line-height: 1.45; }
+.earn-help summary { font-weight: 800; cursor: pointer; }
+.earn-help ul { margin: 8px 0; padding-left: 18px; display: grid; gap: 4px; }
+.earn-help p { margin: 6px 0 0; color: var(--muted); }
+.board { display: grid; gap: 6px; }
+.board-row { display: grid; grid-template-columns: 32px 1fr auto; column-gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: #fff; border: 1px solid var(--line); }
+.board-row.me { border-color: #1f7a4d; background: #eef8f1; }
+.board-rank { font-size: 20px; text-align: center; }
+.board-name { font-weight: 700; }
+.board-name em { font-style: normal; font-size: 12px; color: #1f7a4d; }
+.board-week b { font-size: 18px; }
+.board-meta { grid-column: 2 / 4; color: var(--muted); font-size: 12px; }
+.board-hero { margin: 0 0 8px; padding: 10px 12px; border-radius: 12px; background: #fff7df; font-size: 14px; }
+.burst { position: fixed; inset: 0; z-index: 2500; pointer-events: none; overflow: hidden; }
+.burst span { position: absolute; bottom: -40px; animation: burst-rise 2.2s ease-out forwards; }
+@keyframes burst-rise {
+  0% { transform: translateY(0) scale(.6); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-85vh) scale(1.2) rotate(25deg); opacity: 0; }
 }

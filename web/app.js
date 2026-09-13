@@ -38,7 +38,7 @@ const state = {
   marks: {},
   follow: false, watchId: null, accuracy: null,
   groupMarks: {}, stationInfo: {}, stationDetails: {}, total: 0,
-  club: { enabled: false, member: null },
+  club: { enabled: false, member: null, profile: null, newsTimer: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -991,6 +991,13 @@ async function shareMark(stationId, grade, seen, queue = null, { notify = true, 
       headers: { 'Content-Type': 'application/json', ...memberHeaders(), ...(legacyKey ? { 'X-Group-Key': legacyKey } : {}) },
       body: JSON.stringify({ station: stationId, grade, seen, who: myId(), lat: place?.lat, lon: place?.lon, name, address, notify, summary, ...(queue != null ? { queue } : {}) }),
     });
+    if (response.ok) {
+      try {
+        const data = await response.json();
+        if (data.rewards) celebrate(data.rewards);
+      } catch { /* the mark is in; the celebration is optional */ }
+      return;
+    }
     if (response.status === 401 || response.status === 403) {
       let data = {};
       try { data = await response.json(); } catch { /* not JSON */ }
@@ -1035,9 +1042,12 @@ async function pollGroupMarks() {
       const people = new Set(current?.people || []);
       people.add(report.who || '?');
       const names = new Set(current?.names || []);
-      if (report.name) names.add(report.name);
+      if (report.name) names.add(`${report.level_icon ? `${report.level_icon} ` : ''}${report.name}`);
       if (!current || report.at > current.at) {
-        slot[report.grade] = { seen: !!report.seen, at: report.at, queue: report.queue, people: [...people], names: [...names] };
+        slot[report.grade] = {
+          seen: !!report.seen, at: report.at, queue: report.queue, people: [...people], names: [...names],
+          who: report.who, authorName: report.name || '', thanks: report.thanks || 0, thanked: !!report.thanked,
+        };
       } else {
         current.people = [...people];
         current.names = [...names];
@@ -1116,14 +1126,24 @@ async function renderGroupFeed() {
     const queue = queueWords(entry.queue);
     const who = entry.names.length ? entry.names.join(', ') : entry.people > 1 ? `${entry.people} ${plural(entry.people, 'человек', 'человека', 'человек')}` : null;
     const meta = [who, formatAge((now - entry.latest) / 1000), distance || null].filter(Boolean).join(' · ');
-    return `<button type="button" class="feed-item" data-feed-station="${escapeHtml(entry.stationId)}">
+    return `<div class="feed-item" role="button" tabindex="0" data-feed-station="${escapeHtml(entry.stationId)}">
       <span class="feed-title"><strong>${escapeHtml(info.network || 'АЗС')}</strong><span class="feed-meta">${escapeHtml(meta)}</span></span>
       <span class="feed-address">${escapeHtml(shortAddress(info.address || ''))}</span>
       <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
-    </button>`;
+      ${thanksButton(entry.stationId)}
+    </div>`;
   }).join('');
   box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div><div class="feed-list">${cards}</div>`;
-  box.querySelectorAll('[data-feed-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.feedStation)));
+  box.querySelectorAll('[data-feed-station]').forEach((item) => {
+    item.addEventListener('click', (event) => {
+      if (event.target.closest('.thanks-button')) return;
+      openStation(item.dataset.feedStation);
+    });
+    item.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.target.closest('.thanks-button')) openStation(item.dataset.feedStation);
+    });
+  });
+  bindThanks(box);
   bindPushButton(box);
 }
 
@@ -1298,6 +1318,265 @@ function bindPushButton(root) {
   root.querySelectorAll('[data-push]').forEach((button) => button.addEventListener('click', () => (button.dataset.push === 'on' ? enablePush() : disablePush())));
 }
 
+// ---------------------------------------------------------------- club rewards
+
+// Litres, levels, badges and thank-yous. The server keeps the score; the
+// phone's job is to make earning it feel good and to say thanks easily.
+const NEWS_KEY = 'spbfi-club-news-at-v1';
+// Merged into CLUB_ERRORS once that table exists (see the club section).
+const REWARD_ERRORS = {
+  already_thanked: 'Вы уже сказали спасибо за эту отметку.',
+  cannot_thank_self: 'Себе спасибо сказать нельзя 🙂',
+  mark_gone: 'Эта отметка уже устарела.',
+  too_many_thanks: 'На сегодня хватит «спасибо» — завтра можно снова.',
+  expected_text: 'Напишите, за что благодарность.',
+  member_unknown: 'Такого участника нет.',
+};
+
+function burst(symbol = '⛽') {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = document.createElement('div');
+  layer.className = 'burst';
+  layer.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 16; i += 1) {
+    const piece = document.createElement('span');
+    piece.textContent = symbol;
+    piece.style.left = `${6 + Math.random() * 88}%`;
+    piece.style.animationDelay = `${Math.random() * 0.45}s`;
+    piece.style.fontSize = `${20 + Math.random() * 20}px`;
+    layer.appendChild(piece);
+  }
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 2800);
+}
+
+let celebration = null;
+let celebrationTimer = null;
+
+// A composer sends one request per grade; the answers are gathered and shown
+// as one moment instead of five banners.
+function celebrate(rewards) {
+  celebration = celebration || { liters: 0, confirmed: new Set(), badges: [], levelUp: null, total: null, level: null };
+  celebration.liters += rewards.liters || 0;
+  (rewards.confirmed || []).filter(Boolean).forEach((name) => celebration.confirmed.add(name));
+  celebration.badges.push(...(rewards.badges || []));
+  celebration.levelUp = rewards.level_up || celebration.levelUp;
+  if (rewards.total != null) celebration.total = rewards.total;
+  if (rewards.level) celebration.level = rewards.level;
+  clearTimeout(celebrationTimer);
+  celebrationTimer = setTimeout(() => {
+    const moment = celebration;
+    celebration = null;
+    if (moment.level && moment.total != null) {
+      state.club.profile = { ...(state.club.profile || {}), liters: moment.total, level: moment.level };
+      renderClubButton();
+    }
+    if (moment.levelUp) {
+      burst('🎉');
+      showToast(`🎉 Новый уровень: ${moment.levelUp.icon} ${moment.levelUp.title}`, `У вас ${moment.total} л. Своим с вами везёт!`);
+    }
+    moment.badges.forEach((badge, index) => {
+      setTimeout(() => {
+        burst(badge.icon);
+        showToast(`${badge.icon} Новый значок: ${badge.title}`, 'Все значки — в разделе «Клуб».');
+      }, 700 * (index + 1));
+    });
+    if (moment.confirmed.size) {
+      showToast(`✅ Вы подтвердили: ${[...moment.confirmed].join(', ')}`, 'Им +3 л за точность — спасибо, что проверили.');
+    }
+    if (moment.liters > 0 && !moment.levelUp) {
+      const next = moment.level?.next;
+      showToast(`+${moment.liters} л ⛽ спасибо за отметку`, next ? `Всего ${moment.total} л · до «${next.title}» ещё ${next.left} л` : `Всего ${moment.total} л`);
+    }
+  }, 900);
+}
+
+function newsSince() {
+  try { return Number(localStorage.getItem(NEWS_KEY)) || 0; } catch { return 0; }
+}
+
+// What happened to this member while the app was closed or in the background:
+// thanks, confirmations, badges. Replayed as banners, once.
+function handleNews(news = [], now = Date.now()) {
+  const since = newsSince();
+  try { localStorage.setItem(NEWS_KEY, String(now)); } catch { /* nothing to keep it in */ }
+  if (!since) return;
+  const items = news.filter((item) => item.at > since && !['mark', 'first_seen'].includes(item.type));
+  if (!items.length) return;
+  if (items.length > 3) {
+    const count = (type) => items.filter((item) => item.type === type).length;
+    const liters = items.reduce((sum, item) => sum + (item.liters || 0), 0);
+    const parts = [
+      count('thanks') && `${count('thanks')} ${plural(count('thanks'), 'спасибо', 'спасибо', 'спасибо')}`,
+      count('confirmed') && `${count('confirmed')} ${plural(count('confirmed'), 'подтверждение', 'подтверждения', 'подтверждений')}`,
+      count('badge') && `${count('badge')} ${plural(count('badge'), 'значок', 'значка', 'значков')}`,
+    ].filter(Boolean).join(', ');
+    burst('⛽');
+    showToast(`⛽ Пока вас не было: +${liters} л`, parts || 'Загляните в «Клуб».');
+    return;
+  }
+  items.forEach((item, index) => {
+    setTimeout(() => {
+      if (item.type === 'thanks') showToast(`🙏 ${item.by_name || 'Свой'} говорит спасибо`, `За отметку «${GRADE_LABELS[item.grade] || ''} ${item.seen ? 'есть' : 'нет'}» · +${item.liters} л`, item.station);
+      else if (item.type === 'confirmed') showToast(`✅ ${item.by_name || 'Свой'} подтвердил(а) вашу отметку`, `+${item.liters} л за точность`, item.station);
+      else if (item.type === 'badge') { burst(item.icon); showToast(`${item.icon} Новый значок: ${item.title}`, 'Все значки — в разделе «Клуб».'); }
+      else if (item.type === 'level') { burst('🎉'); showToast(`🎉 Новый уровень: ${item.icon} ${item.title}`, 'Так держать!'); }
+      else if (item.type === 'award') { burst('🏅'); showToast('🏅 Благодарность клуба', `${item.text} · +${item.liters} л`); }
+      else if (item.type === 'hero') { burst('🦸'); showToast('🦸 Вы — герой прошлой недели!', `${item.liters} л за неделю. Спасибо от всего клуба.`); }
+      else if (item.type === 'sponsor') showToast('🤝 Ваш приглашённый стал активным', 'Значок «Поручитель» — ваш.');
+    }, 600 * index);
+  });
+}
+
+async function pollClubNews() {
+  if (!state.club.enabled || !state.club.member || document.hidden) return;
+  try {
+    const result = await clubCall(`/club/me?since=${newsSince()}`, { timeout: 6000 });
+    if (handleClubRejection(result) || !result.ok) return;
+    state.club.profile = result.data.profile || state.club.profile;
+    renderClubButton();
+    handleNews(result.data.news, result.data.now);
+  } catch { /* next tick */ }
+}
+
+function thankTargets(stationId) {
+  const grades = (state.groupMarks || {})[stationId] || {};
+  const me = myId();
+  const byAuthor = new Map();
+  for (const [grade, mark] of Object.entries(grades)) {
+    if (!mark.who || mark.who === me || !GRADE_LABELS[grade] || Date.now() - mark.at > GROUP_MARK_TTL_MS) continue;
+    const known = byAuthor.get(mark.who);
+    if (!known || mark.at > known.at) {
+      byAuthor.set(mark.who, { station: stationId, grade, at: mark.at, author: mark.who, name: mark.authorName, thanks: mark.thanks || 0, thanked: !!mark.thanked });
+    }
+  }
+  return [...byAuthor.values()];
+}
+
+function thanksButton(stationId) {
+  if (!state.club.enabled || !state.club.member) return '';
+  const targets = thankTargets(stationId);
+  if (!targets.length) return '';
+  const done = targets.every((target) => target.thanked);
+  const count = targets.reduce((sum, target) => sum + target.thanks, 0);
+  const names = targets.map((target) => target.name).filter(Boolean).join(', ');
+  return `<button type="button" class="thanks-button${done ? ' done' : ''}" data-thanks-station="${escapeHtml(stationId)}"${done ? ' disabled' : ''}>
+    🙏 ${done ? 'Спасибо сказано' : `Спасибо${names ? `, ${escapeHtml(names)}` : ''}`}${count ? ` · ${count}` : ''}
+  </button>`;
+}
+
+function bindThanks(root) {
+  root.querySelectorAll('[data-thanks-station]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      sendThanks(button.dataset.thanksStation, button);
+    });
+  });
+}
+
+async function sendThanks(stationId, button) {
+  const targets = thankTargets(stationId).filter((target) => !target.thanked);
+  if (!targets.length) return;
+  button.disabled = true;
+  const thanked = [];
+  let problem = null;
+  for (const target of targets) {
+    const result = await clubCall('/club/thanks', { method: 'POST', body: { station: target.station, grade: target.grade, at: target.at, author: target.author } }).catch(() => null);
+    if (result && handleClubRejection(result)) return;
+    const slot = state.groupMarks?.[stationId]?.[target.grade];
+    if (result?.ok || result?.data?.error === 'already_thanked') {
+      if (slot) {
+        slot.thanked = true;
+        slot.thanks = result.data.thanks ?? slot.thanks + 1;
+      }
+      if (result.ok) thanked.push(target.name || 'своему');
+      (result.data?.badges || []).forEach((badge) => { burst(badge.icon); showToast(`${badge.icon} Новый значок: ${badge.title}`, 'За то, что благодарите своих.'); });
+    } else {
+      problem = clubMessage(result);
+    }
+  }
+  if (thanked.length) {
+    burst('🙏');
+    showToast(`🙏 Спасибо отправлено: ${thanked.join(', ')}`, 'Им +2 л. Такие мелочи и держат клуб.');
+  } else if (problem) {
+    showToast('Не получилось', problem);
+  }
+  renderGroupFeed();
+  const replacement = thanksButton(stationId);
+  if (button.isConnected) {
+    const holder = document.createElement('div');
+    holder.innerHTML = replacement;
+    if (holder.firstElementChild) {
+      button.replaceWith(holder.firstElementChild);
+      bindThanks(button.parentElement || document);
+    } else {
+      button.remove();
+    }
+  }
+}
+
+function profileCard(profile) {
+  if (!profile?.level) return '';
+  const { level, counts = {} } = profile;
+  const span = level.next ? level.next.min - level.min : 1;
+  const progress = level.next ? Math.round(100 * (profile.liters - level.min) / span) : 100;
+  const earned = profile.badges.filter((badge) => badge.earned).length;
+  const badges = profile.badges.map((badge) => `<div class="badge${badge.earned ? ' earned' : ''}">
+      <span class="badge-icon">${badge.icon}</span><b>${escapeHtml(badge.title)}</b>
+      <small>${badge.earned ? `получен ${formatDay(badge.earned)}` : escapeHtml(badge.hint)}</small>
+    </div>`).join('');
+  const awards = (profile.awards || []).length
+    ? `<h3 class="section-title">Благодарности клуба</h3><div class="source-list">${profile.awards.map((award) => `<div class="source-row"><strong>🏅 ${escapeHtml(award.text)}</strong><small>${formatDay(award.at)}</small></div>`).join('')}</div>`
+    : '';
+  return `<section class="tank-card">
+      <div class="tank-head">
+        <span class="tank-icon">${level.icon}</span>
+        <span class="tank-title"><small>Ваш уровень</small><strong>${escapeHtml(level.title)}</strong></span>
+        <span class="tank-liters"><b>${profile.liters}</b><small>литров</small></span>
+      </div>
+      <div class="tank-bar" role="progressbar" aria-valuenow="${progress}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.max(4, Math.min(100, progress))}%"></i></div>
+      <p class="tank-next">${level.next ? `До уровня ${level.next.icon} «${escapeHtml(level.next.title)}» — ещё ${level.next.left} л` : 'Высший уровень. Вы — легенда клуба!'} · за неделю ${profile.week} л</p>
+      <div class="tank-counts">
+        <span><b>${counts.marks || 0}</b>отметок</span>
+        <span><b>${counts.confirmed || 0}</b>подтвердили</span>
+        <span><b>${counts.thanks || 0}</b>спасибо</span>
+        <span><b>${counts.saved || 0}</b>сберёг поездок</span>
+      </div>
+    </section>
+    <h3 class="section-title">Значки · ${earned} из ${profile.badges.length}</h3>
+    <div class="badge-grid">${badges}</div>
+    ${awards}
+    <details class="earn-help">
+      <summary>Как заработать литры</summary>
+      <ul>
+        <li><b>+1 л</b> — отметка АЗС (одна за час на одной заправке, до 10 л в день)</li>
+        <li><b>+3 л</b> — другой участник подтвердил вашу отметку</li>
+        <li><b>+2 л</b> — вам сказали «спасибо»</li>
+        <li><b>+2 л</b> — первым увидели «есть» там, где было «нет»</li>
+        <li><b>+10 л</b> — благодарность от владельца клуба</li>
+      </ul>
+      <p>Литры — за пользу своим, а не за количество нажатий. Ложная отметка не окупается: её не подтвердят, а владелец видит споры.</p>
+    </details>`;
+}
+
+async function loadLeaderboard() {
+  const box = $('#clubBoard');
+  if (!box) return;
+  const result = await clubCall('/club/leaderboard').catch(() => null);
+  if (!box.isConnected || !result?.ok) return;
+  const medals = ['🥇', '🥈', '🥉'];
+  const rows = result.data.members.map((row, index) => `<div class="board-row${row.me ? ' me' : ''}">
+      <span class="board-rank">${row.week ? (medals[index] || index + 1) : '·'}</span>
+      <span class="board-name">${row.icon} ${escapeHtml(row.name)}${row.me ? ' <em>вы</em>' : ''}</span>
+      <span class="board-week"><b>${row.week}</b> л</span>
+      <small class="board-meta">всего ${row.liters} л · значков ${row.badges}</small>
+    </div>`).join('');
+  const hero = result.data.hero_last_week
+    ? `<p class="board-hero">🦸 Герой прошлой недели — <b>${escapeHtml(result.data.hero_last_week.name)}</b>, ${result.data.hero_last_week.liters} л</p>`
+    : '';
+  box.innerHTML = `<h3 class="section-title">Литры недели</h3>${hero}<div class="board">${rows}</div>`;
+}
+
 // ---------------------------------------------------------------- club
 
 // The app becomes a closed club once the worker says so: marks, names and
@@ -1325,6 +1604,7 @@ const CLUB_ERRORS = {
   try_again_in_a_minute: 'Клуб ещё запоминает вас. Попробуйте через минуту.',
   owner_only: 'Это может только владелец клуба.',
 };
+Object.assign(CLUB_ERRORS, REWARD_ERRORS);
 
 function clubUrl(path) {
   return `${String(window.SPBFI_REPORT_ENDPOINT || '').replace(/\/$/, '')}${path}`;
@@ -1421,12 +1701,18 @@ async function checkClub() {
     if (handleClubRejection(me)) return;
     if (me.ok) {
       state.club.member = me.data.member;
+      state.club.profile = me.data.profile || null;
       try { localStorage.setItem(CLUB_MEMBER_KEY, JSON.stringify(me.data.member)); } catch { /* nothing to keep it in */ }
+      handleNews(me.data.news, me.data.now);
     }
   } catch { /* offline with a saved membership: let them in */ }
   hideClubGate();
   renderClubButton();
   pollGroupMarks();
+  if (!state.club.newsTimer) {
+    state.club.newsTimer = setInterval(pollClubNews, 120000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pollClubNews(); });
+  }
 }
 
 function hideClubGate() {
@@ -1537,7 +1823,14 @@ async function enterClub(path, body, button) {
 
 function renderClubButton() {
   const button = $('#clubButton');
-  if (button) button.hidden = !(state.club.enabled && state.club.member);
+  if (!button) return;
+  button.hidden = !(state.club.enabled && state.club.member);
+  const profile = state.club.profile;
+  const icon = button.querySelector('[aria-hidden]');
+  const label = button.querySelector('.club-label');
+  if (icon) icon.textContent = profile?.level?.icon || '👥';
+  if (label) label.textContent = profile ? ` ${profile.liters} л` : ' Клуб';
+  button.setAttribute('aria-label', profile ? `Клуб: ${profile.level.title}, ${profile.liters} литров` : 'Клуб');
 }
 
 function formatDay(ms) {
@@ -1585,8 +1878,10 @@ async function showClub() {
     $('#drawerContent').innerHTML = `<div class="empty-state">${escapeHtml(clubMessage(me))}</div>`;
     return;
   }
-  const { member, invites = [], invites_left: left } = me.data;
+  const { member, invites = [], invites_left: left, profile } = me.data;
   state.club.member = member;
+  state.club.profile = profile || state.club.profile;
+  renderClubButton();
   const owner = member.role === 'owner';
   const inviteRows = invites.length ? invites.map((invite) => {
     const open = !invite.used_by && invite.expires > Date.now();
@@ -1597,6 +1892,8 @@ async function showClub() {
   $('#drawerContent').innerHTML = `
     <h2>Клуб «Топливо СПб»</h2>
     <p class="drawer-address">Вы в клубе как <b>${escapeHtml(member.name)}</b>${owner ? ' · владелец' : ''}.</p>
+    ${profileCard(profile)}
+    <div id="clubBoard"></div>
     <div class="drawer-status" style="--status-color:#0d5a43">
       <strong>Пригласить человека</strong>
       <p>Только того, за кого ручаетесь: за ложные отметки исключают, а пригласивший отвечает за приглашённого. Код одноразовый и действует 7 дней.${owner ? '' : ` Осталось приглашений: <b>${Number(left) || 0}</b>.`}</p>
@@ -1611,6 +1908,7 @@ async function showClub() {
     <button type="button" class="list-more club-leave" id="clubLeave">Выйти из клуба на этом телефоне</button>`;
   $('#clubInvite')?.addEventListener('click', createInvite);
   bindInviteButtons($('#drawerContent'));
+  loadLeaderboard();
   $('#clubLeave').addEventListener('click', () => {
     if (!confirm('Выйти из клуба на этом телефоне? Чтобы вернуться, понадобится новое приглашение.')) return;
     forgetClub();
@@ -1672,6 +1970,7 @@ async function loadClubMembers() {
     const facts = [
       item.role === 'owner' ? 'владелец' : `пригласил(а): ${escapeHtml(item.sponsor_name || '—')}`,
       `в клубе с ${formatDay(item.joined)}`,
+      `${item.level_icon || '🔰'} ${item.liters || 0} л`,
       `отметок за 3 ч: ${item.marks_3h}`,
       item.invited ? `привёл(а): ${item.invited}` : null,
     ].filter(Boolean).join(' · ');
@@ -1680,7 +1979,7 @@ async function loadClubMembers() {
       : '';
     const action = item.role === 'owner' ? '' : item.banned
       ? `<button type="button" class="club-small" data-unban="${escapeHtml(item.id)}">Вернуть в клуб</button>`
-      : `<button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button>`;
+      : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button><button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button>`;
     return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? ' — исключён(а)' : ''}</strong><small>${facts}</small>${disputed}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
   }).join('');
   const invites = result.data.invites.length
@@ -1698,6 +1997,20 @@ async function loadClubMembers() {
       }
       loadClubMembers();
       pollGroupMarks();
+    });
+  });
+  box.querySelectorAll('[data-award]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const text = prompt(`Благодарность клуба для «${button.dataset.name}». Коротко — за что:`, 'За точные отметки');
+      if (!text) return;
+      const res = await clubCall('/club/award', { method: 'POST', body: { id: button.dataset.award, text } }).catch(() => null);
+      if (!res?.ok) {
+        alert(clubMessage(res));
+        return;
+      }
+      showToast(`🏅 ${button.dataset.name} получает благодарность клуба`, `${text} · +10 л`);
+      loadClubMembers();
+      loadLeaderboard();
     });
   });
   box.querySelectorAll('[data-unban]').forEach((button) => {
@@ -2135,6 +2448,7 @@ async function openStation(id) {
         <strong>Видите эту АЗС своими глазами?</strong>
         ${eyewitnessLine(selected, station.id) ? `<p class="here-mine group ${eyewitnessLine(selected, station.id).tone}">${escapeHtml(eyewitnessLine(selected, station.id).text)}</p>` : ''}
         ${markLine(station.id, state.grade) ? `<p class="here-mine">✔ ${escapeHtml(markLine(station.id, state.grade))}</p>` : ''}
+        ${thanksButton(station.id)}
         ${markComposer(station.id)}
         <p class="here-note">Отметьте, что видите на колонках, и очередь. Отметка сразу появится у всех наверху в «Свои сообщают» и весит больше любой ленты. Живёт 45 минут.</p>
       </div>
@@ -2150,6 +2464,7 @@ async function openStation(id) {
       <div class="evidence-meta">${station.source_refs.map((ref) => `${escapeHtml(ref.source)}:${escapeHtml(ref.station_id)}`).join('<br>')}</div>`;
     bindMarkButtons($('#drawerContent'));
     bindComposer($('#drawerContent'));
+    bindThanks($('#drawerContent'));
     $('#routeLink').addEventListener('click', () => track('route_open', analytics.predictionFields(station, state.grade)));
     $('#trafficLink').addEventListener('click', () => track('traffic_open', analytics.predictionFields(station, state.grade)));
     $('#copyCoords').addEventListener('click', async (event) => {
