@@ -46,7 +46,7 @@ const mark = (station, seen) => ({ station, grade: 'AI95', seen, lat: 60.0, lon:
 // ------------------------------------------------------------ without the club nothing changes
 {
   const env = storage();
-  assert.deepEqual((await call(env, '/club/health')).data, { club: false, mode: 'off', version: 1, batch: true, late_marks: true, forgiving_key: true, rejoin: true, storage: useD1 ? 'd1' : 'kv' });
+  assert.deepEqual((await call(env, '/club/health')).data, { club: false, mode: 'off', version: 1, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, storage: useD1 ? 'd1' : 'kv' });
   assert.equal((await call(env, '/report', { method: 'POST', body: mark('open-1', true) })).status, 200);
   assert.equal((await call(env, '/club/me')).status, 404, 'club routes stay closed while the club is off');
   const before = writesOf(env);

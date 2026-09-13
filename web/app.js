@@ -2686,8 +2686,8 @@ async function loadClubMembers() {
       ? `<span class="club-flag">С отметками не согласились ${item.disputed_30d} ${plural(item.disputed_30d, 'раз', 'раза', 'раз')} (${item.disputed_by_people_30d} ${plural(item.disputed_by_people_30d, 'человек', 'человека', 'человек')}) за 30 дней</span>`
       : '';
     const action = item.role === 'owner' ? '' : item.banned
-      ? `<button type="button" class="club-small" data-unban="${escapeHtml(item.id)}">Вернуть в клуб</button>`
-      : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button><button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button>`;
+      ? `<button type="button" class="club-small" data-unban="${escapeHtml(item.id)}">Вернуть в клуб</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`
+      : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button><button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`;
     return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? ' — исключён(а)' : ''}</strong><small>${facts}</small>${disputed}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
   }).join('');
   const invites = result.data.invites.length
@@ -2719,6 +2719,21 @@ async function loadClubMembers() {
       showToast(`🏅 ${button.dataset.name} получает благодарность клуба`, `${text} · +10 🤝`);
       loadClubMembers();
       loadLeaderboard();
+    });
+  });
+  // Removing is not excluding: for someone who joined twice by mistake or
+  // changed phones. They see no ban and can join again with a new code.
+  box.querySelectorAll('[data-remove]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (!confirm(`Удалить «${button.dataset.name}» из клуба? Это не исключение: его отметки уберутся, а вступить заново он сможет по новому коду.`)) return;
+      const res = await clubCall('/club/remove', { method: 'POST', body: { id: button.dataset.remove } }).catch(() => null);
+      if (!res?.ok) {
+        alert(clubMessage(res));
+        return;
+      }
+      showToast(`«${button.dataset.name}» удалён из клуба`, 'Пришлите новый код — он сможет вступить заново.');
+      loadClubMembers();
+      pollGroupMarks();
     });
   });
   box.querySelectorAll('[data-unban]').forEach((button) => {

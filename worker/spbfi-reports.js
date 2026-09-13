@@ -1075,7 +1075,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -1321,6 +1321,30 @@ async function clubRoutes(request, env, url, ctx) {
       .filter(([, invite]) => !invite.used_by && !invite.revoked && invite.expires > Date.now())
       .map(([code, invite]) => ({ code, by: members[invite.by]?.name || '—', expires: invite.expires }));
     return json({ members: rows, invites: active }, request, env);
+  }
+
+  // Removing is not banning. A member who joined twice by mistake, or moved
+  // to a new phone, is taken out without a trace and can join again with a
+  // new code; nothing tells them they were excluded.
+  if (request.method === 'POST' && path === '/club/remove') {
+    const body = (await readJson(request)) || {};
+    const id = String(body.id || '');
+    const removed = await transact(env, { 'club:members': {}, 'club:stats': {} }, (docs) => {
+      const target = docs['club:members'][id];
+      if (!target || target.role === 'owner') return null;
+      delete docs['club:members'][id];
+      delete docs['club:stats'][id];
+      return publicMember(target);
+    });
+    if (!removed) return json({ error: 'member_unknown' }, request, env, 404);
+    await transact(env, { reports: [], subscriptions: [], 'club:invites': {} }, (docs) => {
+      docs.reports = docs.reports.filter((report) => report?.who !== id);
+      docs.subscriptions = docs.subscriptions.filter((sub) => sub?.who !== id);
+      for (const invite of Object.values(docs['club:invites'])) {
+        if (invite.by === id && !invite.used_by) invite.revoked = true;
+      }
+    });
+    return json({ ok: true, removed }, request, env);
   }
 
   if (request.method === 'POST' && path === '/club/ban') {

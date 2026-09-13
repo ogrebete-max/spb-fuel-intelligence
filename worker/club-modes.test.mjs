@@ -194,6 +194,30 @@ assert.equal(inside.find((report) => report.station === 'st-plain').name, '');
   assert.equal(barred.data.reason, 'тест');
 }
 
+// ------------------------------------------------------------ the owner removes a member without banning them
+{
+  const club = { ...storage(), CLUB_OWNER_KEY: OWNER_KEY };
+  const boss = (await call(club, '/club/owner', { method: 'POST', body: { key: OWNER_KEY, name: 'Егор' } })).data;
+  const code = async () => (await call(club, '/club/invite', { method: 'POST', token: boss.token })).data.code;
+  const invite = await code();
+  const realNow = Date.now;
+  // Joined ten minutes ago, past the grace a brand-new pass gets.
+  Date.now = () => realNow() - 10 * 60 * 1000;
+  const twin = (await call(club, '/club/join', { method: 'POST', body: { code: invite, name: 'Дизель', accept: true } })).data;
+  Date.now = realNow;
+  await call(club, '/report', { method: 'POST', token: twin.token, body: { station: 'st-twin', grade: 'AI95', seen: true } });
+  assert.equal((await call(club, '/club/remove', { method: 'POST', token: twin.token, body: { id: twin.member.id } })).status, 403, 'only the owner removes');
+  assert.equal((await call(club, '/club/remove', { method: 'POST', token: boss.token, body: { id: twin.member.id } })).status, 200);
+  const list = (await call(club, '/club/members', { token: boss.token })).data.members;
+  assert(!list.some((member) => member.id === twin.member.id), 'gone from the list, not shown as excluded');
+  assert(!(await call(club, '/club/reports', { token: boss.token })).data.reports.some((report) => report.who === twin.member.id), 'their marks are gone');
+  const gone = await call(club, '/club/me', { token: twin.token });
+  assert.equal(gone.status, 401, 'the old pass no longer opens the club');
+  assert.notEqual(gone.data.error, 'banned', 'and it is not a ban');
+  assert.equal((await call(club, '/club/join', { method: 'POST', body: { code: await code(), name: 'Дизель', accept: true, device: 'phone-twin' } })).status, 200, 'a new code lets them in again');
+  assert.equal((await call(club, '/club/remove', { method: 'POST', token: boss.token, body: { id: 'owner' } })).status, 404, 'the owner cannot be removed');
+}
+
 // ------------------------------------------------------------ the owner key forgives what a phone does to a phrase
 {
   const keyed = { ...storage(), CLUB_OWNER_KEY: 'Синий ёж ловит кота' };

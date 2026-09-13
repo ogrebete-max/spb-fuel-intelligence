@@ -159,6 +159,13 @@ async function run(label, browserType, device) {
   check('banned guest is shut out with the reason', (await guest.textContent('.gate-alert')).includes('ложные отметки'));
   await guest.screenshot({ path: path.join(OUT, `${label}-7-banned.png`) });
 
+  // Removing is not excluding: the guest simply disappears from the list.
+  await owner.evaluate(() => closeDrawer());
+  await owner.click('#clubButton');
+  await owner.waitForSelector('#clubMembers [data-remove]', { timeout: 10000 });
+  await owner.click('#clubMembers [data-remove]');
+  check('owner removed the guest without a ban', await owner.waitForFunction(() => document.querySelector('#clubMembers .club-member') && ![...document.querySelectorAll('#clubMembers .club-member strong')].some((node) => node.textContent.includes('Саша')), null, { timeout: 10000 }).then(() => true, () => false));
+
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
   await browser.close();
