@@ -1,4 +1,4 @@
-const CACHE = 'spb-fuel-intelligence-v11';
+const CACHE = 'spb-fuel-intelligence-v12';
 // app.js and styles.css carry a build tag in their URL, so they are not
 // precached here; the network-first handler stores whichever build index.html
 // actually asks for.

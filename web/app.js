@@ -38,6 +38,7 @@ const state = {
   marks: {},
   follow: false, watchId: null, accuracy: null,
   groupMarks: {}, stationInfo: {}, stationDetails: {}, total: 0,
+  club: { enabled: false, member: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
 const staticCache = new Map();
@@ -241,6 +242,9 @@ function localizeNote(note) {
 async function bootstrap() {
   bindControls();
   state.marks = loadMarks();
+  try { state.club.member = JSON.parse(localStorage.getItem(CLUB_MEMBER_KEY) || 'null'); } catch { state.club.member = null; }
+  $('#clubButton')?.addEventListener('click', showClub);
+  checkClub();
   // A tapped notification lands here with the station in the URL.
   const wanted = new URLSearchParams(location.search).get('station');
   if (wanted) {
@@ -949,7 +953,7 @@ function saveMark(stationId, grade, seen, queue = null, { render = true, notify 
   state.marks = marks;
   state.groupMarks = state.groupMarks || {};
   state.groupMarks[stationId] = state.groupMarks[stationId] || {};
-  state.groupMarks[stationId][grade] = { seen, at: Date.now(), queue, people: [deviceId()] };
+  state.groupMarks[stationId][grade] = { seen, at: Date.now(), queue, people: [myId()], names: state.club.member?.name ? [state.club.member.name] : [] };
   if (render) {
     renderStations();
     renderHerePanel();
@@ -979,22 +983,21 @@ async function shareMark(stationId, grade, seen, queue = null, { notify = true, 
   const place = known?.location || (known?.lat != null ? { lat: known.lat, lon: known.lon } : null);
   const name = known?.network || '';
   const address = shortAddress(known?.address || '');
-  const send = async (key) => fetch(`${endpoint.replace(/\/$/, '')}/report`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Group-Key': key } : {}) },
-    body: JSON.stringify({ station: stationId, grade, seen, who: deviceId(), lat: place?.lat, lon: place?.lon, name, address, notify, summary, ...(queue != null ? { queue } : {}) }),
-  });
+  let legacyKey = '';
+  try { legacyKey = localStorage.getItem(GROUP_KEY) || ''; } catch { /* nothing stored */ }
   try {
-    let key = localStorage.getItem(GROUP_KEY) || '';
-    let response = await send(key);
-    if (response.status === 403) {
-      const asked = prompt('Введите слово для своих, чтобы отметка была видна остальным:');
-      if (!asked) return;
-      try { localStorage.setItem(GROUP_KEY, asked); } catch { /* nothing to keep it in */ }
-      response = await send(asked);
-      if (response.status === 403) {
-        localStorage.removeItem(GROUP_KEY);
-        alert('Слово не подошло — отметка осталась только на этом устройстве.');
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...memberHeaders(), ...(legacyKey ? { 'X-Group-Key': legacyKey } : {}) },
+      body: JSON.stringify({ station: stationId, grade, seen, who: myId(), lat: place?.lat, lon: place?.lon, name, address, notify, summary, ...(queue != null ? { queue } : {}) }),
+    });
+    if (response.status === 401 || response.status === 403) {
+      let data = {};
+      try { data = await response.json(); } catch { /* not JSON */ }
+      // The club may have been switched on after this page was opened.
+      if (!state.club.enabled) { checkClub(); return; }
+      if (!handleClubRejection({ status: response.status, data })) {
+        showToast('Отметка не отправлена', 'Она сохранена только на этом телефоне.');
       }
     }
   } catch {
@@ -1011,8 +1014,17 @@ async function pollGroupMarks() {
   const endpoint = window.SPBFI_REPORT_ENDPOINT;
   if (!endpoint) return;
   try {
-    const response = await fetch(`${endpoint.replace(/\/$/, '')}/reports`, { cache: 'no-store' });
-    if (!response.ok) return;
+    // Members read the club's copy, with names; anyone else the anonymous one.
+    const inside = state.club.enabled && !!clubToken();
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}${inside ? '/club/reports' : '/reports'}`, { cache: 'no-store', headers: inside ? memberHeaders() : {} });
+    if (!response.ok) {
+      if (inside && (response.status === 401 || response.status === 403)) {
+        let data = {};
+        try { data = await response.json(); } catch { /* not JSON */ }
+        handleClubRejection({ status: response.status, data });
+      }
+      return;
+    }
     const payload = await response.json();
     const cutoff = Date.now() - GROUP_MARK_TTL_MS;
     const marks = {};
@@ -1022,10 +1034,13 @@ async function pollGroupMarks() {
       const current = slot[report.grade];
       const people = new Set(current?.people || []);
       people.add(report.who || '?');
+      const names = new Set(current?.names || []);
+      if (report.name) names.add(report.name);
       if (!current || report.at > current.at) {
-        slot[report.grade] = { seen: !!report.seen, at: report.at, queue: report.queue, people: [...people] };
+        slot[report.grade] = { seen: !!report.seen, at: report.at, queue: report.queue, people: [...people], names: [...names] };
       } else {
         current.people = [...people];
+        current.names = [...names];
       }
     }
     // What this device filed stays visible even before the worker echoes it
@@ -1035,7 +1050,7 @@ async function pollGroupMarks() {
         if (mine.at < cutoff) continue;
         const slot = (marks[stationId] = marks[stationId] || {});
         if (!slot[grade] || slot[grade].at < mine.at) {
-          slot[grade] = { seen: mine.seen, at: mine.at, queue: mine.queue ?? null, people: [deviceId()] };
+          slot[grade] = { seen: mine.seen, at: mine.at, queue: mine.queue ?? null, people: [myId()], names: state.club.member?.name ? [state.club.member.name] : [] };
         }
       }
     }
@@ -1085,7 +1100,8 @@ async function renderGroupFeed() {
     const latest = Math.max(...items.map(([, mark]) => mark.at));
     const queue = items.map(([, mark]) => mark.queue).find((value) => value != null);
     const people = new Set(items.flatMap(([, mark]) => mark.people || [])).size;
-    return { stationId, items, latest, queue, people };
+    const names = [...new Set(items.flatMap(([, mark]) => mark.names || []))].filter(Boolean);
+    return { stationId, items, latest, queue, people, names };
   }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
   if (!entries.length) {
     box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>`;
@@ -1098,7 +1114,8 @@ async function renderGroupFeed() {
     const distance = state.location && info.lat != null ? formatDistance(haversineKm(state.location, { lat: info.lat, lon: info.lon })) : '';
     const grades = entry.items.map(([grade, mark]) => `<span class="feed-grade ${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))} ${mark.seen ? '✓' : '✗'}</span>`).join('');
     const queue = queueWords(entry.queue);
-    const meta = [formatAge((now - entry.latest) / 1000), entry.people > 1 ? `${entry.people} ${plural(entry.people, 'человек', 'человека', 'человек')}` : null, distance || null].filter(Boolean).join(' · ');
+    const who = entry.names.length ? entry.names.join(', ') : entry.people > 1 ? `${entry.people} ${plural(entry.people, 'человек', 'человека', 'человек')}` : null;
+    const meta = [who, formatAge((now - entry.latest) / 1000), distance || null].filter(Boolean).join(' · ');
     return `<button type="button" class="feed-item" data-feed-station="${escapeHtml(entry.stationId)}">
       <span class="feed-title"><strong>${escapeHtml(info.network || 'АЗС')}</strong><span class="feed-meta">${escapeHtml(meta)}</span></span>
       <span class="feed-address">${escapeHtml(shortAddress(info.address || ''))}</span>
@@ -1118,7 +1135,7 @@ const ANNOUNCE_RADIUS_KM = 7;
 const seenAnnouncements = new Set();
 
 async function announceNewMarks(previous, marks) {
-  const me = deviceId();
+  const me = myId();
   const fresh = [];
   for (const [stationId, grades] of Object.entries(marks)) {
     for (const [grade, mark] of Object.entries(grades)) {
@@ -1148,7 +1165,8 @@ async function announceNewMarks(previous, marks) {
     const grades = items.map(({ grade, mark }) => `${GRADE_LABELS[grade].replace('АИ-', '')} ${mark.seen ? 'есть' : 'нет'}`).join(', ');
     const queue = queueWords(items.map(({ mark }) => mark.queue).find((value) => value != null));
     const where = [shortAddress(info.address || ''), distanceKm != null ? formatDistance(distanceKm) : null].filter(Boolean).join(' · ');
-    showToast(`👁 Свой отметил: ${info.network || 'АЗС'} — ${grades}${queue ? `, очередь: ${queue}` : ''}`, where, stationId);
+    const names = [...new Set(items.flatMap(({ mark }) => mark.names || []))].filter(Boolean);
+    showToast(`👁 ${names.length ? names.join(', ') : 'Свой отметил'}: ${info.network || 'АЗС'} — ${grades}${queue ? `, очередь: ${queue}` : ''}`, where, stationId);
   }
   if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
 }
@@ -1171,8 +1189,12 @@ function showToast(title, subtitle, stationId) {
 // phone's push service delivers it. On iPhone this exists only for the app
 // installed on the home screen (iOS 16.4+), never for a Safari tab.
 const PUSH_FLAG = 'spbfi-push-v1';
-const PUSH_LOCATION_MS = 10 * 60 * 1000;
+// Each location update is a KV write on a plan with 1,000 a day, so only a
+// real move after a real pause is worth one.
+const PUSH_LOCATION_MS = 30 * 60 * 1000;
+const PUSH_LOCATION_KM = 2;
 let pushLocationSentAt = 0;
+let pushLocationSentFrom = null;
 
 function pushSupported() {
   return !!(window.SPBFI_REPORT_ENDPOINT && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
@@ -1191,20 +1213,20 @@ function pushState() {
 
 async function postSubscription(subscription) {
   const endpoint = window.SPBFI_REPORT_ENDPOINT.replace(/\/$/, '');
-  const key = localStorage.getItem(GROUP_KEY) || '';
   const response = await fetch(`${endpoint}/subscribe`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Group-Key': key } : {}) },
-    body: JSON.stringify({ subscription: subscription.toJSON(), who: deviceId(), lat: state.location?.lat, lon: state.location?.lon }),
+    headers: { 'Content-Type': 'application/json', ...memberHeaders() },
+    body: JSON.stringify({ subscription: subscription.toJSON(), who: myId(), lat: state.location?.lat, lon: state.location?.lon }),
   });
-  if (response.status === 403) {
-    const asked = prompt('Введите слово для своих, чтобы получать их отметки:');
-    if (!asked) throw new Error('нет слова');
-    try { localStorage.setItem(GROUP_KEY, asked); } catch { /* nothing to keep it in */ }
-    return postSubscription(subscription);
+  if (response.status === 401 || response.status === 403) {
+    let data = {};
+    try { data = await response.json(); } catch { /* not JSON */ }
+    handleClubRejection({ status: response.status, data });
+    throw new Error('уведомления получают только участники клуба');
   }
   if (!response.ok) throw new Error(`приёмник ответил ${response.status}`);
   pushLocationSentAt = Date.now();
+  pushLocationSentFrom = state.location ? { ...state.location } : null;
 }
 
 async function enablePush() {
@@ -1254,9 +1276,10 @@ async function disablePush() {
 }
 
 // The worker only wakes phones near the station; it needs to know roughly
-// where each phone is, refreshed every ten minutes while following.
+// where each phone is.
 async function refreshPushLocation() {
   if (pushState() !== 'on' || !state.location || Date.now() - pushLocationSentAt < PUSH_LOCATION_MS) return;
+  if (pushLocationSentFrom && haversineKm(pushLocationSentFrom, state.location) < PUSH_LOCATION_KM) return;
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
@@ -1275,6 +1298,420 @@ function bindPushButton(root) {
   root.querySelectorAll('[data-push]').forEach((button) => button.addEventListener('click', () => (button.dataset.push === 'on' ? enablePush() : disablePush())));
 }
 
+// ---------------------------------------------------------------- club
+
+// The app becomes a closed club once the worker says so: marks, names and
+// pushes belong to members, membership is by invitation, and the owner can
+// exclude anyone. Until the worker has the club switched on nothing changes.
+const CLUB_TOKEN_KEY = 'spbfi-club-token-v1';
+const CLUB_MEMBER_KEY = 'spbfi-club-member-v1';
+const CLUB_RULES = [
+  'Клуб — только для своих. Приглашайте тех, за кого ручаетесь сами. Код одноразовый: не пересылайте его дальше.',
+  'Отмечайте только то, что видите своими глазами прямо сейчас. Не пересказывайте чаты и слухи.',
+  'Не уверены — не отмечайте. Лучше промолчать, чем отправить своих на пустую заправку.',
+  'За ложные отметки владелец исключает из клуба. Кто пригласил — отвечает за приглашённого.',
+  'Не показывайте приложение и отметки посторонним и не выкладывайте их в общие чаты.',
+];
+const CLUB_ERRORS = {
+  invite_unknown: 'Такого кода нет. Проверьте буквы: в кодах не бывает О, 0, I и 1.',
+  invite_used: 'Этот код уже использован. Он одноразовый — попросите новый у того, кто пригласил.',
+  invite_expired: 'Срок кода истёк: он действует 7 дней. Попросите новый.',
+  sponsor_banned: 'Пригласивший исключён из клуба, поэтому код недействителен.',
+  rules_not_accepted: 'Чтобы вступить, нужно принять правила клуба.',
+  expected_code_and_name: 'Введите код приглашения и имя.',
+  wrong_owner_key: 'Ключ владельца не подошёл.',
+  too_many_attempts: 'Слишком много попыток. Подождите минуту.',
+  no_invites_left: 'Приглашения закончились. Новые может выдать владелец клуба.',
+  try_again_in_a_minute: 'Клуб ещё запоминает вас. Попробуйте через минуту.',
+  owner_only: 'Это может только владелец клуба.',
+};
+
+function clubUrl(path) {
+  return `${String(window.SPBFI_REPORT_ENDPOINT || '').replace(/\/$/, '')}${path}`;
+}
+
+function clubToken() {
+  try { return localStorage.getItem(CLUB_TOKEN_KEY) || ''; } catch { return ''; }
+}
+
+function memberHeaders() {
+  const token = clubToken();
+  return token ? { 'X-Member-Token': token } : {};
+}
+
+function myId() {
+  return state.club.member?.id || deviceId();
+}
+
+function forgetClub() {
+  try {
+    localStorage.removeItem(CLUB_TOKEN_KEY);
+    localStorage.removeItem(CLUB_MEMBER_KEY);
+  } catch { /* nothing stored */ }
+  state.club.member = null;
+  renderClubButton();
+}
+
+async function clubCall(path, { method = 'GET', body = null, timeout = 8000 } = {}) {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeout) : null;
+  try {
+    const response = await fetch(clubUrl(path), {
+      method,
+      cache: 'no-store',
+      signal: controller?.signal,
+      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...memberHeaders() },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    let data = {};
+    try { data = await response.json(); } catch { /* not JSON */ }
+    return { status: response.status, ok: response.ok, data };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function clubMessage(result, fallback) {
+  return CLUB_ERRORS[result?.data?.error] || fallback || `Не получилось (${result?.status || 'нет связи'}).`;
+}
+
+function inviteFromUrl() {
+  const clean = String(new URLSearchParams(location.search).get('invite') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return clean.length === 8 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : '';
+}
+
+// Any club call answered with "not a member" or "banned" lands here, so the
+// phone never keeps pretending to be inside.
+function handleClubRejection(result) {
+  if (!state.club.enabled) return false;
+  if (result.status === 401) {
+    forgetClub();
+    showClubGate({ notice: 'Вход на этом телефоне больше не действует. Попросите у своих новое приглашение.' });
+    return true;
+  }
+  if (result.status === 403 && result.data?.error === 'banned') {
+    forgetClub();
+    showClubGate({ banned: result.data.reason || '' });
+    return true;
+  }
+  return false;
+}
+
+async function checkClub() {
+  if (!window.SPBFI_REPORT_ENDPOINT) return;
+  let health;
+  try {
+    health = await clubCall('/club/health', { timeout: 6000 });
+  } catch {
+    // The worker is unreachable. A saved membership keeps working offline and
+    // nobody is locked out of the station list because of a network hiccup.
+    return;
+  }
+  state.club.enabled = health.ok && health.data?.club === true;
+  if (!state.club.enabled) {
+    renderClubButton();
+    return;
+  }
+  if (!clubToken()) {
+    showClubGate();
+    return;
+  }
+  try {
+    const me = await clubCall('/club/me', { timeout: 6000 });
+    if (handleClubRejection(me)) return;
+    if (me.ok) {
+      state.club.member = me.data.member;
+      try { localStorage.setItem(CLUB_MEMBER_KEY, JSON.stringify(me.data.member)); } catch { /* nothing to keep it in */ }
+    }
+  } catch { /* offline with a saved membership: let them in */ }
+  hideClubGate();
+  renderClubButton();
+  pollGroupMarks();
+}
+
+function hideClubGate() {
+  const gate = $('#clubGate');
+  if (gate) {
+    gate.hidden = true;
+    gate.innerHTML = '';
+  }
+  document.body.classList.remove('club-locked');
+}
+
+function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
+  const gate = $('#clubGate');
+  if (!gate) return;
+  closeDrawer();
+  const code = inviteFromUrl();
+  const { iOS, inAppBrowser } = platformInfo();
+  // On an iPhone the home-screen app keeps its own storage: a login made in
+  // Safari does not follow the icon. The code has to be typed in the app.
+  const installFirst = iOS && !standalone() && mode === 'join';
+  const rules = `<div class="gate-rules"><strong>Правила клуба</strong><ol>${CLUB_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol></div>`;
+  const alertBox = banned != null
+    ? `<div class="gate-alert"><strong>Владелец клуба закрыл вам доступ.</strong>${banned ? ` Причина: ${escapeHtml(banned)}.` : ''}</div>`
+    : notice ? `<div class="gate-alert">${escapeHtml(notice)}</div>` : '';
+  const install = installFirst ? `<div class="gate-install">
+      <strong>Сначала установите приложение</strong>
+      <p>Вход в ${inAppBrowser ? 'этом браузере' : 'Safari'} не переносится в приложение на экране «Домой», поэтому код вводится уже в нём.</p>
+      <ol>${inAppBrowser ? '<li>Откройте эту ссылку в <b>Safari</b>.</li>' : ''}<li>Нажмите «Поделиться» — квадрат со стрелкой вверх.</li><li>Выберите <b>«На экран „Домой“»</b> и нажмите «Добавить».</li><li>Откройте приложение с иконки и введите код там.</li></ol>
+      ${code ? `<p class="gate-code-line">Ваш код: <b>${escapeHtml(code)}</b><button type="button" id="gateCopyCode">Скопировать</button></p>` : ''}
+    </div>` : '';
+  const form = mode === 'owner'
+    ? `<form id="gateOwnerForm" class="gate-form">
+        <label>Ключ владельца<input id="gateOwnerKey" type="password" autocomplete="current-password" required></label>
+        <label>Ваше имя в клубе<input id="gateOwnerName" maxlength="24" autocomplete="given-name" placeholder="Как вас называть"></label>
+        <button type="submit" class="gate-submit">Войти как владелец</button>
+        <small id="gateError" role="alert"></small>
+      </form>
+      <button type="button" class="gate-link" id="gateBack">← У меня приглашение</button>`
+    : `<form id="gateJoinForm" class="gate-form"${installFirst ? ' hidden' : ''}>
+        <label>Код приглашения<input id="gateCode" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX" value="${escapeHtml(code)}" required></label>
+        <label>Как вас называть<input id="gateName" maxlength="24" autocomplete="given-name" placeholder="Например, Саша" required><small>Имя видят только участники — рядом с вашими отметками.</small></label>
+        ${rules}
+        <label class="gate-accept"><input type="checkbox" id="gateAccept"><span>Принимаю правила и отмечаю только то, что вижу сам</span></label>
+        <button type="submit" class="gate-submit">Вступить в клуб</button>
+        <small id="gateError" role="alert"></small>
+      </form>
+      ${installFirst ? rules : ''}
+      <button type="button" class="gate-link" id="gateOwner">Я владелец клуба</button>`;
+  gate.innerHTML = `<div class="gate-card">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <p class="gate-kicker">Закрытый клуб</p>
+      <h1>Топливо СПб — для своих</h1>
+      <p class="gate-lead">Вход только по приглашению участника. Отметки здесь ставят люди, за которых кто-то поручился, — поэтому им можно верить.</p>
+      ${alertBox}${install}${form}
+    </div>`;
+  gate.hidden = false;
+  gate.scrollTop = 0;
+  document.body.classList.add('club-locked');
+  $('#gateCopyCode')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    try { await navigator.clipboard.writeText(code); button.textContent = 'Скопировано'; } catch { button.textContent = code; }
+  });
+  $('#gateOwner')?.addEventListener('click', () => showClubGate({ notice, banned, mode: 'owner' }));
+  $('#gateBack')?.addEventListener('click', () => showClubGate({ notice, banned, mode: 'join' }));
+  $('#gateJoinForm')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!$('#gateAccept').checked) {
+      $('#gateError').textContent = CLUB_ERRORS.rules_not_accepted;
+      return;
+    }
+    enterClub('/club/join', { code: $('#gateCode').value, name: $('#gateName').value, accept: true }, event.target.querySelector('.gate-submit'));
+  });
+  $('#gateOwnerForm')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    enterClub('/club/owner', { key: $('#gateOwnerKey').value, name: $('#gateOwnerName').value }, event.target.querySelector('.gate-submit'));
+  });
+}
+
+async function enterClub(path, body, button) {
+  const error = $('#gateError');
+  error.textContent = '';
+  button.disabled = true;
+  try {
+    const result = await clubCall(path, { method: 'POST', body });
+    if (!result.ok || !result.data?.token) {
+      error.textContent = clubMessage(result);
+      return;
+    }
+    try {
+      localStorage.setItem(CLUB_TOKEN_KEY, result.data.token);
+      localStorage.setItem(CLUB_MEMBER_KEY, JSON.stringify(result.data.member));
+    } catch {
+      error.textContent = 'Телефон не даёт сохранить вход. Если открыт частный режим Safari, откройте приложение обычным способом.';
+      return;
+    }
+    state.club.member = result.data.member;
+    if (location.search.includes('invite=')) history.replaceState(null, '', location.pathname);
+    hideClubGate();
+    renderClubButton();
+    pollGroupMarks();
+    showToast(`Добро пожаловать в клуб, ${result.data.member.name}`, 'Отмечайте только то, что видите сами. Пригласить своих — кнопка «Клуб» вверху.');
+  } catch {
+    error.textContent = 'Нет связи с клубом. Проверьте интернет и попробуйте ещё раз.';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderClubButton() {
+  const button = $('#clubButton');
+  if (button) button.hidden = !(state.club.enabled && state.club.member);
+}
+
+function formatDay(ms) {
+  return ms ? new Date(ms).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '—';
+}
+
+function inviteText(code) {
+  const link = `${location.origin}${location.pathname}?invite=${encodeURIComponent(code)}`;
+  return `Приглашаю в закрытый клуб «Топливо СПб»: где сейчас есть бензин — по отметкам своих.\n\n`
+    + `1. Откройте на iPhone в Safari: ${link}\n`
+    + `2. «Поделиться» → «На экран „Домой“».\n`
+    + `3. Откройте приложение с иконки и введите код: ${code}\n\n`
+    + 'Код одноразовый и действует 7 дней. Пожалуйста, не пересылайте его дальше.';
+}
+
+async function shareInvite(code, button) {
+  const text = inviteText(code);
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    if (button) button.textContent = 'Приглашение скопировано';
+  } catch {
+    prompt('Скопируйте приглашение:', text);
+  }
+}
+
+async function showClub() {
+  openDrawer('<div class="loading-state">Загружаем клуб…</div>');
+  let me;
+  try {
+    me = await clubCall('/club/me');
+  } catch {
+    $('#drawerContent').innerHTML = '<div class="empty-state">Нет связи с клубом. Попробуйте позже.</div>';
+    return;
+  }
+  if (handleClubRejection(me)) return;
+  if (!me.ok) {
+    $('#drawerContent').innerHTML = `<div class="empty-state">${escapeHtml(clubMessage(me))}</div>`;
+    return;
+  }
+  const { member, invites = [], invites_left: left } = me.data;
+  state.club.member = member;
+  const owner = member.role === 'owner';
+  const inviteRows = invites.length ? invites.map((invite) => {
+    const open = !invite.used_by && invite.expires > Date.now();
+    const status = invite.used_by ? `вступил(а): ${escapeHtml(invite.used_by)}` : open ? `ждёт до ${formatDay(invite.expires)}` : 'срок истёк';
+    return `<div class="source-row club-invite-row"><strong>${escapeHtml(invite.code)}</strong><span>${status}</span>${open
+      ? `<span><button type="button" class="club-small" data-invite-share="${escapeHtml(invite.code)}">Отправить</button><button type="button" class="club-small" data-invite-revoke="${escapeHtml(invite.code)}">Отозвать</button></span>` : ''}</div>`;
+  }).join('') : '<p class="drawer-address">Вы ещё никого не приглашали.</p>';
+  $('#drawerContent').innerHTML = `
+    <h2>Клуб «Топливо СПб»</h2>
+    <p class="drawer-address">Вы в клубе как <b>${escapeHtml(member.name)}</b>${owner ? ' · владелец' : ''}.</p>
+    <div class="drawer-status" style="--status-color:#0d5a43">
+      <strong>Пригласить человека</strong>
+      <p>Только того, за кого ручаетесь: за ложные отметки исключают, а пригласивший отвечает за приглашённого. Код одноразовый и действует 7 дней.${owner ? '' : ` Осталось приглашений: <b>${Number(left) || 0}</b>.`}</p>
+      <button type="button" class="list-more" id="clubInvite"${!owner && !left ? ' disabled' : ''}>Создать приглашение</button>
+      <div id="clubInviteResult"></div>
+    </div>
+    <h3 class="section-title">Мои приглашения</h3>
+    <div class="source-list">${inviteRows}</div>
+    ${owner ? '<h3 class="section-title">Участники</h3><div id="clubMembers" class="source-list"><div class="loading-state">Загружаем участников…</div></div>' : ''}
+    <h3 class="section-title">Правила клуба</h3>
+    <ol class="club-rules">${CLUB_RULES.map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol>
+    <button type="button" class="list-more club-leave" id="clubLeave">Выйти из клуба на этом телефоне</button>`;
+  $('#clubInvite')?.addEventListener('click', createInvite);
+  bindInviteButtons($('#drawerContent'));
+  $('#clubLeave').addEventListener('click', () => {
+    if (!confirm('Выйти из клуба на этом телефоне? Чтобы вернуться, понадобится новое приглашение.')) return;
+    forgetClub();
+    closeDrawer();
+    showClubGate();
+  });
+  if (owner) loadClubMembers();
+}
+
+function bindInviteButtons(root) {
+  root.querySelectorAll('[data-invite-share]').forEach((button) => {
+    button.addEventListener('click', () => shareInvite(button.dataset.inviteShare, button));
+  });
+  root.querySelectorAll('[data-invite-revoke]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (!confirm(`Отозвать приглашение ${button.dataset.inviteRevoke}? По нему уже нельзя будет вступить.`)) return;
+      const result = await clubCall('/club/invite/revoke', { method: 'POST', body: { code: button.dataset.inviteRevoke } }).catch(() => null);
+      if (result && handleClubRejection(result)) return;
+      if (!result?.ok) {
+        alert(clubMessage(result));
+        return;
+      }
+      showClub();
+    });
+  });
+}
+
+async function createInvite(event) {
+  const button = event.currentTarget;
+  const box = $('#clubInviteResult');
+  button.disabled = true;
+  try {
+    const result = await clubCall('/club/invite', { method: 'POST' });
+    if (handleClubRejection(result)) return;
+    if (!result.ok) {
+      box.innerHTML = `<p class="gate-error">${escapeHtml(clubMessage(result))}</p>`;
+      return;
+    }
+    const { code, expires } = result.data;
+    box.innerHTML = `<div class="club-code"><span>Код приглашения</span><b>${escapeHtml(code)}</b><small>действует до ${formatDay(expires)}</small>
+      <button type="button" class="gate-submit" data-invite-share="${escapeHtml(code)}">Отправить приглашение</button></div>`;
+    bindInviteButtons(box);
+  } catch {
+    box.innerHTML = '<p class="gate-error">Нет связи с клубом. Попробуйте ещё раз.</p>';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadClubMembers() {
+  const box = $('#clubMembers');
+  const result = await clubCall('/club/members').catch(() => null);
+  if (!box) return;
+  if (!result?.ok) {
+    box.innerHTML = `<p class="drawer-address">${escapeHtml(clubMessage(result, 'Не удалось загрузить участников.'))}</p>`;
+    return;
+  }
+  const rows = result.data.members.map((item) => {
+    const facts = [
+      item.role === 'owner' ? 'владелец' : `пригласил(а): ${escapeHtml(item.sponsor_name || '—')}`,
+      `в клубе с ${formatDay(item.joined)}`,
+      `отметок за 3 ч: ${item.marks_3h}`,
+      item.invited ? `привёл(а): ${item.invited}` : null,
+    ].filter(Boolean).join(' · ');
+    const disputed = item.disputed_30d
+      ? `<span class="club-flag">С отметками не согласились ${item.disputed_30d} ${plural(item.disputed_30d, 'раз', 'раза', 'раз')} (${item.disputed_by_people_30d} ${plural(item.disputed_by_people_30d, 'человек', 'человека', 'человек')}) за 30 дней</span>`
+      : '';
+    const action = item.role === 'owner' ? '' : item.banned
+      ? `<button type="button" class="club-small" data-unban="${escapeHtml(item.id)}">Вернуть в клуб</button>`
+      : `<button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button>`;
+    return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? ' — исключён(а)' : ''}</strong><small>${facts}</small>${disputed}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
+  }).join('');
+  const invites = result.data.invites.length
+    ? `<p class="drawer-address">Неиспользованные приглашения: ${result.data.invites.map((invite) => `${escapeHtml(invite.code)} (${escapeHtml(invite.by)})`).join(', ')}</p>`
+    : '';
+  box.innerHTML = rows + invites;
+  box.querySelectorAll('[data-ban]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const reason = prompt(`Исключить «${button.dataset.name}» из клуба? Его отметки сразу перестанут учитываться. Причина — её увидит исключённый:`, 'ложные отметки');
+      if (reason === null) return;
+      const res = await clubCall('/club/ban', { method: 'POST', body: { id: button.dataset.ban, banned: true, reason } }).catch(() => null);
+      if (!res?.ok) {
+        alert(clubMessage(res));
+        return;
+      }
+      loadClubMembers();
+      pollGroupMarks();
+    });
+  });
+  box.querySelectorAll('[data-unban]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const res = await clubCall('/club/ban', { method: 'POST', body: { id: button.dataset.unban, banned: false } }).catch(() => null);
+      if (!res?.ok) {
+        alert(clubMessage(res));
+        return;
+      }
+      loadClubMembers();
+    });
+  });
+}
+
 function groupMarkFor(stationId, grade) {
   const mark = (state.groupMarks || {})[stationId]?.[grade];
   if (!mark || Date.now() - mark.at > GROUP_MARK_TTL_MS) return null;
@@ -1291,11 +1728,13 @@ function eyewitnessLine(grade, stationId) {
   let seen;
   let ageSeconds;
   let people = 1;
+  let names = [];
   let queue = null;
   if (live && (!piped || !piped.fresh || liveAge <= (piped.age_seconds ?? Infinity))) {
     seen = live.seen;
     ageSeconds = liveAge;
     people = live.people.length;
+    names = (live.names || []).filter(Boolean);
     queue = live.queue;
   } else if (piped && piped.fresh) {
     seen = piped.seen;
@@ -1306,7 +1745,7 @@ function eyewitnessLine(grade, stationId) {
   }
   const ago = ageSeconds != null ? formatAge(ageSeconds) : 'только что';
   const queueText = queue != null && queue !== '' ? `, очередь: ${queueWords(queue)}` : '';
-  const crowd = people > 1 ? ` (${people} ${plural(people, 'человек', 'человека', 'человек')})` : '';
+  const crowd = names.length ? ` (${names.join(', ')})` : people > 1 ? ` (${people} ${plural(people, 'человек', 'человека', 'человек')})` : '';
   return {
     tone: seen ? 'yes' : 'no',
     text: `👁 Свои видели ${ago}${crowd}: ${GRADE_LABELS[state.grade]} ${seen ? 'есть' : 'нет'}${queueText} — самая точная отметка`,
@@ -1423,12 +1862,14 @@ const AT_STATION_METRES = 220;
 // "Россия, Санкт-Петербург, Санкт-Петербург, Богатырский проспект, 23" is what
 // a feed says; a driver in the city only needs the street.
 function shortAddress(address) {
-  return String(address || '').replace(/^(?:(?:Россия|г\.?\s*Санкт-Петербург|Санкт-Петербург|Ленинградская область|Ленинградская обл\.?),\s*)+/i, '');
+  return String(address || '')
+    .replace(/^(?:(?:Россия|г\.?\s*Санкт-Петербург|Санкт-Петербург|Ленинградская область|Ленинградская обл\.?),\s*)+/i, '')
+    .replace(/^[\s,]+/, '');
 }
 
 function formatDistance(km) {
   if (km == null) return '';
-  return km < 1 ? `${Math.round(km * 1000)} м` : `${km.toLocaleString('ru-RU')} км`;
+  return km < 1 ? `${Math.round(km * 1000)} м` : `${km.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} км`;
 }
 
 function renderHerePanel() {

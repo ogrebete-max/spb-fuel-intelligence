@@ -92,6 +92,9 @@ jobs:
           restore-keys: live-captures-
 
       - name: Fetch public sources, rebuild snapshot and history
+        env:
+          # Only needed once the closed club's reader key is set on the worker.
+          SPBFI_REPORT_READER_KEY: ${{ secrets.SPBFI_REPORT_READER_KEY }}
         run: python scripts/refresh_live.py
 
       - name: Store temporal history

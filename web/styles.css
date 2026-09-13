@@ -513,3 +513,49 @@ body.following #locateButton { background: var(--accent, #1f7a4d); color: #fff; 
 .push-button { margin-left: auto; padding: 8px 12px; border: 1px solid #1f7a4d; border-radius: 999px; background: #fff; color: #1f7a4d; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .push-button.on { background: #1f7a4d; color: #fff; }
 .feed-empty .push-button { display: inline-block; margin: 10px 0 0; }
+
+/* ---- closed club ---- */
+body.club-locked { overflow: hidden; }
+.club-gate { position: fixed; inset: 0; z-index: 2000; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #0d3328; color: #f5f4ee; padding: calc(env(safe-area-inset-top, 0px) + 28px) 18px calc(env(safe-area-inset-bottom, 0px) + 36px); }
+.gate-card { max-width: 460px; margin: 0 auto; display: grid; gap: 14px; }
+.gate-kicker { margin: 6px 0 0; color: #c9f06b; font-weight: 800; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+.gate-card h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-weight: 500; font-size: clamp(30px, 8vw, 40px); line-height: 1.05; letter-spacing: -.02em; color: #fff; }
+.gate-lead { margin: 0; color: rgba(245, 244, 238, .82); font-size: 15px; line-height: 1.5; }
+.gate-alert { padding: 12px 14px; border-radius: 12px; background: rgba(184, 51, 58, .25); border: 1px solid rgba(255, 150, 150, .45); font-size: 14px; line-height: 1.45; }
+.gate-install { padding: 14px; border-radius: 14px; background: rgba(201, 240, 107, .12); border: 1px solid rgba(201, 240, 107, .4); font-size: 14px; line-height: 1.45; }
+.gate-install p { margin: 6px 0; }
+.gate-install ol { margin: 8px 0; padding-left: 20px; display: grid; gap: 4px; }
+.gate-code-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gate-code-line b { font-size: 22px; letter-spacing: .08em; color: #c9f06b; }
+.gate-code-line button { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(201, 240, 107, .6); background: none; color: #c9f06b; font: inherit; font-size: 13px; cursor: pointer; }
+.gate-form { display: grid; gap: 12px; }
+.gate-form label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: rgba(245, 244, 238, .9); }
+.gate-form input:not([type="checkbox"]) { width: 100%; box-sizing: border-box; min-height: 50px; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .25); background: #fff; color: #10231d; font: inherit; font-size: 17px; }
+#gateCode { letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
+.gate-form small { font-weight: 400; color: rgba(245, 244, 238, .65); }
+.gate-rules { padding: 12px 14px; border-radius: 12px; background: rgba(255, 255, 255, .07); font-size: 14px; line-height: 1.45; }
+.gate-rules ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.gate-form .gate-accept { display: flex; align-items: flex-start; gap: 10px; font-weight: 600; font-size: 14px; }
+.gate-accept input { width: 24px; height: 24px; margin: 0; flex: 0 0 auto; accent-color: #c9f06b; }
+.gate-submit { min-height: 52px; border: 0; border-radius: 14px; background: #c9f06b; color: #0d3328; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
+.gate-submit:disabled { opacity: .6; }
+#gateError, .gate-error { color: #ffb4b4; font-size: 14px; min-height: 1em; }
+.drawer .gate-error { color: #a52a2a; }
+.gate-link { justify-self: start; padding: 6px 0; background: none; border: 0; color: rgba(245, 244, 238, .75); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; }
+.club-button { min-height: 38px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 800; font-size: 13px; cursor: pointer; }
+.club-code { display: grid; gap: 4px; margin-top: 12px; padding: 16px; border-radius: 14px; background: #0d3328; color: #fff; text-align: center; }
+.club-code span, .club-code small { color: rgba(255, 255, 255, .72); font-size: 12px; }
+.club-code b { font-size: 30px; letter-spacing: .12em; color: #c9f06b; }
+.club-code .gate-submit { margin-top: 10px; }
+.club-small { margin: 6px 6px 0 0; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.club-small.danger { color: #a52a2a; border-color: rgba(165, 42, 42, .4); }
+.club-member.banned { opacity: .7; }
+.club-flag { display: block; color: #8a5405; font-size: 13px; font-weight: 700; }
+.club-rules { padding-left: 20px; display: grid; gap: 8px; line-height: 1.45; }
+.club-leave { margin-top: 18px; }
+@media (max-width: 480px) {
+  /* Three buttons and the brand do not fit a phone's top bar side by side. */
+  .club-button { padding: 0 10px; font-size: 18px; }
+  .club-label { display: none; }
+  .topbar-actions { gap: 6px; }
+}

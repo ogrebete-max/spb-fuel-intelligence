@@ -42,8 +42,9 @@ def _now() -> str:
 
 def _fetch(url: str, *, referer: str | None = None, data: bytes | None = None,
            content_type: str | None = None, accept: str = "application/json",
-           timeout: int = 60) -> bytes:
+           timeout: int = 60, extra_headers: dict[str, str] | None = None) -> bytes:
     headers = {"Accept": accept, "User-Agent": BROWSER_UA, "Accept-Language": "ru,en;q=0.8"}
+    headers.update(extra_headers or {})
     if referer:
         headers["Referer"] = referer
     if content_type:
@@ -384,7 +385,13 @@ def collect_own_reports() -> dict[str, Any]:
     endpoint = _report_endpoint()
     if not endpoint:
         raise RuntimeError("no reports endpoint configured (web/config.js)")
-    payload = _json(endpoint.rstrip("/") + "/reports", timeout=20)
+    # With the closed club's reader key set on the worker, the marks are not
+    # readable without it; the key comes from a repository secret.
+    reader_key = os.environ.get("SPBFI_REPORT_READER_KEY", "").strip()
+    payload = _json(
+        endpoint.rstrip("/") + "/reports", timeout=20,
+        extra_headers={"X-Reader-Key": reader_key} if reader_key else None,
+    )
     return {"captured_at": _now(), "reports": payload.get("reports") or []}
 
 

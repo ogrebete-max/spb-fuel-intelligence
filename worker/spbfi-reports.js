@@ -17,10 +17,19 @@
  * message itself. The VAPID key pair it signs with is generated on first use
  * and kept in KV, so nothing has to be pasted into the dashboard for it.
  *
+ * Closed club. When CLUB_OWNER_KEY is set, only members can file marks, read
+ * who filed them and receive pushes. Membership is by invitation: the owner
+ * signs in with the owner key, every member gets a signed token, invite codes
+ * are single-use and remember who vouched for whom, and the owner can ban.
+ * Without CLUB_OWNER_KEY the worker behaves exactly as before.
+ *
  * Bindings:
- *   REPORTS    KV namespace (required)
- *   GROUP_KEY  optional shared passphrase; when set, writing requires it
- *   ORIGIN     optional allowed origin; defaults to the GitHub Pages site
+ *   REPORTS              KV namespace (required)
+ *   CLUB_OWNER_KEY       secret; turns the closed club on and lets the owner in
+ *   CLUB_READER_KEY      optional secret; when set, GET /reports needs it too
+ *   GROUP_KEY            legacy shared passphrase, used only without the club
+ *   ANALYTICS_ADMIN_KEY  optional secret; without it analytics store nothing
+ *   ORIGIN               optional allowed origin; defaults to the GitHub Pages site
  */
 
 const DEFAULT_ORIGIN = 'https://ogrebete-max.github.io';
@@ -55,7 +64,7 @@ function cors(request, env) {
   return {
     'Access-Control-Allow-Origin': origin === allowed ? origin : allowed,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Group-Key, X-Analytics-Key',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Group-Key, X-Analytics-Key, X-Member-Token, X-Reader-Key',
     'Access-Control-Max-Age': '86400',
   };
 }
@@ -73,14 +82,23 @@ async function readAll(env) {
   return Array.isArray(raw) ? raw.filter((item) => item && item.at > cutoff) : [];
 }
 
+// The free KV plan allows 1,000 writes a day. A rate-limit counter kept in KV
+// spent one of them on every request, so the counter now lives in the
+// isolate's memory: crude, per edge location, and enough to stop a loop.
+const hits = new Map();
+
+function limited(request, scope, perMinute) {
+  const who = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const key = `${scope}:${who}:${Math.floor(Date.now() / 60000)}`;
+  const used = (hits.get(key) || 0) + 1;
+  if (hits.size > 5000) hits.clear();
+  hits.set(key, used);
+  return used > perMinute;
+}
+
 /** A crude per-address limit; enough to stop a loop, not a security boundary. */
 async function overRate(request, env, scope = 'reports') {
-  const who = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const bucket = `rate:${scope}:${who}:${Math.floor(Date.now() / 60000)}`;
-  const used = Number((await env.REPORTS.get(bucket)) || 0);
-  if (used >= MAX_PER_MINUTE) return true;
-  await env.REPORTS.put(bucket, String(used + 1), { expirationTtl: 120 });
-  return false;
+  return limited(request, scope, MAX_PER_MINUTE);
 }
 
 // ---------------------------------------------------------------- analytics
@@ -198,6 +216,9 @@ function applyAnalyticsEvent(day, event, userHash, sessionHash) {
 }
 
 async function storeAnalytics(request, env) {
+  // Every accepted batch is a KV write. Until the owner has set up the
+  // dashboard there is nobody to read the numbers, so nothing is written.
+  if (!env.ANALYTICS_ADMIN_KEY) return json({ ok: true, accepted: 0, disabled: true }, request, env, 202);
   if (await overRate(request, env, 'analytics')) return json({ error: 'too many events' }, request, env, 429);
   let body;
   try { body = await request.json(); } catch { return json({ error: 'expected JSON' }, request, env, 400); }
@@ -434,11 +455,12 @@ async function readSubscriptions(env) {
 async function notifyGroup(env, report) {
   const subscriptions = await readSubscriptions(env);
   if (!subscriptions.length) return;
+  const members = clubEnabled(env) ? await readDoc(env, 'club:members', {}) : null;
   const here = report.lat != null && report.lon != null ? { lat: report.lat, lon: report.lon } : null;
   const grade = GRADE_LABELS[report.grade] || report.grade;
   const queue = queueWords(report.queue);
   const payload = {
-    title: `👁 Свой отметил: ${report.name || 'АЗС'}`,
+    title: report.reporter ? `👁 ${report.reporter}: ${report.name || 'АЗС'}` : `👁 Свой отметил: ${report.name || 'АЗС'}`,
     body: `${report.summary || `${grade} ${report.seen ? 'есть' : 'нет'}${queue ? `, очередь: ${queue}` : ''}`}${report.address ? ` · ${report.address}` : ''}`,
     station: report.station,
     tag: `spbfi-${report.station}`,
@@ -446,6 +468,8 @@ async function notifyGroup(env, report) {
   const dead = new Set();
   await Promise.all(subscriptions.map(async (sub) => {
     if (sub.who && sub.who === report.who) return;
+    // In the club a phone that is not a member's, or a banned member's, hears nothing.
+    if (members && (!members[sub.who] || members[sub.who].banned)) return;
     if (here && sub.lat != null && sub.lon != null && distanceKm(here, sub) > NOTIFY_RADIUS_KM) return;
     try {
       const status = await sendPush(env, sub, payload);
@@ -457,6 +481,265 @@ async function notifyGroup(env, report) {
   if (dead.size) {
     await env.REPORTS.put('subscriptions', JSON.stringify(subscriptions.filter((sub) => !dead.has(sub.endpoint))));
   }
+}
+
+// ---------------------------------------------------------------- club
+
+const CLUB_VERSION = 1;
+// No 0/O, 1/I/L: the code is read aloud and typed on a phone.
+const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const MEMBER_INVITES = 3;
+const FRESH_TOKEN_GRACE_MS = 5 * 60 * 1000;
+const DISPUTE_WINDOW_MS = 20 * 60 * 1000;
+const MAX_FLAGS = 1000;
+
+function clubEnabled(env) {
+  return !!env.CLUB_OWNER_KEY;
+}
+
+async function readDoc(env, key, fallback) {
+  const raw = await env.REPORTS.get(key, { type: 'json' });
+  return raw && typeof raw === 'object' ? raw : fallback;
+}
+
+async function readJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
+async function clubSecret(env) {
+  const stored = await env.REPORTS.get('club:secret');
+  if (stored) return stored;
+  const created = b64u.encode(crypto.getRandomValues(new Uint8Array(32)));
+  await env.REPORTS.put('club:secret', created);
+  return created;
+}
+
+async function clubSign(env, value) {
+  const key = await crypto.subtle.importKey('raw', utf8.encode(await clubSecret(env)), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const digest = await crypto.subtle.sign('HMAC', key, utf8.encode(value));
+  return b64u.encode(digest.slice(0, 18));
+}
+
+async function issueToken(env, memberId) {
+  const issued = Date.now().toString(36);
+  return `v1.${memberId}.${issued}.${await clubSign(env, `${memberId}.${issued}`)}`;
+}
+
+/**
+ * The member behind a request, or null. A banned member is returned as such so
+ * the caller can say why. Tokens are signed, so a member who joined a moment
+ * ago is recognised even at an edge that has not seen the new member list yet.
+ */
+async function clubMember(request, env, members = null) {
+  const parts = String(request.headers.get('X-Member-Token') || '').split('.');
+  if (parts.length !== 4 || parts[0] !== 'v1') return null;
+  const [, id, issued, signature] = parts;
+  if (!constantEqual(signature, await clubSign(env, `${id}.${issued}`))) return null;
+  const list = members || await readDoc(env, 'club:members', {});
+  if (list[id]) return list[id];
+  return Date.now() - parseInt(issued, 36) < FRESH_TOKEN_GRACE_MS ? { id, name: '', role: 'member', pending: true } : null;
+}
+
+function inviteCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  const chars = [...bytes].map((byte) => INVITE_ALPHABET[byte % INVITE_ALPHABET.length]).join('');
+  return `${chars.slice(0, 4)}-${chars.slice(4)}`;
+}
+
+function normalizeCode(value) {
+  const clean = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return clean.length === 8 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : '';
+}
+
+function cleanName(value) {
+  return String(value || '').replace(/[<>\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+}
+
+function publicMember(member) {
+  return {
+    id: member.id, name: member.name, role: member.role, sponsor: member.sponsor || null,
+    joined: member.joined || null, banned: !!member.banned, banned_reason: member.banned_reason || '',
+  };
+}
+
+function inviteAllowance(member, invites) {
+  if (member.role === 'owner') return null;
+  const spent = Object.values(invites).filter((invite) => invite.by === member.id && (!invite.revoked || invite.used_by)).length;
+  return Math.max(0, MEMBER_INVITES - spent);
+}
+
+async function clubRoutes(request, env, url) {
+  const path = url.pathname;
+  if (request.method === 'GET' && path === '/club/health') {
+    return json({ club: clubEnabled(env), version: CLUB_VERSION }, request, env);
+  }
+  if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
+
+  if (request.method === 'POST' && path === '/club/owner') {
+    if (limited(request, 'club-owner', 5)) return json({ error: 'too_many_attempts' }, request, env, 429);
+    const body = (await readJson(request)) || {};
+    if (!constantEqual(String(body.key || ''), String(env.CLUB_OWNER_KEY))) {
+      return json({ error: 'wrong_owner_key' }, request, env, 403);
+    }
+    const members = await readDoc(env, 'club:members', {});
+    const owner = members.owner || { id: 'owner', role: 'owner', joined: Date.now(), sponsor: null };
+    owner.name = cleanName(body.name) || owner.name || 'Владелец';
+    owner.banned = false;
+    members.owner = owner;
+    await env.REPORTS.put('club:members', JSON.stringify(members));
+    return json({ token: await issueToken(env, 'owner'), member: publicMember(owner) }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/club/join') {
+    if (limited(request, 'club-join', 10)) return json({ error: 'too_many_attempts' }, request, env, 429);
+    const body = (await readJson(request)) || {};
+    const code = normalizeCode(body.code);
+    const name = cleanName(body.name);
+    if (!code || !name) return json({ error: 'expected_code_and_name' }, request, env, 400);
+    if (body.accept !== true) return json({ error: 'rules_not_accepted' }, request, env, 400);
+    const invites = await readDoc(env, 'club:invites', {});
+    const invite = invites[code];
+    if (!invite || invite.revoked) return json({ error: 'invite_unknown' }, request, env, 404);
+    if (invite.used_by) return json({ error: 'invite_used' }, request, env, 409);
+    if (invite.expires < Date.now()) return json({ error: 'invite_expired' }, request, env, 410);
+    const members = await readDoc(env, 'club:members', {});
+    const sponsor = members[invite.by];
+    if (!sponsor || sponsor.banned) return json({ error: 'sponsor_banned' }, request, env, 403);
+    let id;
+    do {
+      id = b64u.encode(crypto.getRandomValues(new Uint8Array(6)));
+    } while (members[id]);
+    members[id] = { id, name, role: 'member', sponsor: invite.by, joined: Date.now(), accepted_rules: Date.now() };
+    invite.used_by = id;
+    invite.used_at = Date.now();
+    await env.REPORTS.put('club:members', JSON.stringify(members));
+    await env.REPORTS.put('club:invites', JSON.stringify(invites));
+    return json({ token: await issueToken(env, id), member: publicMember(members[id]) }, request, env);
+  }
+
+  const members = await readDoc(env, 'club:members', {});
+  const member = await clubMember(request, env, members);
+  if (!member) return json({ error: 'club_required' }, request, env, 401);
+  if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
+
+  if (request.method === 'GET' && path === '/club/me') {
+    const invites = await readDoc(env, 'club:invites', {});
+    const mine = Object.entries(invites)
+      .filter(([, invite]) => invite.by === member.id && !invite.revoked)
+      .map(([code, invite]) => ({
+        code, created: invite.created, expires: invite.expires,
+        used_by: invite.used_by ? (members[invite.used_by]?.name || '—') : null,
+      }))
+      .sort((a, b) => b.created - a.created);
+    return json({ member: publicMember(member), invites: mine, invites_left: inviteAllowance(member, invites) }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/club/invite') {
+    if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
+    const invites = await readDoc(env, 'club:invites', {});
+    const allowance = inviteAllowance(member, invites);
+    if (allowance === 0) return json({ error: 'no_invites_left' }, request, env, 403);
+    // Unused codes that ran out a month ago are only clutter.
+    for (const [code, invite] of Object.entries(invites)) {
+      if (!invite.used_by && invite.expires < Date.now() - 30 * 24 * 60 * 60 * 1000) delete invites[code];
+    }
+    let code;
+    do {
+      code = inviteCode();
+    } while (invites[code]);
+    invites[code] = { by: member.id, created: Date.now(), expires: Date.now() + INVITE_TTL_MS };
+    await env.REPORTS.put('club:invites', JSON.stringify(invites));
+    return json({ code, expires: invites[code].expires, invites_left: inviteAllowance(member, invites) }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/club/invite/revoke') {
+    const body = (await readJson(request)) || {};
+    const invites = await readDoc(env, 'club:invites', {});
+    const invite = invites[normalizeCode(body.code)];
+    if (!invite || (invite.by !== member.id && member.role !== 'owner')) return json({ error: 'invite_unknown' }, request, env, 404);
+    if (invite.used_by) return json({ error: 'invite_used' }, request, env, 409);
+    invite.revoked = true;
+    await env.REPORTS.put('club:invites', JSON.stringify(invites));
+    return json({ ok: true }, request, env);
+  }
+
+  if (request.method === 'GET' && path === '/club/reports') {
+    const reports = (await readAll(env))
+      .filter((report) => !members[report.who]?.banned)
+      .map((report) => ({ ...report, name: members[report.who]?.name || '' }));
+    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, reports }, request, env);
+  }
+
+  if (member.role !== 'owner') return json({ error: 'owner_only' }, request, env, 403);
+
+  if (request.method === 'GET' && path === '/club/members') {
+    const reports = await readAll(env);
+    const flags = await readDoc(env, 'club:flags', []);
+    const invites = await readDoc(env, 'club:invites', {});
+    const monthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const rows = Object.values(members).map((item) => {
+      const marks = reports.filter((report) => report.who === item.id);
+      const disputes = (Array.isArray(flags) ? flags : []).filter((flag) => flag.target === item.id && flag.at > monthAgo);
+      return {
+        ...publicMember(item),
+        sponsor_name: item.sponsor ? (members[item.sponsor]?.name || '—') : null,
+        marks_3h: marks.length,
+        last_mark: marks.reduce((latest, report) => Math.max(latest, report.at), 0) || null,
+        disputed_30d: disputes.length,
+        disputed_by_people_30d: new Set(disputes.map((flag) => flag.by)).size,
+        invited: Object.values(invites).filter((invite) => invite.by === item.id && invite.used_by).length,
+      };
+    }).sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : (b.joined || 0) - (a.joined || 0)));
+    const active = Object.entries(invites)
+      .filter(([, invite]) => !invite.used_by && !invite.revoked && invite.expires > Date.now())
+      .map(([code, invite]) => ({ code, by: members[invite.by]?.name || '—', expires: invite.expires }));
+    return json({ members: rows, invites: active }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/club/ban') {
+    const body = (await readJson(request)) || {};
+    const target = members[String(body.id || '')];
+    if (!target || target.role === 'owner') return json({ error: 'member_unknown' }, request, env, 404);
+    target.banned = body.banned !== false;
+    target.banned_reason = target.banned ? String(body.reason || '').slice(0, 120) : '';
+    target.banned_at = target.banned ? Date.now() : null;
+    await env.REPORTS.put('club:members', JSON.stringify(members));
+    if (target.banned) {
+      // What a banned member said stops counting at once, not in three hours.
+      const reports = await readAll(env);
+      const kept = reports.filter((report) => report.who !== target.id);
+      if (kept.length !== reports.length) await env.REPORTS.put('reports', JSON.stringify(kept));
+      const subscriptions = await readSubscriptions(env);
+      const subs = subscriptions.filter((sub) => sub.who !== target.id);
+      if (subs.length !== subscriptions.length) await env.REPORTS.put('subscriptions', JSON.stringify(subs));
+    }
+    return json({ ok: true, member: publicMember(target) }, request, env);
+  }
+
+  return json({ error: 'not found' }, request, env, 404);
+}
+
+/**
+ * Two members saying opposite things about the same pump within twenty minutes
+ * is recorded for the owner. It is not proof of a lie — fuel does run out — so
+ * nothing is decided automatically; a member contradicted by several different
+ * people is what the owner looks at. Written only when it happens.
+ */
+async function recordDisputes(env, reports, report) {
+  const opposed = reports.filter((item) => item.station === report.station && item.grade === report.grade
+    && item.who !== report.who && item.seen !== report.seen && item.at >= report.at - DISPUTE_WINDOW_MS);
+  if (!opposed.length) return;
+  const flags = await readDoc(env, 'club:flags', []);
+  const list = Array.isArray(flags) ? flags : [];
+  for (const item of opposed) {
+    list.push({ target: item.who, by: report.who, station: report.station, grade: report.grade, at: report.at });
+  }
+  await env.REPORTS.put('club:flags', JSON.stringify(list.slice(-MAX_FLAGS)));
 }
 
 // ---------------------------------------------------------------- routes
@@ -473,6 +756,10 @@ export default {
       return json({ error: 'KV namespace REPORTS is not bound' }, request, env, 500);
     }
 
+    if (url.pathname.startsWith('/club/')) {
+      return clubRoutes(request, env, url);
+    }
+
     if (request.method === 'GET' && url.pathname === '/analytics/health') {
       return json({ ok: true, version: ANALYTICS_VERSION, storage: 'aggregate-kv', retention_days: 180 }, request, env);
     }
@@ -486,7 +773,16 @@ export default {
     }
 
     if (request.method === 'GET' && (url.pathname === '/reports' || url.pathname === '/')) {
-      const reports = await readAll(env);
+      let reports = await readAll(env);
+      if (clubEnabled(env)) {
+        const members = await readDoc(env, 'club:members', {});
+        if (env.CLUB_READER_KEY && !constantEqual(request.headers.get('X-Reader-Key') || '', String(env.CLUB_READER_KEY))) {
+          const member = await clubMember(request, env, members);
+          if (!member || member.banned) return json({ error: 'club_required' }, request, env, 401);
+        }
+        // Names stay inside the club; the public read carries member ids only.
+        reports = reports.filter((report) => !members[report.who]?.banned);
+      }
       return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, reports }, request, env);
     }
 
@@ -496,7 +792,13 @@ export default {
     }
 
     if (request.method === 'POST' && url.pathname === '/subscribe') {
-      if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+      let clubWho = null;
+      if (clubEnabled(env)) {
+        const member = await clubMember(request, env);
+        if (!member) return json({ error: 'club_required' }, request, env, 401);
+        if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
+        clubWho = member.id;
+      } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
         return json({ error: 'wrong group key' }, request, env, 403);
       }
       let body;
@@ -515,7 +817,7 @@ export default {
       kept.push({
         endpoint: sub.endpoint,
         keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) },
-        who: String(body.who || '').slice(0, 32),
+        who: clubWho || String(body.who || '').slice(0, 32),
         lat: Number.isFinite(lat) ? Math.round(lat * 1e4) / 1e4 : null,
         lon: Number.isFinite(lon) ? Math.round(lon * 1e4) / 1e4 : null,
         at: Date.now(),
@@ -537,7 +839,12 @@ export default {
     }
 
     if (request.method === 'POST' && url.pathname === '/report') {
-      if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+      let clubMemberRecord = null;
+      if (clubEnabled(env)) {
+        clubMemberRecord = await clubMember(request, env);
+        if (!clubMemberRecord) return json({ error: 'club_required' }, request, env, 401);
+        if (clubMemberRecord.banned) return json({ error: 'banned', reason: clubMemberRecord.banned_reason || '' }, request, env, 403);
+      } else if (env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
         return json({ error: 'wrong group key' }, request, env, 403);
       }
       if (await overRate(request, env)) {
@@ -557,7 +864,7 @@ export default {
       const reports = await readAll(env);
       // One report per person per station and grade: a later look replaces an
       // earlier one rather than stacking into a fake crowd.
-      const who = String(body.who || '').slice(0, 32) || (request.headers.get('CF-Connecting-IP') || 'anon');
+      const who = clubMemberRecord?.id || String(body.who || '').slice(0, 32) || (request.headers.get('CF-Connecting-IP') || 'anon');
       const kept = reports.filter((item) => !(item.station === station && item.grade === grade && item.who === who));
       // Coordinates travel with the report: our canonical station id is derived
       // from the snapshot and can change when matching improves, but the
@@ -577,6 +884,7 @@ export default {
       kept.push(report);
       const trimmed = kept.slice(-MAX_REPORTS);
       await env.REPORTS.put('reports', JSON.stringify(trimmed));
+      if (clubMemberRecord) ctx.waitUntil(recordDisputes(env, reports, report).catch(() => {}));
       // The name and address are only for the notification text; they are not
       // stored, the app resolves the station from its own data.
       const named = {
@@ -586,6 +894,7 @@ export default {
         // A batch of grades from the composer arrives as several reports;
         // the first carries the whole summary and the rest stay silent.
         summary: String(body.summary || '').slice(0, 120),
+        reporter: clubMemberRecord?.name || '',
       };
       if (body.notify !== false) ctx.waitUntil(notifyGroup(env, named));
       return json({ ok: true, count: trimmed.length }, request, env);
