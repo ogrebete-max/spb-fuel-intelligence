@@ -510,6 +510,8 @@ function renderSearchContext({ waitingAccuracy = null } = {}) {
       ? `<span class="context-warn">⚠️ Место определено неточно — список может быть не для вашей улицы. ${escapeHtml(preciseHint())}</span>`
       : '';
     context.innerHTML = `<strong>Рядом с вами</strong> · ближайшие сверху${fresh}${precision} <button type="button" data-clear-scope>Весь город</button>${coarse}`;
+  } else if (state.searchScope === 'far') {
+    context.innerHTML = `<strong>В ${RADIUS_LADDER[RADIUS_LADDER.length - 1]} км от вас АЗС нет</strong> · приложение знает заправки Петербурга и Ленобласти, показываем все, ближайшие сверху <button type="button" data-clear-scope>Весь город</button>`;
   } else if (state.searchScope === 'map') {
     context.innerHTML = `<strong>${escapeHtml(state.searchLabel)}</strong> <button type="button" data-clear-scope>Сбросить</button>`;
   } else if (state.search.trim()) {
@@ -630,6 +632,7 @@ async function findNearby() {
 // Five kilometres around a village may hold two stations and no answer; the
 // radius widens until there is something to choose from.
 const RADIUS_LADDER = [5, 10, 20];
+const FAR_RECHECK_MS = 10 * 60 * 1000;
 const MIN_NEARBY = 8;
 
 async function loadStationsWideningRadius() {
@@ -637,6 +640,13 @@ async function loadStationsWideningRadius() {
     state.radiusKm = km;
     await loadStations({ silent: km !== RADIUS_LADDER[0] });
     if (state.stations.length >= MIN_NEARBY) break;
+  }
+  // The data covers Petersburg and the region. Far from both, every widening
+  // ends empty and «рядом» used to leave the person looking at nothing.
+  if (!state.stations.length && state.searchScope === 'device') {
+    state.searchScope = 'far';
+    state.farCheckedAt = Date.now();
+    await loadStations({ silent: true });
   }
   renderSearchContext();
 }
@@ -755,6 +765,11 @@ function applyFix(coords, { force = false } = {}) {
   }
   if ((moved || sharper || force) && state.searchScope === 'device') {
     loadStations({ silent: true });
+  } else if (state.searchScope === 'far' && moved && Date.now() - (state.farCheckedAt || 0) > FAR_RECHECK_MS) {
+    // Now and then see whether the phone has come within reach of the stations.
+    state.searchScope = 'device';
+    state.radiusKm = RADIUS_LADDER[0];
+    loadStationsWideningRadius();
   } else {
     renderSearchContext();
     renderHerePanel();
@@ -1100,6 +1115,10 @@ function plural(count, one, few, many) {
 const PAGE_SIZE = 40;
 
 function resetFilters() {
+  // «Рядом» is a filter as well. Left running, the next fix from the phone put
+  // the radius back a second later, and a phone far from any station we know
+  // was sent straight back to an empty list (13 Sep 2026).
+  clearSearchScope({ keepText: false, reload: false });
   state.ownOnly = false;
   state.search = '';
   state.status = null;
@@ -1926,6 +1945,12 @@ function leaveOwnOnly() {
   return true;
 }
 
+// «Показать все АЗС» means leave, never toggle: tapped twice while the list was
+// still redrawing, it switched «Свои» straight back on.
+function leaveOwnView() {
+  if (leaveOwnOnly()) loadStations();
+}
+
 async function renderOwnList() {
   const list = $('#stationList');
   if (!list) return;
@@ -1934,7 +1959,7 @@ async function renderOwnList() {
   $('#resultNoun').textContent = `${plural(entries.length, 'АЗС', 'АЗС', 'АЗС')} с отметками своих`;
   if (!entries.length) {
     list.innerHTML = `<div class="empty-state"><strong>За три часа свои ничего не отмечали</strong><br>Как только кто-то отметит АЗС, она появится здесь.<br><button type="button" class="list-more" id="ownBack">Показать все АЗС</button></div>`;
-    $('#ownBack').addEventListener('click', toggleOwnOnly);
+    $('#ownBack').addEventListener('click', leaveOwnView);
     return;
   }
   await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
@@ -1966,7 +1991,7 @@ async function renderOwnList() {
     </article>`;
   }).join('');
   list.querySelectorAll('[data-own-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.ownStation)));
-  list.querySelector('[data-own-back]').addEventListener('click', () => toggleOwnOnly());
+  list.querySelector('[data-own-back]').addEventListener('click', leaveOwnView);
   bindThanks(list);
 }
 
