@@ -1075,7 +1075,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
