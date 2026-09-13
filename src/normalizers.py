@@ -144,7 +144,11 @@ def normalize_sber(body: dict[str, Any]) -> list[dict[str, Any]]:
             canonical_grade(fuel.get("type")), availability,
             "realtime_status" if is_available else "catalog_or_stale",
             "sber+2gis-catalog",
-            observed_at=fuel.get("lastFuelingAt") or s.get("updatedAt"),
+            # `updatedAt` is the batch pull time, identical for all 913 stations,
+            # so every row fell back to it and looked a minute old. The station's
+            # last payment is when the feed actually last saw activity (median
+            # 11 min before the pull for available grades on 12 Sep 2026).
+            observed_at=fuel.get("lastFuelingAt") or s.get("lastPaymentAt") or s.get("updatedAt"),
             limit=fuel.get("limitLiters"), independent=False, raw_status=raw_status,
         ))
     return [rec]
