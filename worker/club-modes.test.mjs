@@ -171,4 +171,14 @@ assert.equal(inside.find((report) => report.station === 'st-plain').name, '');
   assert(!(stranger.endpoint in closedHeard), 'behind a closed door a phone outside the club hears nothing');
 }
 
+// ------------------------------------------------------------ the owner key forgives what a phone does to a phrase
+{
+  const keyed = { ...storage(), CLUB_OWNER_KEY: 'Синий ёж ловит кота' };
+  for (const typed of ['синий еж ловит кота', '  СИНИЙ  ЁЖ ловит кота ', 'синий ёж ловит кота​', 'cиний eж лoвит кoтa']) {
+    assert.equal((await call(keyed, '/club/owner', { method: 'POST', body: { key: typed, name: 'Егор' } })).status, 200, `accepted ${JSON.stringify(typed)}`);
+  }
+  assert.equal((await call(keyed, '/club/owner', { method: 'POST', body: { key: 'синий ёж ловит собаку', name: 'Егор' } })).status, 403, 'other words are still refused');
+  assert.equal((await call({ ...storage(), CLUB_OWNER_KEY: '   ' }, '/club/owner', { method: 'POST', body: { key: '', name: 'x' } })).status, 403, 'a blank key never opens the door');
+}
+
 console.log(`worker club stages (${useD1 ? 'd1' : 'kv'}): OK`);

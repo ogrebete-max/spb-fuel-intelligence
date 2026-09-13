@@ -2143,7 +2143,7 @@ const CLUB_ERRORS = {
   sponsor_banned: 'Пригласивший исключён из клуба, поэтому код недействителен.',
   rules_not_accepted: 'Чтобы вступить, нужно принять правила клуба.',
   expected_code_and_name: 'Введите код приглашения и имя.',
-  wrong_owner_key: 'Ключ владельца не подошёл.',
+  wrong_owner_key: 'Ключ владельца не подошёл. Нажмите «Показать» и сверьте слова с сохранёнными.',
   too_many_attempts: 'Слишком много попыток. Подождите минуту.',
   no_invites_left: 'Приглашения закончились. Новые может выдать владелец клуба.',
   try_again_in_a_minute: 'Клуб ещё запоминает вас. Попробуйте через минуту.',
@@ -2345,7 +2345,9 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
     </div>` : '';
   const form = mode === 'owner'
     ? `<form id="gateOwnerForm" class="gate-form">
-        <label>Ключ владельца<input id="gateOwnerKey" type="password" autocomplete="current-password" required></label>
+        <div class="gate-field"><label for="gateOwnerKey">Ключ владельца</label>
+          <div class="gate-secret"><input id="gateOwnerKey" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required><button type="button" class="gate-show" id="gateShowKey" aria-pressed="false">👁 Показать</button></div>
+        </div>
         <label>Ваше имя в клубе<input id="gateOwnerName" maxlength="24" autocomplete="given-name" placeholder="Как вас называть"></label>
         <button type="submit" class="gate-submit">Войти как владелец</button>
         <small id="gateError" role="alert"></small>
@@ -2374,6 +2376,14 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
   gate.hidden = false;
   gate.scrollTop = 0;
   document.body.classList.add('club-locked');
+  // A long phrase pasted on a phone is easier to check when it can be seen.
+  $('#gateShowKey')?.addEventListener('click', (event) => {
+    const input = $('#gateOwnerKey');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    event.currentTarget.textContent = show ? '🙈 Скрыть' : '👁 Показать';
+    event.currentTarget.setAttribute('aria-pressed', String(show));
+  });
   $('#gateClose')?.addEventListener('click', () => {
     hideClubGate();
     if (/[?&](club|invite)=/.test(location.search)) history.replaceState(null, '', location.pathname);
@@ -2403,7 +2413,8 @@ async function enterClub(path, body, button) {
   error.textContent = '';
   button.disabled = true;
   try {
-    const result = await clubCall(path, { method: 'POST', body });
+    // A slow mobile connection must not lose a sign-in that is only a second late.
+    const result = await clubCall(path, { method: 'POST', body, timeout: 20000 });
     if (!result.ok || !result.data?.token) {
       error.textContent = clubMessage(result);
       return;
@@ -2423,8 +2434,9 @@ async function enterClub(path, body, button) {
     // Profile, news and the club's copy of the marks, as on any later start.
     checkClub();
     showToast(`Добро пожаловать в клуб, ${result.data.member.name}`, 'Отмечайте только то, что видите сами. Пригласить своих — кнопка «Клуб» вверху.');
-  } catch {
-    error.textContent = 'Нет связи с клубом. Проверьте интернет и попробуйте ещё раз.';
+  } catch (failure) {
+    const reason = failure?.name === 'AbortError' ? 'сервер клуба не ответил за 20 секунд' : 'запрос не дошёл до сервера клуба';
+    error.textContent = `Нет связи с клубом: ${reason}. Проверьте интернет и попробуйте ещё раз.`;
   } finally {
     button.disabled = false;
   }

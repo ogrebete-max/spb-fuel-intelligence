@@ -99,6 +99,8 @@ async function run(label, browserType, device) {
   check('with «Не сейчас» to close it', await owner.isVisible('#gateClose'));
   await owner.screenshot({ path: path.join(OUT, `${label}-t1-owner-sign-in.png`) });
   await owner.fill('#gateOwnerKey', 'wrong key');
+  await owner.click('#gateShowKey');
+  check('«Показать» reveals the typed key', (await owner.getAttribute('#gateOwnerKey', 'type')) === 'text' && (await owner.inputValue('#gateOwnerKey')) === 'wrong key');
   await owner.click('#gateOwnerForm .gate-submit');
   check('a wrong key is refused', await becomes(owner, () => document.querySelector('#gateError')?.textContent.includes('не подошёл')));
   await owner.fill('#gateOwnerKey', OWNER_KEY);

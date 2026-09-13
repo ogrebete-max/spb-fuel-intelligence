@@ -1031,6 +1031,24 @@ function normalizeCode(value) {
   return clean.length === 8 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : '';
 }
 
+// The owner types this key on a phone, often pasted from notes or a
+// messenger: a capital letter the notes app added, «ё» for «е», a stray or
+// non-breaking space, an invisible character, a Latin letter that looks
+// Cyrillic. None of that may lock the owner out, so both sides are compared
+// in the same plain form.
+const LOOKALIKES = { a: 'а', c: 'с', e: 'е', o: 'о', p: 'р', x: 'х', y: 'у', k: 'к' };
+
+function ownerKeyForm(value) {
+  return String(value || '')
+    .normalize('NFKC')
+    .replace(/[​-‍⁠﻿]/g, '')
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[aceopxyk]/g, (letter) => LOOKALIKES[letter])
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function cleanName(value) {
   return String(value || '').replace(/[<>\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
 }
@@ -1053,14 +1071,15 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
   if (request.method === 'POST' && path === '/club/owner') {
     if (limited(request, 'club-owner', 5)) return json({ error: 'too_many_attempts' }, request, env, 429);
     const body = (await readJson(request)) || {};
-    if (!constantEqual(String(body.key || ''), String(env.CLUB_OWNER_KEY))) {
+    const expected = ownerKeyForm(env.CLUB_OWNER_KEY);
+    if (!expected || !constantEqual(ownerKeyForm(body.key), expected)) {
       return json({ error: 'wrong_owner_key' }, request, env, 403);
     }
     const owner = await transact(env, { 'club:members': {} }, (docs) => {
