@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0d3328">
+  <title>Аналитика · SPB Fuel Intelligence</title>
+  <link rel="stylesheet" href="analytics.css">
+</head>
+<body>
+  <header class="analytics-header">
+    <div><a href="./">← Карта</a><p>SPB Fuel Intelligence</p><h1>Центр качества и использования</h1></div>
+    <div class="range" role="group" aria-label="Период">
+      <button data-days="7" class="active">7 дней</button><button data-days="30">30 дней</button>
+    </div>
+  </header>
+  <main>
+    <section id="login" class="login-card">
+      <h2>Закрытая панель</h2>
+      <p>Ключ хранится только до закрытия вкладки. В репозиторий и адрес страницы он не попадает.</p>
+      <form id="keyForm"><input id="adminKey" type="password" autocomplete="current-password" placeholder="Ключ аналитики" required><button>Открыть</button></form>
+      <small id="loginError" role="alert"></small>
+    </section>
+    <div id="dashboard" hidden>
+      <p class="updated" id="updated"></p>
+      <section class="kpis" id="kpis" aria-label="Главные показатели"></section>
+      <section class="grid">
+        <article><h2>Использование по дням</h2><div id="trend" class="chart"></div></article>
+        <article><h2>Воронка решения</h2><div id="funnel" class="chart"></div></article>
+        <article><h2>Где пользуются</h2><p class="hint">Только крупные зоны; группы меньше трёх событий скрыты.</p><div id="zones" class="chart"></div></article>
+        <article><h2>Какие марки ищут</h2><div id="grades" class="chart"></div></article>
+      </section>
+      <section class="quality">
+        <div><h2>Главная проверка: прогноз против факта</h2><p>Фактом считается только отметка с телефона не дальше 500 м от АЗС. Чем ниже Brier score, тем точнее вероятностный прогноз.</p></div>
+        <div class="quality-grid">
+          <article><h3>По возрасту сигнала</h3><div id="ageCalibration" class="table"></div></article>
+          <article><h3>По уровню доверия</h3><div id="trustCalibration" class="table"></div></article>
+          <article><h3>По итоговому статусу</h3><div id="statusCalibration" class="table"></div></article>
+          <article><h3>Полезность источников</h3><div id="sourceCalibration" class="table"></div></article>
+        </div>
+      </section>
+      <section class="grid">
+        <article><h2>События продукта</h2><div id="events" class="chart"></div></article>
+        <article><h2>Проблемы поиска</h2><div id="searchHealth" class="plain"></div></article>
+      </section>
+    </div>
+  </main>
+  <script src="config.js"></script>
+  <script src="analytics-dashboard.js"></script>
+</body>
+</html>

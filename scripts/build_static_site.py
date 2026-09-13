@@ -59,12 +59,19 @@ def main() -> int:
     build = repository_build_tag()
     index_html = index_html.replace('href="styles.css"', f'href="styles.css?v={build}"')
     index_html = index_html.replace('src="app.js"', f'src="app.js?v={build}"')
+    index_html = index_html.replace('src="analytics.js"', f'src="analytics.js?v={build}"')
     # The running page learns its own build so it can notice, from meta.json,
     # that a newer one has been deployed and reload itself (an installed PWA
     # left open on a phone otherwise keeps yesterday's code for days).
     stamp = f'<script>window.SPBFI_BUILD = "{build}";</script>'
     index_html = index_html.replace('<script src="config.js">', stamp + '\n  <script src="config.js">', 1)
     index_path.write_text(index_html, encoding="utf-8")
+
+    analytics_path = output / "analytics.html"
+    analytics_html = analytics_path.read_text(encoding="utf-8")
+    analytics_html = analytics_html.replace('href="analytics.css"', f'href="analytics.css?v={build}"')
+    analytics_html = analytics_html.replace('src="analytics-dashboard.js"', f'src="analytics-dashboard.js?v={build}"')
+    analytics_path.write_text(analytics_html, encoding="utf-8")
 
     repository = StationRepository(ROOT / "data" / "stations.json", ROOT / "data" / "history.json")
     snapshot_time = "snapshot"
