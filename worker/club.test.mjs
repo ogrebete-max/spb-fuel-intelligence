@@ -40,7 +40,7 @@ const mark = (station, seen) => ({ station, grade: 'AI95', seen, lat: 60.0, lon:
 // ------------------------------------------------------------ without the club nothing changes
 {
   const env = { REPORTS: new MemoryKV() };
-  assert.deepEqual((await call(env, '/club/health')).data, { club: false, version: 1 });
+  assert.deepEqual((await call(env, '/club/health')).data, { club: false, version: 1, batch: true });
   assert.equal((await call(env, '/report', { method: 'POST', body: mark('open-1', true) })).status, 200);
   assert.equal((await call(env, '/club/me')).status, 404, 'club routes stay closed while the club is off');
   const before = env.REPORTS.writes;

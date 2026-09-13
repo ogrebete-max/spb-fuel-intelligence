@@ -622,7 +622,11 @@ function profileOf(stats, now = Date.now()) {
  * recent mark it agrees with, because a second pair of eyes is what makes a
  * mark worth trusting. Returns what happened so the phone can celebrate.
  */
-async function rewardMark(env, members, reports, report, { blindSpot = false } = {}) {
+async function rewardMark(env, members, reports, looks, { blindSpot = false } = {}) {
+  // A look may list several grades; everything below is paid from one read
+  // and one write of the scoreboard.
+  const batch = Array.isArray(looks) ? looks : [looks];
+  const report = batch[0];
   const all = await readDoc(env, 'club:stats', {});
   const me = statsFor(all, report.who);
   const at = report.at;
@@ -662,25 +666,29 @@ async function rewardMark(env, members, reports, report, { blindSpot = false } =
       awardBadges(sponsor, at);
     }
   }
-  const sameGrade = others.filter((item) => item.station === report.station && item.grade === report.grade).sort((a, b) => b.at - a.at);
-  if (report.seen && sameGrade[0] && sameGrade[0].seen === false) {
-    me.first_seen += 1;
-    result.level_up = addLiters(me, LITERS.first_seen, at, 'first_seen', { station: report.station }) || result.level_up;
-    result.liters += LITERS.first_seen;
-  }
-  for (const prior of sameGrade) {
-    if (prior.seen !== report.seen || at - prior.at > CONFIRM_WINDOW_MS) continue;
-    const author = statsFor(all, prior.who);
-    // A confirmer pays each author once per station an hour, not once per grade.
-    const pairKey = `${report.who}:${report.station}`;
-    for (const [key, when] of Object.entries(author.confirms)) if (at - when > SAME_STATION_MS) delete author.confirms[key];
-    if (author.confirms[pairKey]) continue;
-    author.confirms[pairKey] = at;
-    author.confirmed += 1;
-    if (queueBucket(prior.queue) != null && queueBucket(prior.queue) === queueBucket(report.queue)) author.queue_confirmed += 1;
-    addLiters(author, LITERS.confirmed, at, 'confirmed', { by: report.who, station: report.station, grade: report.grade });
-    awardBadges(author, at);
-    result.confirmed.push(members[prior.who]?.name || '');
+  let firstSeenPaid = false;
+  for (const look of batch) {
+    const sameGrade = others.filter((item) => item.station === look.station && item.grade === look.grade).sort((a, b) => b.at - a.at);
+    if (!firstSeenPaid && look.seen && sameGrade[0] && sameGrade[0].seen === false) {
+      firstSeenPaid = true;
+      me.first_seen += 1;
+      result.level_up = addLiters(me, LITERS.first_seen, at, 'first_seen', { station: look.station }) || result.level_up;
+      result.liters += LITERS.first_seen;
+    }
+    for (const prior of sameGrade) {
+      if (prior.seen !== look.seen || at - prior.at > CONFIRM_WINDOW_MS) continue;
+      const author = statsFor(all, prior.who);
+      // A confirmer pays each author once per station an hour, not once per grade.
+      const pairKey = `${look.who}:${look.station}`;
+      for (const [key, when] of Object.entries(author.confirms)) if (at - when > SAME_STATION_MS) delete author.confirms[key];
+      if (author.confirms[pairKey]) continue;
+      author.confirms[pairKey] = at;
+      author.confirmed += 1;
+      if (queueBucket(prior.queue) != null && queueBucket(prior.queue) === queueBucket(look.queue)) author.queue_confirmed += 1;
+      addLiters(author, LITERS.confirmed, at, 'confirmed', { by: look.who, station: look.station, grade: look.grade });
+      awardBadges(author, at);
+      result.confirmed.push(members[prior.who]?.name || '');
+    }
   }
   result.badges = awardBadges(me, at);
   result.total = me.liters;
@@ -807,7 +815,7 @@ function inviteAllowance(member, invites) {
 async function clubRoutes(request, env, url, ctx) {
   const path = url.pathname;
   if (request.method === 'GET' && path === '/club/health') {
-    return json({ club: clubEnabled(env), version: CLUB_VERSION }, request, env);
+    return json({ club: clubEnabled(env), version: CLUB_VERSION, batch: true }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -983,7 +991,7 @@ async function clubRoutes(request, env, url, ctx) {
           thanked: thankedBy.includes(member.id),
         };
       });
-    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, reports }, request, env);
+    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, reports }, request, env);
   }
 
   if (member.role !== 'owner') return json({ error: 'owner_only' }, request, env, 403);
@@ -1065,15 +1073,16 @@ async function clubRoutes(request, env, url, ctx) {
  * nothing is decided automatically; a member contradicted by several different
  * people is what the owner looks at. Written only when it happens.
  */
-async function recordDisputes(env, reports, report) {
-  const opposed = reports.filter((item) => item.station === report.station && item.grade === report.grade
-    && item.who !== report.who && item.seen !== report.seen && item.at >= report.at - DISPUTE_WINDOW_MS);
-  if (!opposed.length) return;
+async function recordDisputes(env, reports, looks) {
+  const batch = Array.isArray(looks) ? looks : [looks];
+  const pairs = batch.flatMap((report) => reports
+    .filter((item) => item.station === report.station && item.grade === report.grade
+      && item.who !== report.who && item.seen !== report.seen && item.at >= report.at - DISPUTE_WINDOW_MS)
+    .map((item) => ({ target: item.who, by: report.who, station: report.station, grade: report.grade, at: report.at })));
+  if (!pairs.length) return;
   const flags = await readDoc(env, 'club:flags', []);
   const list = Array.isArray(flags) ? flags : [];
-  for (const item of opposed) {
-    list.push({ target: item.who, by: report.who, station: report.station, grade: report.grade, at: report.at });
-  }
+  list.push(...pairs);
   await env.REPORTS.put('club:flags', JSON.stringify(list.slice(-MAX_FLAGS)));
 }
 
@@ -1118,7 +1127,7 @@ export default {
         // Names stay inside the club; the public read carries member ids only.
         reports = reports.filter((report) => !members[report.who]?.banned);
       }
-      return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, reports }, request, env);
+      return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, reports }, request, env);
     }
 
     if (request.method === 'GET' && url.pathname === '/vapid') {
@@ -1192,56 +1201,66 @@ export default {
         return json({ error: 'expected JSON' }, request, env, 400);
       }
       const station = String(body.station || '').slice(0, 64);
-      const grade = String(body.grade || '');
-      if (!station || !GRADES.has(grade) || typeof body.seen !== 'boolean') {
-        return json({ error: 'expected {station, grade, seen}' }, request, env, 400);
+      // One look at a station can list several grades, and they arrive in one
+      // request. Separate requests each rewrote the same KV list and raced:
+      // on 13 Sep 2026 a member marked 92, 95 and 98 and only 98 survived.
+      const wanted = Array.isArray(body.grades) ? body.grades : [{ grade: body.grade, seen: body.seen }];
+      const looks = [];
+      for (const item of wanted.slice(0, 12)) {
+        const grade = String(item?.grade || '');
+        if (!GRADES.has(grade) || typeof item?.seen !== 'boolean' || looks.some((look) => look.grade === grade)) continue;
+        looks.push({ grade, seen: item.seen });
+      }
+      if (!station || !looks.length) {
+        return json({ error: 'expected {station, grade, seen} or {station, grades: [{grade, seen}]}' }, request, env, 400);
       }
       const reports = await readAll(env);
-      // One report per person per station and grade: a later look replaces an
-      // earlier one rather than stacking into a fake crowd.
       const who = clubMemberRecord?.id || String(body.who || '').slice(0, 32) || (request.headers.get('CF-Connecting-IP') || 'anon');
-      const kept = reports.filter((item) => !(item.station === station && item.grade === grade && item.who === who));
       // Coordinates travel with the report: our canonical station id is derived
       // from the snapshot and can change when matching improves, but the
       // forecourt does not move.
       const lat = Number(body.lat);
       const lon = Number(body.lon);
-      const report = {
+      const now = Date.now();
+      const fresh = looks.map(({ grade, seen }) => ({
         station,
         grade,
-        seen: body.seen,
-        at: Date.now(),
+        seen,
+        at: now,
         who,
         lat: Number.isFinite(lat) ? Math.round(lat * 1e6) / 1e6 : null,
         lon: Number.isFinite(lon) ? Math.round(lon * 1e6) / 1e6 : null,
         queue: typeof body.queue === 'number' ? Math.max(0, Math.min(500, body.queue)) : null,
-      };
-      kept.push(report);
+      }));
+      // One report per person per station and grade: a later look replaces an
+      // earlier one rather than stacking into a fake crowd.
+      const kept = reports.filter((item) => !(item.station === station && item.who === who && looks.some((look) => look.grade === item.grade)));
+      kept.push(...fresh);
       const trimmed = kept.slice(-MAX_REPORTS);
       await env.REPORTS.put('reports', JSON.stringify(trimmed));
-      if (clubMemberRecord) ctx.waitUntil(recordDisputes(env, reports, report).catch(() => {}));
+      if (clubMemberRecord) ctx.waitUntil(recordDisputes(env, reports, fresh).catch(() => {}));
       // The name and address are only for the notification text; they are not
       // stored, the app resolves the station from its own data.
+      const summary = String(body.summary || '').slice(0, 120)
+        || (fresh.length > 1 ? looks.map((look) => `${GRADE_LABELS[look.grade] || look.grade} ${look.seen ? 'есть' : 'нет'}`).join(', ') : '');
       const named = {
-        ...report,
+        ...fresh[0],
         name: String(body.name || '').slice(0, 60),
         address: String(body.address || '').slice(0, 80),
-        // A batch of grades from the composer arrives as several reports;
-        // the first carries the whole summary and the rest stay silent.
-        summary: String(body.summary || '').slice(0, 120),
+        summary,
         reporter: clubMemberRecord?.name || '',
       };
       if (body.notify !== false) ctx.waitUntil(notifyGroup(env, named));
       let rewards = null;
       if (clubMemberRecord) {
         try {
-          rewards = await rewardMark(env, await readDoc(env, 'club:members', {}), reports, report, { blindSpot: body.blind_spot === true });
+          rewards = await rewardMark(env, await readDoc(env, 'club:members', {}), reports, fresh, { blindSpot: body.blind_spot === true });
         } catch {
           // A failed payout must never lose the mark itself.
           rewards = null;
         }
       }
-      return json({ ok: true, count: trimmed.length, ...(rewards ? { rewards } : {}) }, request, env);
+      return json({ ok: true, count: trimmed.length, accepted: fresh.length, ...(rewards ? { rewards } : {}) }, request, env);
     }
 
     return json({ error: 'not found' }, request, env, 404);

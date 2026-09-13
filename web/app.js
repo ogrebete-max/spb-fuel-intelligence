@@ -38,7 +38,7 @@ const state = {
   marks: {},
   follow: false, watchId: null, accuracy: null,
   locationAt: 0, fixStartedAt: 0, pendingFix: null, locating: false, locationTimer: null, contextTimer: null,
-  passed: {}, ownOnly: false,
+  passed: {}, ownOnly: false, workerBatch: false,
   groupMarks: {}, stationInfo: {}, stationDetails: {}, total: 0,
   club: { enabled: false, member: null, profile: null, newsTimer: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
@@ -481,7 +481,7 @@ async function refreshData() {
 function preciseHint() {
   const { iOS, inAppBrowser } = platformInfo();
   if (inAppBrowser) return 'Приложение открыто внутри мессенджера — там место определяется хуже и обновляется с задержкой. Откройте его в Safari и добавьте на экран «Домой».';
-  if (iOS) return 'Проверьте: Настройки → Конфиденциальность → Службы геолокации → Safari или «Сайты Safari» → включите «Точная геопозиция».';
+  if (iOS) return 'На iPhone точность ±1–3 км значит, что выключен переключатель «Точная геопозиция»: Настройки → Конфиденциальность и безопасность → Службы геолокации → Сайты Safari → «При использовании» и включить «Точная геопозиция». Потом закройте приложение и откройте снова.';
   return 'Проверьте, что браузеру разрешена точная геолокация.';
 }
 
@@ -1123,7 +1123,7 @@ function loadMarks() {
   }
 }
 
-function saveMark(stationId, grade, seen, queue = null, { render = true, notify = true, summary = '', blindSpot = false } = {}) {
+function saveMark(stationId, grade, seen, queue = null, { render = true, notify = true, summary = '', blindSpot = false, share = true } = {}) {
   const station = state.stationDetails[stationId] || state.stations.find((item) => item.id === stationId);
   const onSite = !!(state.location && station?.location && haversineKm(state.location, station.location) <= 0.5);
   track('report_sent', { station: stationId, grade, seen, queue, reason: onSite ? 'on_site' : 'remote', zone: analytics.zoneFor(station?.location) });
@@ -1145,7 +1145,7 @@ function saveMark(stationId, grade, seen, queue = null, { render = true, notify 
     renderHerePanel();
     renderGroupFeed();
   }
-  shareMark(stationId, grade, seen, queue, { notify, summary, blindSpot });
+  if (share) shareMark(stationId, grade, seen, queue, { notify, summary, blindSpot });
 }
 
 // Sharing is optional. With no endpoint configured the mark stays on this
@@ -1162,39 +1162,79 @@ function deviceId() {
   return id;
 }
 
-async function shareMark(stationId, grade, seen, queue = null, { notify = true, summary = '', blindSpot = false } = {}) {
+// Reports from one phone go out one at a time. The worker keeps every mark in
+// one KV list and rewrites it on each report, so three grades sent at once
+// raced and only the last survived (13 Sep 2026: 92, 95 and 98 marked, 98
+// kept). A worker that says it takes batches gets a whole look in one request;
+// an older one gets the grades one after another.
+let reportQueue = Promise.resolve();
+
+function shareMark(stationId, grade, seen, queue = null, options = {}) {
+  return shareLook(stationId, [{ grade, seen }], queue, options);
+}
+
+function shareLook(stationId, looks, queue = null, { notify = true, summary = '', blindSpot = false } = {}) {
   const endpoint = window.SPBFI_REPORT_ENDPOINT;
-  if (!endpoint) return;
+  if (!endpoint || !looks.length) return Promise.resolve();
   const known = state.stations.find((item) => item.id === stationId) || state.stationInfo[stationId];
   const place = known?.location || (known?.lat != null ? { lat: known.lat, lon: known.lon } : null);
-  const name = known?.network || '';
-  const address = shortAddress(known?.address || '');
+  const common = {
+    station: stationId, who: myId(), lat: place?.lat, lon: place?.lon,
+    name: known?.network || '', address: shortAddress(known?.address || ''),
+    ...(queue != null ? { queue } : {}),
+  };
+  const bodies = looks.length === 1 || state.workerBatch
+    ? [{
+      ...common,
+      ...(looks.length === 1 ? looks[0] : { grades: looks }),
+      notify, summary, ...(blindSpot ? { blind_spot: true } : {}),
+    }]
+    : looks.map((look, index) => ({
+      ...common, ...look,
+      notify: notify && index === 0, summary: index === 0 ? summary : '',
+      ...(blindSpot && index === 0 ? { blind_spot: true } : {}),
+    }));
+  const run = async () => {
+    for (const body of bodies) {
+      if (!await postReport(endpoint, body)) break;
+    }
+  };
+  reportQueue = reportQueue.then(run, run);
+  return reportQueue;
+}
+
+async function postReport(endpoint, body) {
   let legacyKey = '';
   try { legacyKey = localStorage.getItem(GROUP_KEY) || ''; } catch { /* nothing stored */ }
   try {
     const response = await fetch(`${endpoint.replace(/\/$/, '')}/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...memberHeaders(), ...(legacyKey ? { 'X-Group-Key': legacyKey } : {}) },
-      body: JSON.stringify({ station: stationId, grade, seen, who: myId(), lat: place?.lat, lon: place?.lon, name, address, notify, summary, ...(queue != null ? { queue } : {}), ...(blindSpot ? { blind_spot: true } : {}) }),
+      body: JSON.stringify(body),
     });
     if (response.ok) {
       try {
         const data = await response.json();
         if (data.rewards) celebrate(data.rewards);
       } catch { /* the mark is in; the celebration is optional */ }
-      return;
+      return true;
     }
     if (response.status === 401 || response.status === 403) {
       let data = {};
       try { data = await response.json(); } catch { /* not JSON */ }
       // The club may have been switched on after this page was opened.
-      if (!state.club.enabled) { checkClub(); return; }
+      if (!state.club.enabled) {
+        checkClub();
+        return false;
+      }
       if (!handleClubRejection({ status: response.status, data })) {
         showToast('Отметка не отправлена', 'Она сохранена только на этом телефоне.');
       }
     }
+    return false;
   } catch {
     // Offline or the worker is down: the local mark is already saved.
+    return false;
   }
 }
 
@@ -1219,6 +1259,7 @@ async function pollGroupMarks() {
       return;
     }
     const payload = await response.json();
+    state.workerBatch = payload.batch === true;
     const cutoff = Date.now() - OWN_WINDOW_MS;
     const marks = {};
     for (const report of payload.reports || []) {
@@ -2525,9 +2566,8 @@ function bindComposer(root) {
     // A look at a station the app knew nothing fresh about is worth a bonus.
     const details = state.stationDetails[stationId];
     const blindSpot = grades.some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(details?.grades?.[grade]?.status || state.gradesBrief?.[stationId]?.[grade]?.s));
-    grades.forEach((grade, index) => saveMark(stationId, grade, chosen[grade], queue, {
-      render: false, notify: index === 0, summary: index === 0 ? summary + queueText : '', blindSpot: index === 0 && blindSpot,
-    }));
+    grades.forEach((grade) => saveMark(stationId, grade, chosen[grade], queue, { render: false, share: false }));
+    shareLook(stationId, grades.map((grade) => ({ grade, seen: chosen[grade] })), queue, { summary: summary + queueText, blindSpot });
     box.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(summary)}${escapeHtml(queueText)}. У всех это уже наверху, в «Свои сообщают».</span>`;
     renderGroupFeed();
     setTimeout(() => { renderStations(); renderHerePanel(); }, 4000);
