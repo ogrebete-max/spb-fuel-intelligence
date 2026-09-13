@@ -705,6 +705,7 @@ async function loadStations({ silent = false } = {}) {
     renderStatusStrip(data.status_counts, data.timeline_counts);
     renderStations();
     renderMarkers();
+    if (state.club.member) renderGroupFeed();
   } catch (error) {
     $('#stationList').innerHTML = `<div class="empty-state">Ошибка: ${escapeHtml(error.message)}</div>`;
   }
@@ -851,7 +852,8 @@ function gradeChips(station) {
 }
 
 function timelineBadge(timeline) {
-  if (!timeline || ['NO_HISTORY', 'OBSERVED', 'OUTDATED_HISTORY'].includes(timeline.state)) return null;
+  if (!timeline || ['NO_HISTORY', 'OBSERVED', 'OUTDATED_HISTORY', 'APPEARING_UNCONFIRMED'].includes(timeline.state)) return null;
+  if (timeline.state === 'FLAPPING') return { text: '〰 Сигналы мигают', tone: 'negative' };
   if (['JUST_APPEARED', 'RECENTLY_APPEARED'].includes(timeline.state)) return { text: `✦ ${timeline.label}`, tone: 'fresh' };
   if (timeline.state === 'RECENTLY_DISAPPEARED') return { text: timeline.label, tone: 'negative' };
   if (timeline.state === 'OBSERVED_AVAILABLE' || timeline.state === 'AVAILABLE_CONTINUOUS') return { text: `Есть непрерывно ${formatDuration(timeline.duration_seconds)}`, tone: 'stable' };
@@ -937,7 +939,7 @@ function loadMarks() {
   }
 }
 
-function saveMark(stationId, grade, seen, queue = null, { render = true, notify = true, summary = '' } = {}) {
+function saveMark(stationId, grade, seen, queue = null, { render = true, notify = true, summary = '', blindSpot = false } = {}) {
   const station = state.stationDetails[stationId] || state.stations.find((item) => item.id === stationId);
   const onSite = !!(state.location && station?.location && haversineKm(state.location, station.location) <= 0.5);
   track('report_sent', { station: stationId, grade, seen, queue, reason: onSite ? 'on_site' : 'remote', zone: analytics.zoneFor(station?.location) });
@@ -959,7 +961,7 @@ function saveMark(stationId, grade, seen, queue = null, { render = true, notify 
     renderHerePanel();
     renderGroupFeed();
   }
-  shareMark(stationId, grade, seen, queue, { notify, summary });
+  shareMark(stationId, grade, seen, queue, { notify, summary, blindSpot });
 }
 
 // Sharing is optional. With no endpoint configured the mark stays on this
@@ -976,7 +978,7 @@ function deviceId() {
   return id;
 }
 
-async function shareMark(stationId, grade, seen, queue = null, { notify = true, summary = '' } = {}) {
+async function shareMark(stationId, grade, seen, queue = null, { notify = true, summary = '', blindSpot = false } = {}) {
   const endpoint = window.SPBFI_REPORT_ENDPOINT;
   if (!endpoint) return;
   const known = state.stations.find((item) => item.id === stationId) || state.stationInfo[stationId];
@@ -989,7 +991,7 @@ async function shareMark(stationId, grade, seen, queue = null, { notify = true, 
     const response = await fetch(`${endpoint.replace(/\/$/, '')}/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...memberHeaders(), ...(legacyKey ? { 'X-Group-Key': legacyKey } : {}) },
-      body: JSON.stringify({ station: stationId, grade, seen, who: myId(), lat: place?.lat, lon: place?.lon, name, address, notify, summary, ...(queue != null ? { queue } : {}) }),
+      body: JSON.stringify({ station: stationId, grade, seen, who: myId(), lat: place?.lat, lon: place?.lon, name, address, notify, summary, ...(queue != null ? { queue } : {}), ...(blindSpot ? { blind_spot: true } : {}) }),
     });
     if (response.ok) {
       try {
@@ -1114,8 +1116,9 @@ async function renderGroupFeed() {
     return { stationId, items, latest, queue, people, names };
   }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
   if (!entries.length) {
-    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>`;
+    box.innerHTML = `<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${scoutHint()}`;
     bindPushButton(box);
+    bindScout(box);
     return;
   }
   await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
@@ -1133,7 +1136,7 @@ async function renderGroupFeed() {
       ${thanksButton(entry.stationId)}
     </div>`;
   }).join('');
-  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div><div class="feed-list">${cards}</div>`;
+  box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div><div class="feed-list">${cards}</div>${scoutHint()}`;
   box.querySelectorAll('[data-feed-station]').forEach((item) => {
     item.addEventListener('click', (event) => {
       if (event.target.closest('.thanks-button')) return;
@@ -1144,6 +1147,7 @@ async function renderGroupFeed() {
     });
   });
   bindThanks(box);
+  bindScout(box);
   bindPushButton(box);
 }
 
@@ -1439,6 +1443,26 @@ async function pollClubNews() {
   } catch { /* next tick */ }
 }
 
+// Six in ten cards have no fresh signal at all, and in the oblast seven in
+// ten. Pointing a member at the nearest of those is the cheapest way to make
+// the whole map better.
+function scoutHint() {
+  if (!state.club.enabled || !state.club.member || !state.location) return '';
+  const near = state.stations
+    .filter((station) => station.distance_km != null && station.distance_km <= 5 && ['NO_FRESH_DATA', 'CONFLICT'].includes(station.grade?.status))
+    .sort((a, b) => a.distance_km - b.distance_km)
+    .slice(0, 3);
+  if (!near.length) return '';
+  const items = near.map((station) => `<button type="button" class="scout-item" data-scout-station="${escapeHtml(station.id)}">${escapeHtml(shortNetwork(station.network))} · ${escapeHtml(formatDistance(station.distance_km))}</button>`).join('');
+  return `<div class="scout-hint"><strong>🔦 Нужны глаза рядом</strong><span>По ${escapeHtml(GRADE_LABELS[state.grade])} здесь у приложения нет свежих данных. Будете мимо — отметьте: <b>+2 л</b> бонусом.</span><div class="scout-list">${items}</div></div>`;
+}
+
+function bindScout(root) {
+  root.querySelectorAll('[data-scout-station]').forEach((button) => {
+    button.addEventListener('click', () => openStation(button.dataset.scoutStation));
+  });
+}
+
 function thankTargets(stationId) {
   const grades = (state.groupMarks || {})[stationId] || {};
   const me = myId();
@@ -1553,6 +1577,7 @@ function profileCard(profile) {
         <li><b>+3 л</b> — другой участник подтвердил вашу отметку</li>
         <li><b>+2 л</b> — вам сказали «спасибо»</li>
         <li><b>+2 л</b> — первым увидели «есть» там, где было «нет»</li>
+        <li><b>+2 л</b> — отметка там, где у приложения не было свежих данных 🔦</li>
         <li><b>+10 л</b> — благодарность от владельца клуба</li>
       </ul>
       <p>Литры — за пользу своим, а не за количество нажатий. Ложная отметка не окупается: её не подтвердят, а владелец видит споры.</p>
@@ -2145,8 +2170,11 @@ function bindComposer(root) {
     const grades = Object.keys(chosen);
     const summary = grades.map((grade) => `${GRADE_LABELS[grade].replace('АИ-', '')} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
     const queueText = queue != null ? `, очередь: ${queueWords(queue)}` : '';
+    // A look at a station the app knew nothing fresh about is worth a bonus.
+    const details = state.stationDetails[stationId];
+    const blindSpot = grades.some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(details?.grades?.[grade]?.status || state.gradesBrief?.[stationId]?.[grade]?.s));
     grades.forEach((grade, index) => saveMark(stationId, grade, chosen[grade], queue, {
-      render: false, notify: index === 0, summary: index === 0 ? summary + queueText : '',
+      render: false, notify: index === 0, summary: index === 0 ? summary + queueText : '', blindSpot: index === 0 && blindSpot,
     }));
     renderStations();
     renderHerePanel();
@@ -2162,7 +2190,8 @@ function bindMarkButtons(root) {
       const seen = button.dataset.markSeen === '1';
       const row = button.closest('.mark-row');
       if (row) row.innerHTML = `<span class="mark-sent">✔ Отправлено своим: ${escapeHtml(GRADE_LABELS[state.grade])} ${seen ? 'есть' : 'нет'}. Они увидят это сразу.</span>`;
-      saveMark(button.dataset.markStation, state.grade, seen);
+      const station = state.stations.find((item) => item.id === button.dataset.markStation);
+      saveMark(button.dataset.markStation, state.grade, seen, null, { blindSpot: ['NO_FRESH_DATA', 'CONFLICT'].includes(station?.grade?.status) });
     });
   });
 }
@@ -2373,7 +2402,9 @@ const LABEL_ZOOM = 12;
 
 function shortNetwork(name) {
   const head = String(name || '').split(',')[0].replace(/\s*АЗС\s*$/i, '').trim().slice(0, 16);
-  return !head || /^(other|прочие|независимая)/i.test(head) ? 'АЗС' : head;
+  if (!head || /^(other|прочие|независимая)/i.test(head)) return 'АЗС';
+  // Some feeds name the network by a lower-case id ("gazprom").
+  return head.charAt(0).toLocaleUpperCase('ru-RU') + head.slice(1);
 }
 
 function pinLabel(station) {
@@ -2432,7 +2463,7 @@ async function openStation(id) {
     const timeline = selected.timeline || {};
     const transition = timeline.last_transition;
     const confidenceLabels = { high: 'высокая', medium: 'средняя', low: 'низкая' };
-    const timelinePanel = ['NO_HISTORY', 'OUTDATED_HISTORY'].includes(timeline.state) ? `<div class="timeline-panel neutral"><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p></div>` : `<div class="timeline-panel ${timeline.recent ? 'fresh' : ''}"><span class="timeline-kicker">История статуса</span><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p><dl><div><dt>Текущий статус длится</dt><dd>${escapeHtml(formatDuration(timeline.duration_seconds))}</dd></div><div><dt>Проверок</dt><dd>${Number(timeline.confirmations || 1)}</dd></div>${transition ? `<div><dt>Уверенность перехода</dt><dd>${escapeHtml(confidenceLabels[transition.confidence] || transition.confidence)}</dd></div>` : ''}</dl></div>`;
+    const timelinePanel = ['NO_HISTORY', 'OUTDATED_HISTORY', 'FLAPPING', 'APPEARING_UNCONFIRMED'].includes(timeline.state) ? `<div class="timeline-panel neutral"><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p></div>` : `<div class="timeline-panel ${timeline.recent ? 'fresh' : ''}"><span class="timeline-kicker">История статуса</span><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p><dl><div><dt>Текущий статус длится</dt><dd>${escapeHtml(formatDuration(timeline.duration_seconds))}</dd></div><div><dt>Проверок</dt><dd>${Number(timeline.confirmations || 1)}</dd></div>${transition ? `<div><dt>Уверенность перехода</dt><dd>${escapeHtml(confidenceLabels[transition.confidence] || transition.confidence)}</dd></div>` : ''}</dl></div>`;
     const evidence = selected.evidence.length ? selected.evidence.map((row) => {
       const rowStatus = row.fresh ? (row.availability === 'AVAILABLE' || row.availability === 'LIKELY' ? '#158257' : row.availability === 'NOT_AVAILABLE' || row.availability === 'LIKELY_NOT' ? '#b8333a' : '#d58a13') : '#8a9691';
       const extras = [row.limit_liters != null ? `лимит ${row.limit_liters} л` : null, formatQueue(row.queue) ? `очередь: ${formatQueue(row.queue)}` : null].filter(Boolean).join(' · ');
@@ -2446,6 +2477,7 @@ async function openStation(id) {
       <div class="here-panel drawer-mark">
         <span class="here-kicker">Для своих</span>
         <strong>Видите эту АЗС своими глазами?</strong>
+        ${state.club.enabled && state.club.member && ['NO_FRESH_DATA', 'CONFLICT'].includes(selected.status) ? '<p class="blind-hint">🔦 У приложения нет свежих данных по этой АЗС — ваша отметка здесь нужнее всего: <b>+2 л</b> бонусом.</p>' : ''}
         ${eyewitnessLine(selected, station.id) ? `<p class="here-mine group ${eyewitnessLine(selected, station.id).tone}">${escapeHtml(eyewitnessLine(selected, station.id).text)}</p>` : ''}
         ${markLine(station.id, state.grade) ? `<p class="here-mine">✔ ${escapeHtml(markLine(station.id, state.grade))}</p>` : ''}
         ${thanksButton(station.id)}

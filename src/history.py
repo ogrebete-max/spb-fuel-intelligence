@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 from pathlib import Path
 from typing import Any
@@ -195,6 +195,30 @@ def timeline_for(
             "confirmations": entry.get("confirmations", 1),
             "last_transition": last, "transitions": transitions[-5:],
         }
+    # In the live history a third of all status changes, and 41% of "появилось",
+    # reverted within 25 minutes. Several changes in a short window mean the
+    # sources are fighting, and that is what the card should say.
+    # Only a reversal between "есть" and "нет" counts — "есть, но очередь" or a
+    # gap with no fresh data is not a contradiction. On the live history this
+    # flags about 1.4% of station-grades; counting every status change flagged 7%.
+    window_start = now - timedelta(minutes=90)
+    window = [item for item in transitions if (parse_time(item.get("at")) or now) >= window_start]
+    sense = {"positive": 1, "restricted": 1, "negative": -1}
+    senses = [sense.get(availability_group(str(window[0].get("from_status"))), 0)] if window else []
+    senses += [sense.get(availability_group(str(item.get("to_status"))), 0) for item in window]
+    definite = [value for value in senses if value]
+    reversals = sum(1 for before, after in zip(definite, definite[1:]) if before != after)
+    if reversals >= 2:
+        return {
+            "state": "FLAPPING",
+            "label": "Сигналы мигают",
+            "description": f"За последние полтора часа ответ «есть/нет» переворачивался {reversals} раз(а): источники противоречат друг другу. Ехать наугад не стоит — лучше спросить своих.",
+            "recent": False, "appeared_recent": False,
+            "current_since": None, "duration_seconds": None,
+            "last_observed_at": entry.get("last_observed_at"),
+            "confirmations": entry.get("confirmations", 1),
+            "last_transition": last, "transitions": transitions[-5:],
+        }
     status_group = stored_group
     duration_start = (entry.get("positive_since") or entry.get("current_since")) if status_group == "positive" else (entry.get("negative_since") or entry.get("current_since")) if status_group == "negative" else entry.get("current_since")
     current_since = parse_time(duration_start)
@@ -210,8 +234,23 @@ def timeline_for(
             # “just appeared” presentation requires a current positive status
             # and a transition inside the same 45-minute freshness window.
             current_is_positive = current_status is None or availability_group(current_status) == "positive"
-            recent = current_is_positive and transition_age is not None and transition_age <= 45 * 60
-            state = "JUST_APPEARED" if transition_age is not None and transition_age <= 30 * 60 else "RECENTLY_APPEARED" if recent else "AVAILABLE_CONTINUOUS"
+            # Unless an official feed said so, a new positive has to survive one
+            # more refresh before it is announced as "появилось".
+            last_seen = parse_time(entry.get("last_observed_at"))
+            persisted = last.get("confidence") == "high" or bool(last_seen and changed_at and last_seen > changed_at)
+            recent = current_is_positive and persisted and transition_age is not None and transition_age <= 45 * 60
+            state = "JUST_APPEARED" if recent and transition_age <= 30 * 60 else "RECENTLY_APPEARED" if recent else "AVAILABLE_CONTINUOUS"
+            if current_is_positive and not persisted and transition_age is not None and transition_age <= 45 * 60:
+                return {
+                    "state": "APPEARING_UNCONFIRMED",
+                    "label": "Новый сигнал, ждём подтверждения",
+                    "description": "Положительный сигнал пришёл в последнем обновлении. Четыре из десяти таких сигналов откатываются в течение 25 минут, поэтому «появилось» покажем после следующего обновления.",
+                    "recent": False, "appeared_recent": False,
+                    "current_since": entry.get("current_since"), "duration_seconds": duration,
+                    "last_observed_at": entry.get("last_observed_at"),
+                    "confirmations": entry.get("confirmations", 1),
+                    "last_transition": last, "transitions": transitions[-5:],
+                }
             if not current_is_positive:
                 state, label = "HISTORICAL_POSITIVE", "Исторический сигнал наличия"
                 description = "Переход в наличие был зафиксирован ранее, но сейчас нет пригодного по времени сигнала. Это не рекомендация ехать на АЗС."

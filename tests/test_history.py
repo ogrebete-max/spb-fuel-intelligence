@@ -87,5 +87,29 @@ class HistoryTests(unittest.TestCase):
         self.assertFalse(view["appeared_recent"])
 
 
+    def test_single_crowd_positive_waits_for_the_next_refresh(self):
+        first, _ = snapshot("2026-09-11T05:00:00Z", "NOT_AVAILABLE", kind="crowd_status")
+        second, station = snapshot("2026-09-11T05:20:00Z", "AVAILABLE", kind="crowd_status")
+        history = update_history_data(update_history_data(None, first), second)
+        view = timeline_for(history, station, "AI95", now=datetime(2026, 9, 11, 5, 22, tzinfo=timezone.utc))
+        self.assertEqual(view["state"], "APPEARING_UNCONFIRMED")
+        self.assertFalse(view["appeared_recent"])
+        third, station = snapshot("2026-09-11T05:30:00Z", "AVAILABLE", kind="crowd_status")
+        history = update_history_data(history, third)
+        view = timeline_for(history, station, "AI95", now=datetime(2026, 9, 11, 5, 32, tzinfo=timezone.utc))
+        self.assertEqual(view["state"], "JUST_APPEARED")
+        self.assertTrue(view["appeared_recent"])
+
+    def test_flapping_signals_are_called_out(self):
+        history = None
+        station = None
+        for minute, availability in ((0, "AVAILABLE"), (10, "NOT_AVAILABLE"), (20, "AVAILABLE"), (30, "NOT_AVAILABLE"), (40, "AVAILABLE")):
+            shot, station = snapshot(f"2026-09-11T05:{minute:02d}:00Z", availability, kind="crowd_status")
+            history = update_history_data(history, shot)
+        view = timeline_for(history, station, "AI95", now=datetime(2026, 9, 11, 5, 42, tzinfo=timezone.utc))
+        self.assertEqual(view["state"], "FLAPPING")
+        self.assertFalse(view["appeared_recent"])
+
+
 if __name__ == "__main__":
     unittest.main()

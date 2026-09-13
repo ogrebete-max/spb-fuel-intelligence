@@ -7,8 +7,8 @@ and returns one of the seven user-facing product states from the brief.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass, replace
+from datetime import datetime, timezone, timedelta
 import math
 from typing import Any, Iterable
 
@@ -336,6 +336,42 @@ def _decorate(row: dict[str, Any], now: datetime) -> EvaluatedRow:
     return EvaluatedRow(row, observed, age, fresh, strength, _cluster_family(row.get("provenance_cluster")))
 
 
+# Measured on the live snapshot of 13 September 2026: tofuel's verdicts and
+# tutbenz's payment rows agree with the Sber/2GIS feed 98-100% of the time and
+# trail it by a median of 22 minutes. They are the same observation arriving
+# late, and counting them as separate voices tripled one bank's say. A row is
+# folded into the Sber cluster only when it says the same thing shortly after a
+# Sber row; disagreeing or unmatched rows keep their own voice.
+RELAY_SOURCES = {"tofuel", "tutbenz"}
+RELAY_CLUSTERS = {"tofuel-mixed-upstream", "tbank-payments"}
+RELAY_LAG = (timedelta(minutes=-5), timedelta(minutes=45))
+
+
+def _sense(availability: Any) -> int:
+    if availability in POSITIVE_SENSE:
+        return 1
+    if availability in NEGATIVE_SENSE:
+        return -1
+    return 0
+
+
+def _fold_relays(rows: list[EvaluatedRow]) -> list[EvaluatedRow]:
+    origins = [item for item in rows if item.cluster == "sber-2gis" and item.observed_at and _sense(item.row.get("availability"))]
+    if not origins:
+        return rows
+    folded = []
+    for item in rows:
+        sense = _sense(item.row.get("availability"))
+        if item.row.get("source") in RELAY_SOURCES and item.cluster in RELAY_CLUSTERS and item.observed_at and sense:
+            for origin in origins:
+                lag = item.observed_at - origin.observed_at
+                if sense == _sense(origin.row.get("availability")) and RELAY_LAG[0] <= lag <= RELAY_LAG[1]:
+                    item = replace(item, cluster="sber-2gis")
+                    break
+        folded.append(item)
+    return folded
+
+
 def _deduplicate(rows: Iterable[EvaluatedRow]) -> list[EvaluatedRow]:
     best: dict[str, EvaluatedRow] = {}
     for item in rows:
@@ -567,7 +603,7 @@ def evaluate_grade(
     """Evaluate one fuel grade without converting missing evidence to NO."""
     current_time = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     relevant = [dict(row) for row in evidence if row.get("grade") == grade]
-    decorated = [_decorate(row, current_time) for row in relevant]
+    decorated = _fold_relays([_decorate(row, current_time) for row in relevant])
     deduped = _deduplicate(decorated)
     fresh = [item for item in deduped if item.fresh]
 

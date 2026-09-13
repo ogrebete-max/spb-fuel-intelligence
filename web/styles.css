@@ -603,3 +603,10 @@ body.club-locked { overflow: hidden; }
   15% { opacity: 1; }
   100% { transform: translateY(-85vh) scale(1.2) rotate(25deg); opacity: 0; }
 }
+
+/* ---- blind spots ---- */
+.blind-hint { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: #fff7df; color: #6b4a00; font-size: 14px; line-height: 1.4; }
+.scout-hint { display: grid; gap: 6px; margin-top: 10px; padding: 12px 14px; border-radius: 14px; border: 1px dashed #d58a13; background: #fffaf0; font-size: 14px; line-height: 1.4; }
+.scout-hint span { color: var(--muted); }
+.scout-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.scout-item { padding: 8px 12px; border-radius: 999px; border: 1px solid #d58a13; background: #fff; color: #6b4a00; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }

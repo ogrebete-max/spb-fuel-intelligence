@@ -101,6 +101,13 @@ assert.equal(me.profile.counts.saved, 1);
 const back = await mark(olya.token, 'st-2', 'DT', true);
 assert.equal(back.data.rewards.liters, 1 + 2);
 
+// Filling a blind spot pays a bonus, once per look.
+const blind = await mark(owner.token, 'st-blind', 'AI95', true, { blind_spot: true });
+assert.equal(blind.data.rewards.liters, 1 + 2);
+assert.equal(blind.data.rewards.blind_spot, true);
+const blindAgain = await mark(owner.token, 'st-blind', 'AI92', true, { blind_spot: true });
+assert.equal(blindAgain.data.rewards.liters, 0, 'no bonus for another grade of the same look');
+
 // A daily cap keeps tapping from paying.
 for (let i = 0; i < 15; i += 1) await mark(olya.token, `spam-${i}`, 'AI95', true);
 const olyaMe = (await call(env, '/club/me', { token: olya.token })).data;

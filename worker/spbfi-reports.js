@@ -488,7 +488,7 @@ async function notifyGroup(env, report) {
 // Litres, levels and badges. They pay for usefulness to the others — a mark
 // someone else confirms, a thank-you from someone who drove there — far more
 // than for taps, so hammering the buttons earns next to nothing.
-const LITERS = { mark: 1, confirmed: 3, thanks: 2, first_seen: 2, award: 10 };
+const LITERS = { mark: 1, confirmed: 3, thanks: 2, first_seen: 2, blind_spot: 2, award: 10 };
 const MARK_LITERS_PER_DAY = 10;
 const THANKS_PER_DAY = 20;
 const CONFIRM_WINDOW_MS = 45 * 60 * 1000;
@@ -508,6 +508,7 @@ const BADGES = [
   { id: 'trip_saver', icon: '🛟', title: 'Сберёг поездку', hint: '3 «спасибо» за отметки «нет»', test: (s) => s.saved >= 3 },
   { id: 'first_seen', icon: '⚡', title: 'Первым увидел', hint: '3 раза отметить «есть» там, где до вас было «нет»', test: (s) => s.first_seen >= 3 },
   { id: 'scout', icon: '🔭', title: 'Разведчик', hint: '5 отметок там, где три часа никто не отмечался', test: (s) => s.scout >= 5 },
+  { id: 'blind_spots', icon: '🔦', title: 'Фонарик', hint: '5 отметок там, где у приложения не было свежих данных', test: (s) => s.blind >= 5 },
   { id: 'queue_master', icon: '🚦', title: 'Знаток очередей', hint: '5 раз другие подтвердили очередь, которую вы указали', test: (s) => s.queue_confirmed >= 5 },
   { id: 'night_watch', icon: '🌙', title: 'Ночной дозор', hint: '5 отметок с 23:00 до 6:00', test: (s) => s.night >= 5 },
   { id: 'whole_city', icon: '🗺️', title: 'Весь город', hint: 'Отметки в 4 разных частях города и области', test: (s) => (s.zones || []).length >= 4 },
@@ -520,7 +521,7 @@ const BADGES = [
 function emptyStats() {
   return {
     liters: 0, marks: 0, confirmed: 0, thanks: 0, saved: 0, given: 0, scout: 0, first_seen: 0,
-    night: 0, queue_confirmed: 0, sponsor: 0, heroes: 0, zones: [], weeks: {}, days: {}, given_days: {},
+    night: 0, queue_confirmed: 0, sponsor: 0, heroes: 0, blind: 0, zones: [], weeks: {}, days: {}, given_days: {},
     badges: {}, awards: [], news: [], thanked: {}, confirms: {},
   };
 }
@@ -610,7 +611,7 @@ function profileOf(stats, now = Date.now()) {
     liters: stats.liters,
     week: stats.weeks[weekKey(now)] || 0,
     level: levelFor(stats.liters),
-    counts: { marks: stats.marks, confirmed: stats.confirmed, thanks: stats.thanks, saved: stats.saved, given: stats.given },
+    counts: { marks: stats.marks, confirmed: stats.confirmed, thanks: stats.thanks, saved: stats.saved, given: stats.given, blind: stats.blind },
     badges: BADGES.map((badge) => ({ id: badge.id, icon: badge.icon, title: badge.title, hint: badge.hint, earned: stats.badges[badge.id] || null })),
     awards: stats.awards || [],
   };
@@ -621,7 +622,7 @@ function profileOf(stats, now = Date.now()) {
  * recent mark it agrees with, because a second pair of eyes is what makes a
  * mark worth trusting. Returns what happened so the phone can celebrate.
  */
-async function rewardMark(env, members, reports, report) {
+async function rewardMark(env, members, reports, report, { blindSpot = false } = {}) {
   const all = await readDoc(env, 'club:stats', {});
   const me = statsFor(all, report.who);
   const at = report.at;
@@ -640,6 +641,14 @@ async function rewardMark(env, members, reports, report) {
       result.liters += LITERS.mark;
     }
     if (!others.some((item) => item.station === report.station)) me.scout += 1;
+    // The phone says the app had nothing fresh here. Taken on trust inside the
+    // club, and only for a first look, so it cannot be farmed by re-marking.
+    if (blindSpot) {
+      me.blind += 1;
+      result.level_up = addLiters(me, LITERS.blind_spot, at, 'blind_spot', { station: report.station }) || result.level_up;
+      result.liters += LITERS.blind_spot;
+      result.blind_spot = true;
+    }
     const hour = moscowDate(at).getUTCHours();
     if (hour >= 23 || hour < 6) me.night += 1;
     const zone = zoneOf(report.lat, report.lon);
@@ -1226,7 +1235,7 @@ export default {
       let rewards = null;
       if (clubMemberRecord) {
         try {
-          rewards = await rewardMark(env, await readDoc(env, 'club:members', {}), reports, report);
+          rewards = await rewardMark(env, await readDoc(env, 'club:members', {}), reports, report, { blindSpot: body.blind_spot === true });
         } catch {
           // A failed payout must never lose the mark itself.
           rewards = null;
