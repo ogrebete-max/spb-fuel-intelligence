@@ -155,7 +155,8 @@ async function run(label, browserType, phoneDevice) {
   member.once('dialog', (dialog) => { asked = dialog.message(); return dialog.accept(); });
   await member.click('#groupFeed .look-delete');
   check('a tap asks first and deletes', await toasted(member, 'Отметка удалена'));
-  check(`the question names the grades («${asked.split('\n')[0]}»)`, asked.includes('95 есть, 92 нет') && asked.includes('Её перестанут видеть свои'));
+  // The composer sends grades in the fixed order 92, 95, …, not in the order they were tapped.
+  check(`the question names the grades («${asked.split('\n')[0]}»)`, asked.includes('95 есть') && asked.includes('92 нет') && asked.includes('Её перестанут видеть свои'));
   check(`the banner says the 🤝 went back («Вернули ${earned} 🤝»)`, (await member.textContent('#toastStack')).includes(`Вернули ${earned} 🤝`));
   check('the mark leaves the feed', await becomes(member, () => !document.querySelector('#groupFeed .feed-item')));
   check('the worker no longer has it', (await reportsOf(sasha)).length === 0);
