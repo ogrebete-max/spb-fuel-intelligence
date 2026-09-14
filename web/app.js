@@ -371,8 +371,9 @@ function bindControls() {
     // A composer is tapped in quick runs: a grade twice for «нет», then the
     // queue. Cancelling the second touchend cancelled its click too, so a
     // double tap on 95 went out as «95 есть». Its buttons cannot zoom (see
-    // .mark-composer button in the stylesheet) and keep every tap.
-    if (now - lastTap < 320 && outsideMap(event) && !event.target.closest?.('.mark-composer')) event.preventDefault();
+    // .mark-composer button in the stylesheet) and keep every tap. The drive
+    // screen is tapped the same way: the queue, then «95 есть» right after.
+    if (now - lastTap < 320 && outsideMap(event) && !event.target.closest?.('.mark-composer, .drive, .drive-offer')) event.preventDefault();
     lastTap = now;
   }, { passive: false });
   window.addEventListener('beforeinstallprompt', (event) => {
@@ -399,15 +400,12 @@ function bindControls() {
   });
   $('#gradePicker').addEventListener('click', (event) => {
     const button = event.target.closest('[data-grade]');
-    if (!button) return;
-    state.grade = button.dataset.grade;
-    $$('[data-grade]').forEach((item) => { item.classList.toggle('active', item === button); item.setAttribute('aria-checked', item === button); });
-    state.status = null;
-    state.timeline = null;
-    leaveOwnOnly();
-    track('grade_select');
-    loadStations();
+    if (button) chooseGrade(button.dataset.grade);
   });
+  $('#driveButton')?.addEventListener('click', () => openDrive('button'));
+  $('#driveOfferYes')?.addEventListener('click', () => openDrive('suggestion'));
+  $('#driveOfferNo')?.addEventListener('click', silenceDriveOffer);
+  bindDrive();
   $('.location-row .segmented').addEventListener('click', (event) => {
     const button = event.target.closest('[data-area]');
     if (!button) return;
@@ -467,6 +465,22 @@ function bindControls() {
   $('#sourcesButton').addEventListener('click', showSources);
   $('#refreshButton').addEventListener('click', refreshData);
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeDrawer(); });
+}
+
+// One grade for the whole app: the picker above the list and the plate on the
+// drive screen change the same thing, and the list is loaded for it anew.
+function chooseGrade(grade) {
+  if (!GRADE_LABELS[grade]) return;
+  state.grade = grade;
+  $$('#gradePicker [data-grade]').forEach((item) => {
+    item.classList.toggle('active', item.dataset.grade === grade);
+    item.setAttribute('aria-checked', item.dataset.grade === grade);
+  });
+  state.status = null;
+  state.timeline = null;
+  leaveOwnOnly();
+  track('grade_select');
+  loadStations();
 }
 
 async function refreshData() {
@@ -893,8 +907,12 @@ function notePassedStations(here, accuracy) {
     if (!station.location) continue;
     const metres = haversineKm(here, station.location) * 1000;
     if (metres <= PASSED_METRES) {
+      // The drive screen asks about a station at the next stop only when the
+      // car went past it at speed and close enough to see the pumps.
+      const fast = metres <= DRIVE_PASS_METRES && (currentSpeed() ?? 0) > DRIVING_KMH;
       state.passed[station.id] = {
         at: now, network: station.network, address: station.address, location: station.location,
+        fastAt: fast ? now : state.passed[station.id]?.fastAt || 0,
       };
     }
   }
@@ -903,7 +921,7 @@ function notePassedStations(here, accuracy) {
   }
 }
 
-function applyFix(coords, { force = false } = {}) {
+function applyFix(coords, { force = false, stamp = null } = {}) {
   const here = { lat: coords.latitude, lon: coords.longitude };
   const accuracy = Math.round(coords.accuracy || 0);
   const firstFix = !state.location;
@@ -927,11 +945,14 @@ function applyFix(coords, { force = false } = {}) {
   state.accuracy = accuracy;
   state.locationAt = Date.now();
   state.pendingFix = null;
+  // Speed and heading first: a station passed at speed is noted with them.
+  noteMotion(coords, stamp);
   notePassedStations(here, accuracy);
   renderMe();
   renderLocateButton();
   refreshVerdicts();
   refreshNearby();
+  driveAfterFix();
   if (firstFix) {
     state.bbox = null;
     state.search = '';
@@ -1008,13 +1029,13 @@ function refreshLocation({ manual = false, quiet = false } = {}) {
       { key: 'location', onClick: rough ? showLocationHelp : null },
     );
   };
-  const onFix = ({ coords }) => {
+  const onFix = ({ coords, timestamp }) => {
     pending -= 1;
     if (state.locateToken !== token) {
-      applyFix(coords);
+      applyFix(coords, { stamp: timestamp });
       return;
     }
-    applyFix(coords, { force: manual && !answered });
+    applyFix(coords, { force: manual && !answered, stamp: timestamp });
     if (!answered) {
       answered = true;
       state.locating = false;
@@ -1050,7 +1071,8 @@ function startFollowing({ manual = false } = {}) {
   state.pendingFix = null;
   document.body.classList.add('following');
   renderLocateButton();
-  const onFix = ({ coords }) => applyFix(coords);
+  // A fix's own time tells a new fix from the same one handed out again.
+  const onFix = ({ coords, timestamp }) => applyFix(coords, { stamp: timestamp });
   const onError = (error) => {
     // Only a refusal ends following. A timeout or a moment without signal is
     // ordinary on the road, and switching the mode off then left people with
@@ -1120,6 +1142,7 @@ async function loadStations({ silent = false } = {}) {
     renderStations();
     renderMarkers();
     if (state.club.member) renderGroupFeed();
+    renderDrive();
   } catch (error) {
     $('#stationList').innerHTML = `<div class="empty-state">Ошибка: ${escapeHtml(error.message)}</div>`;
   }
@@ -1674,6 +1697,7 @@ async function pollGroupMarks() {
     updateOwnChip();
     if (state.ownOnly && changed) renderMarkers();
     if (changed) announceNewMarks(previous, marks);
+    if (changed) renderDrive();
   } catch {
     // Offline or the worker is down; the pipeline's copy still arrives.
     renderGroupFeed();
@@ -1957,7 +1981,8 @@ const REWARD_ERRORS = {
 };
 
 function burst(symbol = '⛽') {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // Nothing flies over the drive screen: there only the sheet and the target move.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.body.classList.contains('driving')) return;
   const layer = document.createElement('div');
   layer.className = 'burst';
   layer.setAttribute('aria-hidden', 'true');
@@ -2565,6 +2590,7 @@ function redrawMarks() {
   updateOwnChip();
   if (state.stations.length || state.ownOnly) renderStations();
   if (state.ownOnly) renderMarkers();
+  renderDrive();
 }
 
 function profileCard(profile) {
@@ -3715,7 +3741,7 @@ function groupMarkFor(stationId, grade) {
 // The group's own fresh look at the pump outranks every feed; the card must say
 // so in plain words, not bury it in the vote list. A live mark from the worker
 // wins over the pipeline's copy when it is newer.
-function eyewitnessLine(grade, stationId) {
+function eyewitnessLine(grade, stationId, { brief = false } = {}) {
   const live = stationId ? groupMarkFor(stationId, state.grade) : null;
   const piped = grade?.eyewitness;
   const liveAge = live ? (Date.now() - live.at) / 1000 : null;
@@ -3742,7 +3768,7 @@ function eyewitnessLine(grade, stationId) {
   const crowd = names.length ? ` (${names.join(', ')})` : people > 1 ? ` (${people} ${plural(people, 'человек', 'человека', 'человек')})` : '';
   return {
     tone: seen ? 'yes' : 'no',
-    text: `👁 Свои видели ${ago}${crowd}: ${GRADE_LABELS[state.grade]} ${seen ? 'есть' : 'нет'}${queueText} — самая точная отметка`,
+    text: `👁 Свои видели ${ago}${crowd}: ${GRADE_LABELS[state.grade]} ${seen ? 'есть' : 'нет'}${queueText}${brief ? '' : ' — самая точная отметка'}`,
   };
 }
 
@@ -4120,12 +4146,14 @@ function nearbyPlaces() {
 // the «Вы у АЗС» panel picks it. Two stations facing each other across a road
 // can both be that close, and «Вы здесь» on both would point at neither. A
 // rough fix can put the dot on the wrong forecourt, so it names none.
-function stationHereId(phone, places) {
+// The drive screen asks for closer than the list does: it says «Вы на АЗС» only
+// beside the pumps.
+function stationHereId(phone, places, withinMetres = AT_STATION_METRES) {
   if (!phone || effectiveAccuracy() > ROUGH_METRES) return null;
   let best = null;
   places.forEach((place, id) => {
     const metres = haversineKm(phone, place) * 1000;
-    if (metres <= AT_STATION_METRES && (!best || metres < best.metres)) best = { id, metres };
+    if (metres <= withinMetres && (!best || metres < best.metres)) best = { id, metres };
   });
   return best?.id ?? null;
 }
@@ -4429,6 +4457,1135 @@ function renderMarkers() {
     marker.addTo(state.markers);
   });
   paintNearby();
+}
+
+// ---------------------------------------------------------------- motion
+// How fast the phone goes and which way, from the same fixes the list follows.
+// A browser gives speed and heading only now and then (never on a computer,
+// nor in a test), so both are also worked out from the fixes themselves. The
+// drive screen needs them to know that the car moves, which way is ahead and
+// when it has stopped.
+const MOTION_KEEP_MS = 60 * 1000;
+// Speed is measured over at least this long: a fix wanders by a few metres,
+// and between two fixes a second apart that alone reads as walking pace.
+const MOTION_WINDOW_MS = 4000;
+// No fix for this long after driving is a tunnel or a lost signal, not a stop.
+const MOTION_STALE_MS = 12000;
+// A fix rougher than this says nothing about speed.
+const MOTION_MAX_ACCURACY = 100;
+// Faster than any car in town: the fix jumped, the phone did not.
+const MOTION_JUMP_KMH = 250;
+// Standing, fixes wander in every direction, and a heading taken from them
+// would spin the map: only from fixes this far apart, above this speed.
+const HEADING_MIN_METRES = 15;
+const HEADING_MIN_KMH = 10;
+const DRIVING_KMH = 15;
+const MOVING_KMH = 5;
+const STILL_KMH = 3;
+const motion = { fixes: [], speed: null, heading: null, fastSince: 0, slowSince: 0, stillSince: 0 };
+
+function bearingDegrees(from, to) {
+  const rad = Math.PI / 180;
+  const y = Math.sin((to.lon - from.lon) * rad) * Math.cos(to.lat * rad);
+  const x = Math.cos(from.lat * rad) * Math.sin(to.lat * rad) - Math.sin(from.lat * rad) * Math.cos(to.lat * rad) * Math.cos((to.lon - from.lon) * rad);
+  return (Math.atan2(y, x) / rad + 360) % 360;
+}
+
+// How far `bearing` lies to the right of `heading`, from -180 to 180 degrees.
+function turnFrom(heading, bearing) {
+  return ((bearing - heading + 540) % 360) - 180;
+}
+
+function noteMotion(coords, stamp = null) {
+  const accuracy = Number(coords.accuracy) || 0;
+  if (accuracy > MOTION_MAX_ACCURACY) return;
+  const now = Date.now();
+  const fix = { lat: coords.latitude, lon: coords.longitude, at: now, stamp, accuracy };
+  const last = motion.fixes[motion.fixes.length - 1];
+  // The same fix handed out again from the browser's cache is no news. Its
+  // time is only compared, never subtracted: WebKit has given it in microseconds.
+  if (last && stamp != null && last.stamp === stamp) return;
+  if (last) {
+    const metres = haversineKm(last, fix) * 1000;
+    if (metres > 50 && (metres / Math.max(0.001, (now - last.at) / 1000)) * 3.6 > MOTION_JUMP_KMH) {
+      motion.fixes = [];
+      motion.speed = null;
+    }
+  }
+  motion.fixes = [...motion.fixes.filter((item) => now - item.at <= MOTION_KEEP_MS), fix];
+  let speed = Number.isFinite(coords.speed) && coords.speed >= 0 ? coords.speed * 3.6 : null;
+  if (speed == null) {
+    const reference = [...motion.fixes].reverse().find((item) => now - item.at >= MOTION_WINDOW_MS);
+    if (reference) {
+      const metres = haversineKm(reference, fix) * 1000;
+      // Within the fixes' own spread the phone may just as well be standing.
+      speed = metres < Math.max(reference.accuracy, accuracy) / 2 ? 0 : (metres / ((now - reference.at) / 1000)) * 3.6;
+    }
+  }
+  motion.speed = speed;
+  if (speed != null && speed > HEADING_MIN_KMH) {
+    let heading = Number.isFinite(coords.heading) && coords.heading >= 0 ? coords.heading : null;
+    if (heading == null) {
+      const back = [...motion.fixes].reverse().find((item) => item !== fix && haversineKm(item, fix) * 1000 >= HEADING_MIN_METRES);
+      if (back) heading = bearingDegrees(back, fix);
+    }
+    // Half way towards each new reading: a turn shows within seconds, and one
+    // stray fix does not swing the map.
+    if (heading != null) motion.heading = motion.heading == null ? heading : (motion.heading + turnFrom(motion.heading, heading) / 2 + 360) % 360;
+  }
+  motion.fastSince = speed != null && speed > DRIVING_KMH && !document.hidden ? motion.fastSince || now : 0;
+  motion.slowSince = speed != null && speed <= MOVING_KMH ? motion.slowSince || now : 0;
+  motion.stillSince = speed != null && speed < STILL_KMH ? motion.stillSince || now : 0;
+}
+
+// The speed to act on now. A phone standing still may go without fixes for a
+// while; one that was driving has lost its signal, and its speed is unknown.
+function currentSpeed(now = Date.now()) {
+  const last = motion.fixes[motion.fixes.length - 1];
+  if (!last || motion.speed == null) return null;
+  return now - last.at <= MOTION_STALE_MS || motion.speed <= MOVING_KMH ? motion.speed : null;
+}
+
+// An unknown speed counts as moving: buttons come only once the car is known to stand.
+function movingNow(now = Date.now()) {
+  const speed = currentSpeed(now);
+  return speed == null || speed > MOVING_KMH;
+}
+
+function slowFor(now = Date.now()) {
+  return !movingNow(now) && motion.slowSince ? now - motion.slowSince : 0;
+}
+
+function stillFor(now = Date.now()) {
+  const speed = currentSpeed(now);
+  return speed != null && speed < STILL_KMH && motion.stillSince ? now - motion.stillSince : 0;
+}
+
+// ---------------------------------------------------------------- «За рулём»
+// A screen for the minutes of looking for fuel on the road: the stations ahead
+// with the number of one's grade, a sheet that says more as the car comes
+// closer, «Вы на АЗС» with two huge buttons once it stands at the pumps, and a
+// question at the next stop about a station just passed. The ordinary page
+// stays as it was underneath. A glance is all a driver may give the screen,
+// so there are buttons only while the car stands.
+const DRIVE_RADIUS_METRES = 5000;
+const DRIVE_AHEAD_DEGREES = 60;
+const DRIVE_BIG_PINS = 3;
+const DRIVE_LINE_METRES = 1200;
+// «Вы на АЗС» is said only beside the pumps, after standing there a while:
+// a traffic light next to a station is not a visit.
+const DRIVE_AT_METRES = 100;
+const DRIVE_STAND_MS = 20000;
+const DRIVE_PASS_METRES = 150;
+const DRIVE_ASK_STILL_MS = 3000;
+const DRIVE_ASK_WITHIN_MS = 10 * 60 * 1000;
+const DRIVE_ASK_WITHIN_METRES = 3000;
+const DRIVE_NEIGHBOUR_METRES = 250;
+const DRIVE_OFFER_MS = 30000;
+const DRIVE_UNDO_MS = 5000;
+const DRIVE_ZOOM = 15;
+const DRIVE_CLOSE_ZOOM = 16;
+const DRIVE_THEME_KEY = 'spbfi-drive-theme-v1';
+const DRIVE_OFFER_KEY = 'spbfi-drive-offer-off-v1';
+// «мало» and «много» are what can be told at a glance from the car; they go
+// out as the composer's «до 5» and «до 50».
+const DRIVE_QUEUE = [[0, 'нет'], [3, 'мало'], [35, 'много']];
+const DRIVE_FALLBACK_PLACE = { lat: 59.94, lon: 30.31 };
+const drive = {
+  open: false, map: null, markers: new Map(), side: 0, car: null, center: null, zoom: DRIVE_ZOOM, rotation: 0, turned: null,
+  ticker: null, heldTimer: null, wakeLock: null, theme: 'auto', themeAt: 0, pick: null, pinnedId: null,
+  question: null, asked: new Set(), sent: null, touchAt: 0, kind: '', offered: false, offerOff: false,
+  // Stations where a 👍 confirmed someone's mark: that was the look at the pumps.
+  confirmed: new Map(),
+};
+
+// Where the car is: the phone's own last fix, never an address typed in.
+function drivePhone() {
+  const phone = phonePlace();
+  if (phone) return phone;
+  const last = motion.fixes[motion.fixes.length - 1];
+  return last ? { lat: last.lat, lon: last.lon } : null;
+}
+
+// Sunrise and sunset where the phone is, from the standard solar formulas.
+// Only the time of day decides the theme, so a tunnel or a covered car park
+// never makes the screen flicker.
+function sunTimes(date, place) {
+  const rad = Math.PI / 180;
+  const dayMs = 86400000;
+  const J1970 = 2440588;
+  const J2000 = 2451545;
+  const J0 = 0.0009;
+  const lw = rad * -place.lon;
+  const phi = rad * place.lat;
+  const days = date.valueOf() / dayMs - 0.5 + J1970 - J2000;
+  const n = Math.round(days - J0 - lw / (2 * Math.PI));
+  const ds = J0 + lw / (2 * Math.PI) + n;
+  const M = rad * (357.5291 + 0.98560028 * ds);
+  const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+  const L = M + C + rad * 102.9372 + Math.PI;
+  const dec = Math.asin(Math.sin(rad * 23.4397) * Math.sin(L));
+  const noon = J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  const cosW = (Math.sin(rad * -0.833) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec));
+  // Beyond the polar circle the sun can stay up, or down, the whole day.
+  if (cosW <= -1) return { polar: 'day' };
+  if (cosW >= 1) return { polar: 'night' };
+  const set = J2000 + J0 + (Math.acos(cosW) + lw) / (2 * Math.PI) + n + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  const toDate = (j) => new Date((j + 0.5 - J1970) * dayMs);
+  return { rise: toDate(noon - (set - noon)), set: toDate(set) };
+}
+
+function driveDaylight(now = new Date()) {
+  const place = drivePhone() || DRIVE_FALLBACK_PLACE;
+  const today = sunTimes(now, place);
+  if (today.polar) return { light: today.polar === 'day', next: null };
+  const light = now >= today.rise && now < today.set;
+  const next = light ? today.set : now < today.rise ? today.rise : sunTimes(new Date(now.valueOf() + 86400000), place).rise;
+  return { light, next };
+}
+
+function driveThemeNote(sun) {
+  if (drive.theme === 'day') return 'Всегда светлая тема.';
+  if (drive.theme === 'night') return 'Всегда тёмная тема.';
+  if (!sun.next) return sun.light ? 'Авто: солнце сегодня не заходит, тема дневная.' : 'Авто: солнце сегодня не встаёт, тема ночная.';
+  const clock = sun.next.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return sun.light
+    ? `Авто: сейчас светло, тема дневная. Закат в ${clock} — после него экран сам станет тёмным.`
+    : `Авто: сейчас темно, тема ночная. Рассвет в ${clock} — тогда экран сам станет светлым.`;
+}
+
+function loadDriveTheme() {
+  try {
+    const saved = localStorage.getItem(DRIVE_THEME_KEY);
+    return ['auto', 'day', 'night'].includes(saved) ? saved : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+function applyDriveTheme() {
+  const root = $('#drive');
+  if (!root) return;
+  drive.themeAt = Date.now();
+  const sun = driveDaylight();
+  root.classList.toggle('is-day', drive.theme === 'day' || (drive.theme === 'auto' && sun.light));
+  const note = root.querySelector('[data-drive-theme-note]');
+  if (note) note.textContent = driveThemeNote(sun);
+}
+
+function setDriveTheme(mode) {
+  drive.theme = ['auto', 'day', 'night'].includes(mode) ? mode : 'auto';
+  try {
+    localStorage.setItem(DRIVE_THEME_KEY, drive.theme);
+  } catch {
+    // Private mode: the choice lasts until the page is closed.
+  }
+  applyDriveTheme();
+  renderDrive({ force: true });
+}
+
+// The screen must not go dark in the holder. The browser lets go of the lock
+// whenever the page is hidden, so it is asked for again on the way back.
+async function holdScreenOn() {
+  if (!drive.open || document.hidden || !navigator.wakeLock?.request) return;
+  if (drive.wakeLock && !drive.wakeLock.released) return;
+  try {
+    drive.wakeLock = await navigator.wakeLock.request('screen');
+    if (!drive.open) releaseScreen();
+  } catch {
+    // Low battery or not allowed: the phone decides, the screen still works.
+    drive.wakeLock = null;
+  }
+}
+
+function releaseScreen() {
+  const lock = drive.wakeLock;
+  drive.wakeLock = null;
+  lock?.release?.().catch(() => {});
+}
+
+// Offered once a session, after half a minute above walking pace with the
+// app on screen: a passenger scrolling the list would rather be asked than
+// switched.
+function driveOfferSilenced() {
+  if (drive.offerOff) return true;
+  try {
+    return sessionStorage.getItem(DRIVE_OFFER_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function maybeOfferDrive(now = Date.now()) {
+  const box = $('#driveOffer');
+  if (!box || drive.open || drive.offered || document.hidden || driveOfferSilenced()) return;
+  const speed = currentSpeed(now);
+  if (!motion.fastSince || speed == null || speed <= DRIVING_KMH || now - motion.fastSince < DRIVE_OFFER_MS) return;
+  drive.offered = true;
+  box.hidden = false;
+}
+
+function hideDriveOffer() {
+  const box = $('#driveOffer');
+  if (box) box.hidden = true;
+}
+
+function silenceDriveOffer() {
+  drive.offerOff = true;
+  try {
+    sessionStorage.setItem(DRIVE_OFFER_KEY, '1');
+  } catch {
+    // This page still remembers.
+  }
+  hideDriveOffer();
+}
+
+function driveAfterFix() {
+  maybeOfferDrive();
+  if (drive.open) renderDrive();
+}
+
+// The pins must stand around the car. A list for a typed address or an area
+// of the map goes back to «рядом», the way the first fix sets it.
+function followPhone() {
+  if (!navigator.geolocation) return;
+  if (!state.follow) {
+    startFollowing({ manual: true });
+    return;
+  }
+  if (!state.location || ['device', 'far'].includes(state.searchScope)) return;
+  state.location = null;
+  const last = motion.fixes[motion.fixes.length - 1];
+  if (last && Date.now() - last.at < 30000) applyFix({ latitude: last.lat, longitude: last.lon, accuracy: last.accuracy }, { stamp: last.stamp });
+  else refreshLocation();
+}
+
+function bindDrive() {
+  const root = $('#drive');
+  if (!root) return;
+  // A redraw between a finger landing and lifting loses the tap (14 Sep 2026,
+  // the composer); the screen waits for it, see renderDrive.
+  root.addEventListener('pointerdown', () => { drive.touchAt = Date.now(); });
+  root.addEventListener('click', onDriveTap);
+  // Scroll events do not bubble; caught on the way down, the two layers that
+  // must never scroll are put back at once. The panels scroll their own content.
+  root.addEventListener('scroll', (event) => {
+    const layer = event.target;
+    if ((layer === root || layer.id === 'driveStage') && (layer.scrollTop || layer.scrollLeft)) layer.scrollTo(0, 0);
+  }, true);
+  window.addEventListener('resize', () => { if (drive.open) renderDrive({ force: true }); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      motion.fastSince = 0;
+      return;
+    }
+    if (!drive.open) return;
+    holdScreenOn();
+    applyDriveTheme();
+    renderDrive({ force: true });
+  });
+}
+
+function openDrive(reason = 'button') {
+  const root = $('#drive');
+  if (drive.open || !root) return;
+  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0 });
+  hideDriveOffer();
+  closeDrawer();
+  document.body.classList.add('driving');
+  root.hidden = false;
+  followPhone();
+  layoutDrive();
+  initDriveMap();
+  applyDriveTheme();
+  holdScreenOn();
+  drive.ticker = setInterval(tickDrive, 1000);
+  renderDrive({ force: true });
+  track('drive_open', { reason });
+}
+
+function closeDrive() {
+  const root = $('#drive');
+  if (!drive.open || !root) return;
+  drive.open = false;
+  clearInterval(drive.ticker);
+  clearTimeout(drive.heldTimer);
+  drive.ticker = null;
+  releaseScreen();
+  root.hidden = true;
+  document.body.classList.remove('driving');
+  track('drive_close');
+  // The ordinary map lay covered and measures itself again.
+  if (state.map) setTimeout(() => state.map.invalidateSize(), 80);
+}
+
+// Once a second: standing still brings no fixes, yet «Вы на АЗС», the question
+// at a stop and the seconds left to undo all move on.
+function tickDrive() {
+  if (!drive.open) return;
+  if (Date.now() - drive.themeAt > 60000) applyDriveTheme();
+  renderDrive();
+}
+
+function initDriveMap() {
+  if (drive.map || typeof L === 'undefined') return;
+  // No gestures at all: the map follows the car and turns with the road.
+  drive.map = L.map('driveMap', {
+    zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false,
+    doubleClickZoom: false, boxZoom: false, keyboard: false, inertia: false,
+    zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false,
+  }).setView([DRIVE_FALLBACK_PLACE.lat, DRIVE_FALLBACK_PLACE.lon], DRIVE_ZOOM);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(drive.map);
+}
+
+function driveItem(phone, station, heading) {
+  const metres = haversineKm(phone, station.location) * 1000;
+  return { station, metres, turn: heading == null ? null : turnFrom(heading, bearingDegrees(phone, station.location)) };
+}
+
+// What the screen shows now, and the few things decided on the way: the
+// seconds to undo running out, a question put at a stop, «Не та?» let go of
+// once the car moves.
+function stepDrive(now = Date.now()) {
+  const phone = drivePhone();
+  const heading = motion.heading;
+  const view = { now, phone, heading, speed: currentSpeed(now), around: [], ahead: [], pins: [], focus: null, neighbour: null, kind: 'wait' };
+  const moving = movingNow(now);
+  if (moving) drive.pinnedId = null;
+  if (drive.sent && !drive.sent.undoing && (moving || now - drive.sent.madeAt > DRIVE_UNDO_MS)) drive.sent = null;
+  if (!phone) return view;
+  // Right after the grade changes the list is still the old grade's, and its
+  // answers would be read out under the new grade's number.
+  const listed = state.stations[0]?.grade?.grade;
+  if (listed && listed !== state.grade && !drive.sent) {
+    view.kind = 'loading';
+    return view;
+  }
+  view.around = state.stations
+    .filter((station) => station.location)
+    .map((station) => driveItem(phone, station, heading))
+    .filter((item) => item.metres <= DRIVE_RADIUS_METRES)
+    .sort((a, b) => a.metres - b.metres);
+  // Until there is a heading, «ahead» is simply the nearest.
+  view.ahead = heading == null ? view.around : view.around.filter((item) => Math.abs(item.turn) <= DRIVE_AHEAD_DEGREES);
+  view.pins = view.ahead.slice(0, DRIVE_BIG_PINS);
+  const itemFor = (id) => {
+    const listed = view.around.find((item) => item.station.id === id);
+    if (listed) return listed;
+    const station = state.stations.find((item) => item.id === id && item.location);
+    return station ? driveItem(phone, station, heading) : null;
+  };
+  if (drive.sent) {
+    view.kind = 'sent';
+    view.focus = itemFor(drive.sent.stationId);
+    return view;
+  }
+  const rough = effectiveAccuracy() > ROUGH_METRES;
+  const hereId = rough ? null : stationHereId(phone, nearbyPlaces(), DRIVE_AT_METRES);
+  const atId = drive.pinnedId || hereId;
+  if (atId && slowFor(now) >= DRIVE_STAND_MS && !markedRecently(atId, 10) && now - (drive.confirmed.get(atId) || 0) > 10 * 60 * 1000 && itemFor(atId)) {
+    view.kind = 'at';
+    view.focus = itemFor(atId);
+    view.neighbour = view.around.find((item) => item.station.id !== atId && item.metres <= DRIVE_NEIGHBOUR_METRES) || null;
+    return view;
+  }
+  if (drive.question && moving) {
+    track('drive_stop_question', { station: drive.question.id, reason: 'moved' });
+    drive.question = null;
+  }
+  if (!drive.question && !rough && stillFor(now) >= DRIVE_ASK_STILL_MS) {
+    const passed = Object.entries(state.passed)
+      .map(([id, item]) => ({ id, ...item, metres: haversineKm(phone, item.location) * 1000 }))
+      .filter((item) => item.fastAt && now - item.fastAt <= DRIVE_ASK_WITHIN_MS && item.metres <= DRIVE_ASK_WITHIN_METRES
+        && !drive.asked.has(item.id) && item.id !== hereId && !markedRecently(item.id)
+        // A car stopped short of a station has not passed it yet.
+        && (heading == null || Math.abs(turnFrom(heading, bearingDegrees(phone, item.location))) > 90))
+      .sort((a, b) => b.fastAt - a.fastAt)[0];
+    if (passed) {
+      drive.question = { id: passed.id, network: passed.network };
+      drive.asked.add(passed.id);
+      track('drive_stop_question', { station: passed.id, reason: 'shown' });
+    }
+  }
+  if (drive.question) {
+    view.kind = 'question';
+    view.focus = itemFor(drive.question.id);
+    return view;
+  }
+  if (rough) {
+    view.kind = 'rough';
+    return view;
+  }
+  if (!state.stations.length) {
+    view.kind = 'loading';
+    return view;
+  }
+  if (!view.around.length) {
+    view.kind = 'empty';
+    return view;
+  }
+  const serves = (station) => SERVES_NOW[station.grade?.status] === 0;
+  const target = view.ahead[0];
+  if (target && target.metres <= NEARBY_REPORT_METRES) {
+    view.kind = 'near';
+    view.focus = target;
+    return view;
+  }
+  const withGrade = view.ahead.find((item) => serves(item.station));
+  if (!withGrade) {
+    // Nothing ahead has it: the nearest station that has, wherever it is.
+    view.kind = 'none';
+    view.focus = state.stations
+      .filter((station) => station.location && serves(station))
+      .map((station) => driveItem(phone, station, heading))
+      .sort((a, b) => a.metres - b.metres)[0] || null;
+    return view;
+  }
+  view.kind = 'line';
+  view.focus = target.metres <= DRIVE_LINE_METRES ? target : withGrade;
+  return view;
+}
+
+function driveGradeLabel(grade = state.grade) {
+  return GRADE_LABELS[grade].replace('АИ-', '');
+}
+
+// Rounded so the words do not tick over with every fix.
+function driveDistance(metres) {
+  if (metres >= 950) return `${(Math.round(metres / 100) / 10).toLocaleString('ru-RU')} км`;
+  return `${metres >= 100 ? Math.round(metres / 50) * 50 : Math.max(10, Math.round(metres / 10) * 10)} м`;
+}
+
+// Which side of the road a station ahead is on, by how far it stands off the
+// line of travel: a kilometre out, a forecourt beside the road is only a
+// couple of degrees off the heading.
+function driveSide(item) {
+  if (item?.turn == null) return '';
+  const aside = item.metres * Math.sin((item.turn * Math.PI) / 180);
+  return aside >= 20 ? ' справа' : aside <= -20 ? ' слева' : '';
+}
+
+// Which way to turn for a station anywhere around.
+function driveDirection(turn) {
+  if (turn == null) return '';
+  if (Math.abs(turn) <= 30) return ' впереди';
+  if (Math.abs(turn) >= 150) return ' позади';
+  return turn > 0 ? ' направо' : ' налево';
+}
+
+// «Проехали Неву», «Что с 95 на Роснефти?»: a plain one-word name is declined,
+// anything else is named as it is.
+const PLAIN_NAME = /^[А-ЯЁ][а-яё]+$/;
+
+function nameAccusative(name) {
+  return PLAIN_NAME.test(name) && name.endsWith('а') ? `${name.slice(0, -1)}у` : name;
+}
+
+function namePrepositional(name) {
+  if (name === 'АЗС') return 'этой АЗС';
+  if (PLAIN_NAME.test(name)) {
+    if (name.endsWith('ь')) return `${name.slice(0, -1)}и`;
+    if (name.endsWith('а')) return `${name.slice(0, -1)}е`;
+    if (/[бвгджзклмнпрстфхцчшщ]$/.test(name)) return `${name}е`;
+  }
+  return `АЗС «${name}»`;
+}
+
+// What the app says about one's grade at a station, in words and a tone:
+// «нет» is never a colour alone.
+function driveSays(station) {
+  const label = driveGradeLabel();
+  const grade = station.grade || {};
+  const limit = grade.limit_liters != null ? `, лимит ${Math.round(grade.limit_liters)} л` : '';
+  if (grade.status === 'CAN_REFUEL') return { text: `${label} есть${limit}`, tone: 'yes' };
+  if (grade.status === 'LIKELY_AVAILABLE') return { text: `${label} скорее есть${limit}`, tone: 'yes' };
+  if (grade.status === 'LIMITED') return { text: `${label} есть${limit || ', с ограничением'}`, tone: 'lim' };
+  if (grade.status === 'LIKELY_NOT') return { text: `${label} скорее нет`, tone: 'no' };
+  if (grade.status === 'CONFIRMED_NO') return { text: `${label} нет`, tone: 'no' };
+  if (grade.status === 'CONFLICT') return { text: `по ${label} данные расходятся`, tone: 'unk' };
+  return { text: `по ${label} нет свежих данных`, tone: 'unk' };
+}
+
+// An address as a driver needs it: the street and the house, and the place
+// when it is not the city. A feed's district, municipality and «МО» chain
+// mean nothing from behind the wheel.
+const ADDRESS_NOISE = [
+  /федерац/i, /^\s*россия\s*$/i, /област/i, /(^|\s)обл\.?(\s|$)/i, /санкт-петербург/i,
+  /м\.?\s*р-?н/i, /(^|\s)р-н\.?(\s|$)/i, /(^|\s)район(\s|$)/i, /муниципальн/i, /(^|\s)МО(\s|$|["«])/,
+  /поселени/i, /вн\.?\s*тер/i, /внутригородск/i, /(^|\s)округ(\s|$)/i,
+  /^\d{6}$/, /\s[сг]\.\s?п\.?$/i, /(^|\s)м\.\s?о\.(\s|$)/i,
+];
+
+function driveAddress(address) {
+  const parts = shortAddress(address).split(',').map((part) => part.trim())
+    .filter((part) => part && !ADDRESS_NOISE.some((pattern) => pattern.test(part)))
+    .map((part) => part.replace(/^(г\.\s*п\.|гп|пгт|пос\.|посёлок|поселок|город|г\.|дер\.|деревня)\s+/i, ''));
+  return parts.slice(-3).join(', ');
+}
+
+// A name as the club shows it, without the level icon in front.
+function driveName(mark) {
+  return String(mark?.authorName || (mark?.names || [])[0] || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+}
+
+// How old the answer is, who of the group saw it and their 👍, the queue: one
+// line from what the app already has.
+function driveMeta(station, { witness = true } = {}) {
+  const grade = station.grade || {};
+  const mark = groupMarkFor(station.id, state.grade);
+  const parts = [];
+  if (mark && witness) {
+    parts.push(`${driveName(mark) || 'Свои'} ${formatAge((Date.now() - mark.at) / 1000)}: ${mark.seen ? 'есть' : 'нет'}${mark.up ? ` · 👍 ${mark.up}` : ''}`);
+  } else if (grade.status !== 'NO_FRESH_DATA' && grade.age_seconds != null && !grade.undated_only) {
+    parts.push(formatAge(grade.age_seconds));
+  }
+  const queue = mark?.queue != null ? queueWords(mark.queue) : grade.queue?.label;
+  if (queue) parts.push(`очередь ${queue}`);
+  return parts.join(' · ');
+}
+
+// The letter on a pin: someone of the group looked at it lately.
+function driveInitial(stationId) {
+  const mark = groupMarkFor(stationId, state.grade);
+  if (!mark) return '';
+  const name = driveName(mark);
+  return name ? name.charAt(0).toLocaleUpperCase('ru-RU') : '👁';
+}
+
+function driveChips(station) {
+  const brief = (state.gradesBrief || {})[station.id] || {};
+  return Object.keys(GRADE_LABELS).map((grade) => {
+    const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
+    const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
+    const tone = { yes: ' ok', likely: ' ok', limited: ' lim', no: ' bad' }[mark.tone] || '';
+    const limit = grade === state.grade && station.grade.limit_liters != null ? ` ${Math.round(station.grade.limit_liters)} л` : '';
+    const hint = `${GRADE_LABELS[grade]}: ${STATUS[status]?.short || ''}`;
+    return `<span class="drive-chip${tone}${grade === state.grade ? ' mine' : ''}" title="${escapeHtml(hint)}">${escapeHtml(driveGradeLabel(grade))} ${mark.sign}${escapeHtml(limit)}</span>`;
+  }).join('');
+}
+
+function driveMarkButtons(stationId, { huge = false } = {}) {
+  const label = escapeHtml(driveGradeLabel());
+  const id = escapeHtml(stationId);
+  const size = huge ? ' huge' : '';
+  return `<div class="drive-row${size}">
+      <button type="button" class="drive-btn yes${size}" data-drive="mark" data-station="${id}" data-seen="1">${label} есть</button>
+      <button type="button" class="drive-btn no${size}" data-drive="mark" data-station="${id}" data-seen="0">${label} нет</button>
+    </div>`;
+}
+
+// The sheet over the map and the panel that covers it at the pumps and after
+// a mark, as HTML. The speed and the seconds to undo change every second and
+// are set apart (see paintDrivePanels), so a button is rebuilt only when what
+// it says changes.
+function drivePanels(view) {
+  const label = escapeHtml(driveGradeLabel());
+  const focus = view.focus;
+  const station = focus?.station;
+  const place = station ? driveAddress(station.address) : '';
+  const title = station ? `${escapeHtml(displayNetwork(station.network))}${place ? `, ${escapeHtml(place)}` : ''}` : '';
+  const meta = (text) => (text ? `<p class="drive-meta">${escapeHtml(text)}</p>` : '');
+  const where = (text) => `<span class="drive-where">${escapeHtml(text)}</span>`;
+  if (view.kind === 'wait') {
+    return { sheet: `<p class="drive-line">Ищем, где вы…</p>${meta('Разрешите приложению геопозицию: без неё не видно ни дороги, ни заправок впереди.')}` };
+  }
+  if (view.kind === 'rough') {
+    return { sheet: `${where('Место приблизительное')}<p class="drive-line">Телефон даёт место ±${escapeHtml(formatMeters(state.accuracy || 0))}</p>${meta('Заправки впереди могут быть не те, а отметки заработают, когда место станет точным.')}` };
+  }
+  if (view.kind === 'loading') return { sheet: '<p class="drive-line">Загружаем заправки рядом…</p>' };
+  if (view.kind === 'empty') return { sheet: `${where(`В ${DRIVE_RADIUS_METRES / 1000} км заправок нет`)}${meta('Приложение знает заправки Петербурга и области.')}` };
+  if (view.kind === 'line') {
+    const says = driveSays(station);
+    return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}
+      <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>${meta(driveMeta(station))}` };
+  }
+  if (view.kind === 'near') {
+    const witness = eyewitnessLine(station.grade, station.id, { brief: true });
+    const mine = markedRecently(station.id) ? markLine(station.id, state.grade) : null;
+    const actions = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>`
+      : movingNow(view.now) ? '<p class="drive-lock">🔒 Отметить — на остановке</p>'
+        : driveMarkButtons(station.id);
+    return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}
+      <p class="drive-line drive-name">${title}</p>
+      <div class="drive-chips">${driveChips(station)}</div>
+      ${meta(driveMeta(station, { witness: false }))}
+      ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
+      ${actions}` };
+  }
+  if (view.kind === 'none') {
+    if (!focus) return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}<p class="drive-line">Рядом ${label} нет ни на одной заправке</p>` };
+    return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}
+      <p class="drive-line">Ближайшая с ${label} — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}` };
+  }
+  if (view.kind === 'question') {
+    const name = shortNetwork(drive.question.network);
+    return { sheet: `${where(`Проехали ${nameAccusative(name)}`)}
+      <p class="drive-line">Что с ${label} на ${escapeHtml(namePrepositional(name))}?</p>
+      <div class="drive-row three">
+        <button type="button" class="drive-btn yes" data-drive="answer" data-seen="1">${label} есть</button>
+        <button type="button" class="drive-btn no" data-drive="answer" data-seen="0">${label} нет</button>
+        <button type="button" class="drive-btn skip" data-drive="skip">не видел</button>
+      </div>${meta('Тронетесь — вопрос исчезнет сам')}` };
+  }
+  if (view.kind === 'at') return { full: driveAtPanel(view, title) };
+  if (view.kind === 'sent') return { full: driveSentPanel(title) };
+  return {};
+}
+
+// Someone else's fresh mark for this grade: at the pumps it is confirmed or
+// refuted with 👍 and 👎, the club's own way, rather than marked over.
+function driveLook(stationId) {
+  if (!state.club.enabled || !state.club.member || !state.club.features?.votes) return null;
+  const mark = groupMarkFor(stationId, state.grade);
+  if (!mark?.who || !mark.authorName || mark.who === myId()) return null;
+  const look = voteTargets(stationId).find((item) => item.author === mark.who && item.at === mark.at);
+  return look && !look.myVote ? { look, mark } : null;
+}
+
+function driveAtPanel(view, title) {
+  const station = view.focus.station;
+  const id = escapeHtml(station.id);
+  const label = escapeHtml(driveGradeLabel());
+  const other = view.neighbour;
+  // Two stations across the road from each other are the likeliest mix-up.
+  const not = other
+    ? `<button type="button" class="drive-not" data-drive="not" data-station="${escapeHtml(other.station.id)}">Не та? Рядом ${escapeHtml(shortNetwork(other.station.network))}, ${escapeHtml(driveDistance(other.metres))} →</button>`
+    : '';
+  const head = `<span class="drive-where">Вы на АЗС</span><p class="drive-title drive-name">${title}</p>${not}`;
+  const said = driveLook(station.id);
+  if (said) {
+    const { mark } = said;
+    const queue = mark.queue != null ? ` · очередь ${escapeHtml(queueWords(mark.queue))}` : '';
+    return `${head}
+      <div class="drive-said">
+        <p class="drive-meta">${escapeHtml(driveName(mark) || 'Свой')} отметил(а) ${escapeHtml(formatAge((Date.now() - mark.at) / 1000))}</p>
+        <p class="drive-line"><span class="drive-${mark.seen ? 'yes' : 'no'}">${label} ${mark.seen ? 'есть' : 'нет'}</span>${queue}</p>
+      </div>
+      <div class="drive-row huge">
+        <button type="button" class="drive-btn huge yes" data-drive="vote" data-station="${id}" data-vote="up">👍 Так и есть</button>
+        <button type="button" class="drive-btn huge no" data-drive="vote" data-station="${id}" data-vote="down">👎 Уже нет</button>
+      </div>`;
+  }
+  const chosen = composeDraft(station.id)?.queue;
+  const queue = DRIVE_QUEUE.map(([cars, word]) => `<button type="button" class="drive-seg-button${chosen === cars ? ' on' : ''}" data-drive="queue" data-station="${id}" data-cars="${cars}" aria-pressed="${chosen === cars}">${word}</button>`).join('');
+  return `${head}
+    ${driveMarkButtons(station.id, { huge: true })}
+    <p class="drive-meta">Очередь, если видно</p>
+    <div class="drive-seg">${queue}</div>`;
+}
+
+function driveSentPanel(title) {
+  const sent = drive.sent;
+  const [heading, note] = sent.vote
+    ? ['👍 Подтверждено', 'Спасибо, что проверили на месте.']
+    : sent.outcome === 'queued' ? ['Сохранено на телефоне', 'Нет связи. Отметка уйдёт своим сама, как только появится интернет.']
+      : sent.outcome === 'refused' ? ['Не отправлено', 'Отметка осталась только на этом телефоне.']
+        : ['Отправлено своим', ''];
+  const undo = sent.undoable && !sent.vote
+    ? `<button type="button" class="drive-undo" data-drive="undo"${sent.undoing ? ' disabled' : ''}>Отменить <b data-drive-count></b></button>`
+    : '';
+  return `<svg class="drive-check${sent.outcome === 'refused' ? ' refused' : ''}" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30"/><path d="M19 33 L28 42 L46 23"/></svg>
+    <p class="drive-title">${escapeHtml(heading)}</p>
+    <p class="drive-meta">${escapeHtml(sent.what)}${title ? ` · ${title}` : ''}</p>
+    ${note ? `<p class="drive-meta">${escapeHtml(note)}</p>` : ''}
+    ${undo}
+    <p class="drive-hint">Потом экран сам вернётся к карте.</p>`;
+}
+
+function driveGradesPick() {
+  const buttons = Object.keys(GRADE_LABELS).map((grade) => `<button type="button" class="drive-grade${grade === state.grade ? ' on' : ''}" data-drive="grade" data-grade="${grade}" aria-pressed="${grade === state.grade}">${escapeHtml(driveGradeLabel(grade))}</button>`).join('');
+  return `<span class="drive-where">Моя марка</span><div class="drive-grades">${buttons}</div>
+    <button type="button" class="drive-pick-close" data-drive="pick-close">Готово</button>`;
+}
+
+function driveThemePick() {
+  const modes = [['auto', 'Авто'], ['day', '☀️ День'], ['night', '🌙 Ночь']]
+    .map(([mode, word]) => `<button type="button" data-drive="theme-mode" data-mode="${mode}" aria-pressed="${drive.theme === mode}">${word}</button>`).join('');
+  return `<span class="drive-where">Тема экрана</span><div class="drive-switch">${modes}</div>
+    <p class="drive-meta" data-drive-theme-note>${escapeHtml(driveThemeNote(driveDaylight()))}</p>
+    <button type="button" class="drive-pick-close" data-drive="pick-close">Готово</button>`;
+}
+
+function renderDrive({ force = false } = {}) {
+  if (!drive.open) return;
+  const now = Date.now();
+  const view = stepDrive(now);
+  const plate = $('#drivePlateGrade');
+  if (plate && plate.textContent !== driveGradeLabel()) plate.textContent = driveGradeLabel();
+  const speed = $('#driveSpeed');
+  const shown = view.speed == null ? '—' : String(Math.round(view.speed));
+  if (speed && speed.textContent !== shown) speed.textContent = shown;
+  // A finger that has just landed keeps its button where it is: a redraw
+  // before it lifts would lose the tap. The screen catches up a moment later;
+  // a redraw asked for by a tap itself comes after that tap and goes ahead.
+  if (!force && now - drive.touchAt < 1000) {
+    clearTimeout(drive.heldTimer);
+    drive.heldTimer = setTimeout(() => renderDrive(), 1000 - (now - drive.touchAt) + 30);
+  } else {
+    paintDrivePanels(view);
+  }
+  layoutDrive();
+  paintDriveMap(view);
+}
+
+function setDriveHtml(box, html) {
+  if (box.driveHtml !== html) {
+    box.innerHTML = html;
+    box.driveHtml = html;
+  }
+  box.hidden = !html;
+}
+
+function paintDrivePanels(view) {
+  const sheet = $('#driveSheet');
+  const full = $('#driveFull');
+  const pick = $('#drivePick');
+  if (!sheet || !full || !pick) return;
+  const panels = drivePanels(view);
+  const picked = drive.pick === 'grades' ? driveGradesPick() : drive.pick === 'theme' ? driveThemePick() : '';
+  // Banners are not shown over this screen, so a failure it must tell about
+  // heads whichever panel is up for a few seconds.
+  const flash = drive.flash && view.now < drive.flash.until ? `<p class="drive-flash" role="status">${escapeHtml(drive.flash.text)}</p>` : '';
+  setDriveHtml(pick, picked);
+  setDriveHtml(full, picked || !panels.full ? '' : flash + panels.full);
+  setDriveHtml(sheet, picked || panels.full || !panels.sheet ? '' : flash + panels.sheet);
+  // A panel slides in when it starts saying something else, not on every fix.
+  const kind = picked ? `pick-${drive.pick}` : view.kind;
+  if (kind !== drive.kind) {
+    drive.kind = kind;
+    drive.kindAt = view.now;
+    [sheet, full, pick].forEach((box) => {
+      box.classList.remove('rise');
+      if (box.hidden) return;
+      void box.offsetWidth;
+      box.classList.add('rise');
+    });
+  }
+  $('#drive').dataset.kind = kind;
+  const left = drive.sent ? Math.max(0, Math.ceil((DRIVE_UNDO_MS - (view.now - drive.sent.madeAt)) / 1000)) : 0;
+  full.querySelectorAll('[data-drive-count]').forEach((count) => {
+    const words = left ? `· ${left} с` : '';
+    if (count.textContent !== words) count.textContent = words;
+  });
+}
+
+// The car sits low in the part of the map the panels leave free, so more of
+// the road ahead is on screen. The map is a square centred on the car, large
+// enough to cover the screen at any turn; it only ever grows, since each new
+// size loads the tiles again.
+function layoutDrive() {
+  const root = $('#drive');
+  const holder = $('#driveMap');
+  const car = $('#driveCar');
+  if (!root || !holder || !car || root.hidden) return;
+  // Nothing here scrolls. A browser that scrolled a layer anyway, to bring
+  // something into view, moved the plates and the sheet off the screen.
+  [root, $('#driveStage')].forEach((layer) => {
+    if (layer && (layer.scrollTop || layer.scrollLeft)) layer.scrollTo(0, 0);
+  });
+  const width = root.clientWidth;
+  const height = root.clientHeight;
+  const panel = [$('#drivePick'), $('#driveFull'), $('#driveSheet')].find((box) => box && !box.hidden);
+  let right = width;
+  let bottom = height;
+  if (panel) {
+    const rect = panel.getBoundingClientRect();
+    if (rect.left > width * 0.3) right = rect.left;
+    else bottom = Math.max(height * 0.4, rect.top);
+  }
+  const top = Math.min(118, height * 0.25);
+  const x = Math.round(right / 2);
+  const y = Math.round(top + (bottom - top) * 0.72);
+  const side = Math.max(drive.side, 2 * Math.ceil(Math.hypot(Math.max(x, width - x), Math.max(y, height - y))) + 64);
+  if (side !== drive.side) {
+    drive.side = side;
+    holder.style.width = `${side}px`;
+    holder.style.height = `${side}px`;
+    drive.map?.invalidateSize({ pan: false });
+    drive.center = null;
+  }
+  holder.style.left = `${x - side / 2}px`;
+  holder.style.top = `${y - side / 2}px`;
+  car.style.left = `${x}px`;
+  car.style.top = `${y}px`;
+  drive.car = { x, y, width, height, top, right, bottom };
+}
+
+// The station the sheet is about is always on the map: the closest zoom at
+// which its pin fits above the car and inside the edges. It goes out at once
+// and in only with room to spare, a whole step at a time, so it does not flicker.
+function driveZoom(view) {
+  const { focus, phone } = view;
+  const car = drive.car;
+  if (!['line', 'near'].includes(view.kind) || !focus || !car) return ['at', 'sent'].includes(view.kind) ? DRIVE_CLOSE_ZOOM : DRIVE_ZOOM;
+  const angle = ((bearingDegrees(phone, focus.station.location) - drive.rotation) * Math.PI) / 180;
+  const ahead = focus.metres * Math.cos(angle);
+  const aside = Math.abs(focus.metres * Math.sin(angle));
+  // Metres a pixel must hold for the pin, which stands 50 px tall over its point.
+  const room = {
+    up: Math.max(40, car.y - car.top - 50),
+    down: Math.max(40, car.bottom - car.y - 20),
+    side: Math.max(40, Math.min(car.x, car.right - car.x) - 36),
+  };
+  const needed = Math.max(ahead > 0 ? ahead / room.up : -ahead / room.down, aside / room.side, 0.3);
+  const exact = Math.log2((156543.03 * Math.cos((phone.lat * Math.PI) / 180)) / needed);
+  const fit = Math.max(12, Math.min(DRIVE_CLOSE_ZOOM, Math.floor(exact)));
+  if (fit < drive.zoom) return fit;
+  return fit > drive.zoom && exact - drive.zoom >= 1.25 ? drive.zoom + 1 : drive.zoom;
+}
+
+function paintDriveMap(view) {
+  const map = drive.map;
+  if (!map || !view.phone || !drive.car) return;
+  drive.zoom = driveZoom(view);
+  const moved = !drive.center || drive.center.lat !== view.phone.lat || drive.center.lon !== view.phone.lon;
+  if (moved || map.getZoom() !== drive.zoom) {
+    map.setView([view.phone.lat, view.phone.lon], drive.zoom, { animate: false });
+    drive.center = { lat: view.phone.lat, lon: view.phone.lon };
+  }
+  // Heading up: the map turns so that the road ahead points up. The heading
+  // changes only above 10 km/h, so a car that stops keeps the last turn.
+  if (view.heading != null) drive.rotation = view.heading;
+  if (drive.turned !== drive.rotation) {
+    drive.turned = drive.rotation;
+    const holder = $('#driveMap');
+    holder.style.transform = `rotate(${-drive.rotation}deg)`;
+    holder.style.setProperty('--drive-turn', `${drive.rotation}deg`);
+  }
+  $('#driveCar').classList.toggle('unknown', view.heading == null);
+  paintDrivePins(view);
+  paintDriveEdge(view);
+}
+
+// Pins change on the elements Leaflet already drew, as on the ordinary map: a
+// new icon on every fix would restart the glow and cost a phone in its holder
+// for nothing.
+function paintDrivePins(view) {
+  const map = drive.map;
+  const wanted = new Map(view.around.map((item) => [item.station.id, item]));
+  const focusId = view.focus?.station.id || null;
+  if (view.focus && !wanted.has(focusId)) wanted.set(focusId, view.focus);
+  drive.markers.forEach((marker, id) => {
+    if (wanted.has(id)) return;
+    marker.remove();
+    drive.markers.delete(id);
+  });
+  const big = new Set(view.pins.map((item) => item.station.id));
+  if (focusId) big.add(focusId);
+  const label = driveGradeLabel();
+  wanted.forEach((item, id) => {
+    let marker = drive.markers.get(id);
+    if (!marker) {
+      marker = L.marker([item.station.location.lat, item.station.location.lon], {
+        icon: L.divIcon({ className: 'dpin', html: '<span class="dpin-turn"><span class="dpin-body"><b></b><i hidden></i></span></span>', iconSize: [0, 0], iconAnchor: [0, 0] }),
+        interactive: false, keyboard: false,
+      }).addTo(map);
+      drive.markers.set(id, marker);
+    }
+    const element = marker.getElement();
+    if (!element) return;
+    const status = item.station.grade?.status || 'NO_FRESH_DATA';
+    const isBig = big.has(id);
+    element.classList.toggle('big', isBig);
+    element.classList.toggle('focus', id === focusId);
+    element.classList.toggle('no', (GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA).tone === 'no');
+    if (element.dataset.status !== status) element.dataset.status = status;
+    if (element.dataset.station !== id) element.dataset.station = id;
+    const number = element.querySelector('b');
+    if (number.textContent !== label) number.textContent = label;
+    const badge = element.querySelector('i');
+    const initial = isBig ? driveInitial(id) : '';
+    if (badge.textContent !== initial) badge.textContent = initial;
+    badge.hidden = !initial;
+    const lift = id === focusId ? 800 : isBig ? 400 : 0;
+    if ((marker.options.zIndexOffset || 0) !== lift) marker.setZIndexOffset(lift);
+  });
+}
+
+// The nearest station with one's grade, when nothing ahead has it and the
+// station is off the screen: a marker on the edge of the map, towards it.
+function paintDriveEdge(view) {
+  const edge = $('#driveEdge');
+  const map = drive.map;
+  if (!edge) return;
+  const target = view.kind === 'none' ? view.focus : null;
+  if (!target || !map || !drive.car) {
+    edge.hidden = true;
+    return;
+  }
+  const { x, y, width, top, right, bottom } = drive.car;
+  const point = map.latLngToContainerPoint([target.station.location.lat, target.station.location.lon]);
+  const size = map.getSize();
+  // The map is turned about its centre, the car: turn the point with it.
+  const angle = (-drive.rotation * Math.PI) / 180;
+  const dx = point.x - size.x / 2;
+  const dy = point.y - size.y / 2;
+  const sx = x + dx * Math.cos(angle) - dy * Math.sin(angle);
+  const sy = y + dx * Math.sin(angle) + dy * Math.cos(angle);
+  const box = { left: 60, right: Math.min(right, width) - 60, top: top + 30, bottom: bottom - 30 };
+  if (sx >= box.left && sx <= box.right && sy >= box.top && sy <= box.bottom) {
+    edge.hidden = true;
+    return;
+  }
+  // Where the line from the car towards the station leaves the free part of the map.
+  const vx = sx - x;
+  const vy = sy - y;
+  const reach = Math.max(0, Math.min(
+    vx > 0 ? (box.right - x) / vx : vx < 0 ? (box.left - x) / vx : Infinity,
+    vy > 0 ? (box.bottom - y) / vy : vy < 0 ? (box.top - y) / vy : Infinity,
+  ));
+  edge.hidden = false;
+  edge.style.left = `${Math.round(x + vx * reach)}px`;
+  edge.style.top = `${Math.round(y + vy * reach)}px`;
+  edge.querySelector('.drive-edge-arrow').style.transform = `rotate(${Math.round((Math.atan2(vy, vx) * 180) / Math.PI)}deg)`;
+  edge.querySelector('b').textContent = driveGradeLabel();
+  edge.querySelector('small').textContent = driveDistance(target.metres);
+}
+
+function onDriveTap(event) {
+  const button = event.target.closest('[data-drive]');
+  if (!button || button.disabled) return;
+  // A panel sliding in moves its buttons under the finger: a tap in those few
+  // moments could land on the button below the one meant, «95 нет» for «95 есть».
+  const sliding = Date.now() - drive.kindAt < 450 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (sliding && button.closest('.drive-sheet, .drive-full, .drive-pick')) return;
+  const { drive: action, station } = button.dataset;
+  if (action === 'close') {
+    closeDrive();
+  } else if (action === 'grades' || action === 'theme') {
+    drive.pick = drive.pick === action ? null : action;
+    renderDrive({ force: true });
+  } else if (action === 'pick-close') {
+    drive.pick = null;
+    renderDrive({ force: true });
+  } else if (action === 'grade') {
+    drive.pick = null;
+    if (button.dataset.grade !== state.grade) chooseGrade(button.dataset.grade);
+    renderDrive({ force: true });
+  } else if (action === 'theme-mode') {
+    setDriveTheme(button.dataset.mode);
+  } else if (action === 'mark') {
+    sendDriveMark(station, button.dataset.seen === '1', button.closest('#driveFull') ? 'at_station' : 'near');
+  } else if (action === 'answer' && drive.question) {
+    const { id } = drive.question;
+    drive.question = null;
+    sendDriveMark(id, button.dataset.seen === '1', 'question');
+  } else if (action === 'skip' && drive.question) {
+    track('drive_stop_question', { station: drive.question.id, reason: 'skip' });
+    drive.question = null;
+    renderDrive({ force: true });
+  } else if (action === 'queue') {
+    // The composer's own draft: the card under the screen shows the same queue.
+    const draft = composeDraft(station, { touch: true });
+    const cars = Number(button.dataset.cars);
+    draft.queue = draft.queue === cars ? null : cars;
+    paintComposers(station);
+    renderDrive({ force: true });
+  } else if (action === 'not') {
+    drive.pinnedId = station;
+    track('drive_not_this', { station });
+    renderDrive({ force: true });
+  } else if (action === 'undo') {
+    undoDriveMark(button);
+  } else if (action === 'vote') {
+    driveVote(station, button.dataset.vote, button);
+  }
+}
+
+// Through the same path as every mark: kept on the phone, sent to the club,
+// waiting for a connection when there is none, under the club's own rules.
+function sendDriveMark(stationId, seen, reason) {
+  if (!stationId) return;
+  const station = state.stations.find((item) => item.id === stationId);
+  const grade = state.grade;
+  const draft = composeDraft(stationId);
+  const queue = reason === 'at_station' ? draft?.queue ?? null : null;
+  // Said now, the grade and the queue are no longer a draft; other grades
+  // pressed on the card underneath stay pressed.
+  if (draft) {
+    delete draft.chosen[grade];
+    draft.queue = null;
+    if (!Object.keys(draft.chosen).length) composeDrafts.delete(stationId);
+  }
+  const what = `${driveGradeLabel(grade)} ${seen ? 'есть' : 'нет'}${queue != null ? `, очередь: ${queueWords(queue)}` : ''}`;
+  const madeAt = Date.now();
+  const promise = saveMark(stationId, grade, seen, queue, { summary: what, blindSpot: ['NO_FRESH_DATA', 'CONFLICT'].includes(station?.grade?.status) });
+  const sent = {
+    stationId, grade, what, madeAt, promise, outcome: null,
+    undoable: !!(state.club.enabled && state.club.member && state.club.features?.delete_marks),
+  };
+  drive.sent = sent;
+  promise.then((outcome) => {
+    sent.outcome = outcome;
+    if (drive.sent === sent) renderDrive({ force: true });
+  });
+  paintComposers(stationId);
+  track('drive_mark', { station: stationId, seen, queue, reason });
+  renderDrive({ force: true });
+}
+
+// «Отменить» takes the mark back the way 🗑 does: the club deletes it and takes
+// back its 🤝. A mark still waiting for a connection simply never leaves.
+async function undoDriveMark(button) {
+  const sent = drive.sent;
+  if (!sent || sent.undoing || !sent.undoable) return;
+  sent.undoing = true;
+  button.disabled = true;
+  const done = (undone, at = sent.madeAt) => {
+    if (drive.sent === sent) drive.sent = null;
+    if (undone) {
+      forgetLook({ station: sent.stationId, author: myId(), at });
+      // The phone's own copy is dated by the phone's clock.
+      if (at !== sent.madeAt) forgetLook({ station: sent.stationId, author: myId(), at: sent.madeAt });
+      redrawMarks();
+    }
+    track('drive_undo', { station: sent.stationId, success: undone });
+    renderDrive({ force: true });
+  };
+  const outcome = await sent.promise;
+  if (outcome !== 'sent') {
+    trimOutbox(sent.stationId, [sent.grade]);
+    done(true);
+    return;
+  }
+  // The club dates a mark by its own clock, and a delete names that moment.
+  const read = await clubCall('/club/reports').catch(() => null);
+  if (read && handleClubRejection(read)) {
+    done(false);
+    return;
+  }
+  const report = (read?.data?.reports || [])
+    .filter((item) => item.who === myId() && item.station === sent.stationId && item.grade === sent.grade && Math.abs(item.at - sent.madeAt) < 60000)
+    .sort((a, b) => b.at - a.at)[0];
+  const result = report
+    ? await clubCall('/club/report/delete', { method: 'POST', body: { station: sent.stationId, author: myId(), at: report.at } }).catch(() => null)
+    : null;
+  if (result && handleClubRejection(result)) {
+    done(false);
+    return;
+  }
+  if (!result?.ok) drive.flash = { text: 'Отметку не удалось отменить. Её можно удалить в карточке АЗС: 🗑 в первый час.', until: Date.now() + 8000 };
+  done(!!result?.ok, report?.at);
+}
+
+async function driveVote(stationId, vote, button) {
+  const found = driveLook(stationId);
+  if (!found) return;
+  const { look } = found;
+  await sendVerdict({ station: stationId, author: look.author, at: look.at }, vote, button);
+  const after = voteTargets(stationId).find((item) => item.author === look.author && item.at === look.at);
+  // «Уже нет» asks first and may be cancelled; «Так и есть» that did not count failed.
+  if (vote === 'up' && after?.myVote !== vote) drive.flash = { text: '👍 не ушёл: нет связи с клубом. Попробуйте ещё раз.', until: Date.now() + 8000 };
+  if (after?.myVote === vote) {
+    track('drive_mark', { station: stationId, seen: vote === 'up', reason: 'vote' });
+    // A confirmation reads like a mark sent. After «Уже нет» the two buttons
+    // come back, to say what is on the pumps now.
+    if (vote === 'up') {
+      drive.confirmed.set(stationId, Date.now());
+      drive.sent = { stationId, grade: state.grade, vote: true, what: `${driveGradeLabel()} есть`, madeAt: Date.now(), promise: Promise.resolve('sent'), outcome: 'sent', undoable: false };
+    }
+  }
+  renderDrive({ force: true });
 }
 
 window.openFuelStation = openStation;
