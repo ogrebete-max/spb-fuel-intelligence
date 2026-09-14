@@ -26,12 +26,13 @@ const posted = await worker.fetch(new Request(`${base}/analytics/events`, {
     events: [
       { event: 'app_open', at: Date.now(), fields: { area: 'spb', zone: 'spb_north', grade: 'AI95' } },
       { event: 'report_outcome', at: Date.now(), fields: { station: 'station-1', grade: 'AI95', status: 'LIKELY_AVAILABLE', probability: 80, trust: 70, age_bucket: '15_45m', sources: ['source-a'], seen: true, reason: 'on_site' } },
+      { event: 'drive_open', at: Date.now(), fields: { grade: 'AI95', reason: 'suggestion' } },
       { event: 'unknown_event', at: Date.now(), fields: { query: 'secret address' } },
     ],
   }),
 }), env, { waitUntil() {} });
 assert.equal(posted.status, 202);
-assert.equal((await posted.json()).accepted, 2);
+assert.equal((await posted.json()).accepted, 3);
 assert(![...kv.values.values()].some((value) => value.includes(clientId)), 'raw client id leaked into KV');
 assert(![...kv.values.values()].some((value) => value.includes('secret address')), 'unapproved field leaked into KV');
 

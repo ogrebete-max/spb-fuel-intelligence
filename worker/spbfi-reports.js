@@ -66,6 +66,9 @@ const ANALYTICS_EVENTS = new Set([
   'locate_start', 'locate_result', 'map_area_search', 'station_open',
   'route_open', 'traffic_open', 'report_sent', 'report_outcome',
   'push_enabled', 'push_disabled',
+  // The drive screen: how often it is opened and left, marks and undos from
+  // it, «Не та?» and the question at a stop.
+  'drive_open', 'drive_close', 'drive_mark', 'drive_undo', 'drive_not_this', 'drive_stop_question',
 ]);
 const ANALYTICS_DIMENSIONS = new Set([
   'area', 'zone', 'grade', 'station', 'status', 'probability', 'trust',
@@ -1371,7 +1374,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
