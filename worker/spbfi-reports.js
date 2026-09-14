@@ -981,6 +981,15 @@ const CLUB_VERSION = 1;
 const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MEMBER_INVITES = 3;
+// A member who has handed out theirs asks the owner, at most twice a day.
+const INVITES_ASK_MS = 12 * 60 * 60 * 1000;
+const INVITES_GRANT = 3;
+
+function invitesWord(count) {
+  if (count % 10 === 1 && count % 100 !== 11) return 'приглашение';
+  if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) return 'приглашения';
+  return 'приглашений';
+}
 const FRESH_TOKEN_GRACE_MS = 5 * 60 * 1000;
 const DISPUTE_WINDOW_MS = 20 * 60 * 1000;
 const MAX_FLAGS = 1000;
@@ -1088,7 +1097,7 @@ function publicMember(member) {
 function inviteAllowance(member, invites) {
   if (member.role === 'owner') return null;
   const spent = Object.values(invites).filter((invite) => invite.by === member.id && !invite.for && (!invite.revoked || invite.used_by)).length;
-  return Math.max(0, MEMBER_INVITES - spent);
+  return Math.max(0, MEMBER_INVITES + (Number(member.extra_invites) || 0) - spent);
 }
 
 // ---------------------------------------------------------------- getting back in
@@ -1275,7 +1284,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -1408,7 +1417,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
 
   if (request.method === 'GET' && path === '/club/me') {
-    const { 'club:invites': invites, 'club:stats': all, 'club:passkeys': keys } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {}, 'club:passkeys': {} });
+    const { 'club:invites': invites, 'club:stats': all, 'club:passkeys': keys, 'club:settings': settings } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {}, 'club:passkeys': {}, 'club:settings': {} });
     const mine = Object.entries(invites)
       .filter(([, invite]) => invite.by === member.id && !invite.revoked && !invite.for)
       .map(([code, invite]) => ({
@@ -1424,6 +1433,9 @@ async function clubRoutes(request, env, url, ctx) {
       member: publicMember(member), invites: mine, invites_left: inviteAllowance(member, invites),
       passkeys: Object.values(keys).filter((key) => key.member === member.id).length,
       refuted_by: Object.keys(stats.refuted_by || {}).length,
+      invites_asked: member.invites_asked || null,
+      // The club's chat link reaches members only, from here.
+      chat_url: settings.chat_url || null,
       profile: profileOf(stats), news, now: Date.now(),
     }, request, env);
   }
@@ -1493,6 +1505,32 @@ async function clubRoutes(request, env, url, ctx) {
       return { code, expires: invites[code].expires };
     });
     return json({ ...made, name: target.name }, request, env);
+  }
+
+  // Invitations spread through members, three each. One who has handed out
+  // theirs asks the owner for more instead of borrowing someone else's codes,
+  // and the owner answers with a tap.
+  if (request.method === 'POST' && path === '/club/invites/more') {
+    if (member.role === 'owner') return json({ error: 'owner_has_no_limit' }, request, env, 400);
+    if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
+    const now = Date.now();
+    const asked = await transact(env, { 'club:members': {}, 'club:invites': {} }, (docs) => {
+      const me = docs['club:members'][member.id];
+      if (!me) return { error: 'member_unknown', status: 404 };
+      if (inviteAllowance(me, docs['club:invites']) > 0) return { error: 'invites_left', status: 409 };
+      if (me.invites_asked && now - me.invites_asked < INVITES_ASK_MS) return { at: me.invites_asked, again: true };
+      me.invites_asked = now;
+      return { at: now };
+    });
+    if (asked.error) return json({ error: asked.error }, request, env, asked.status);
+    if (!asked.again) {
+      ctx.waitUntil(notifyMember(env, 'owner', {
+        title: `🎟 ${member.name || 'Участник'} просит ещё приглашений`,
+        body: 'Свои закончились. Дать ещё: «👥 Клуб» → «Участники» → «🎟 +3 приглашения».',
+        tag: `spbfi-invites-${member.id}`,
+      }).catch(() => {}));
+    }
+    return json({ ok: true, asked_at: asked.at }, request, env);
   }
 
   if (request.method === 'POST' && path === '/club/invite') {
@@ -1746,6 +1784,44 @@ async function clubRoutes(request, env, url, ctx) {
     return json({ ok: true, liters }, request, env);
   }
 
+  if (request.method === 'POST' && path === '/club/invites/grant') {
+    const body = (await readJson(request)) || {};
+    const id = String(body.id || '');
+    const count = Math.max(1, Math.min(10, Math.round(Number(body.count) || INVITES_GRANT)));
+    const now = Date.now();
+    const granted = await transact(env, { 'club:members': {}, 'club:invites': {}, 'club:stats': {} }, (docs) => {
+      const target = docs['club:members'][id];
+      if (!target || target.role === 'owner') return { error: 'member_unknown', status: 404 };
+      if (target.banned) return { error: 'member_banned', status: 403 };
+      target.extra_invites = (Number(target.extra_invites) || 0) + count;
+      delete target.invites_asked;
+      pushNews(statsFor(docs['club:stats'], id), { type: 'invites', count, at: now });
+      return { left: inviteAllowance(target, docs['club:invites']) };
+    });
+    if (granted.error) return json({ error: granted.error }, request, env, granted.status);
+    ctx.waitUntil(notifyMember(env, id, {
+      title: `🎟 Владелец дал вам ещё ${count} ${invitesWord(count)}`,
+      body: `Теперь можно пригласить: ${granted.left}. «👥 Клуб» → «Создать приглашение».`,
+      tag: 'spbfi-invites',
+    }).catch(() => {}));
+    return json({ ok: true, left: granted.left }, request, env);
+  }
+
+  // The club's chat lives in a Telegram group; the owner pastes its invite link.
+  if (request.method === 'POST' && path === '/club/settings') {
+    const body = (await readJson(request)) || {};
+    let link = String(body.chat_url ?? '').trim();
+    // Copied from Telegram the link often comes without its scheme.
+    if (/^(t\.me|telegram\.me)\//i.test(link)) link = `https://${link}`;
+    if (link && !/^https:\/\/(t\.me|telegram\.me)\/[A-Za-z0-9_+\-/]{2,160}$/.test(link)) return json({ error: 'bad_chat_url' }, request, env, 400);
+    const saved = await transact(env, { 'club:settings': {} }, (docs) => {
+      if (link) docs['club:settings'].chat_url = link;
+      else delete docs['club:settings'].chat_url;
+      return docs['club:settings'].chat_url || null;
+    });
+    return json({ ok: true, chat_url: saved }, request, env);
+  }
+
   if (request.method === 'GET' && path === '/club/members') {
     const { 'club:stats': ownerStats, 'club:flags': flags, 'club:invites': invites, 'club:passkeys': keys } = await loadDocs(env, { 'club:stats': {}, 'club:flags': [], 'club:invites': {}, 'club:passkeys': {} });
     const reports = await readAll(env);
@@ -1763,6 +1839,8 @@ async function clubRoutes(request, env, url, ctx) {
         liters: (ownerStats[item.id]?.liters) || 0,
         level_icon: levelFor((ownerStats[item.id]?.liters) || 0).icon,
         invited: Object.values(invites).filter((invite) => invite.by === item.id && invite.used_by && !invite.for).length,
+        invites_left: inviteAllowance(item, invites),
+        invites_asked: item.invites_asked || null,
         passkeys: Object.values(keys).filter((key) => key.member === item.id).length,
         refuted_by: Object.keys(ownerStats[item.id]?.refuted_by || {}).length,
         // The author sees only how many; the owner, who decides, sees who.

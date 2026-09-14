@@ -201,7 +201,8 @@ async function android() {
   // The owner's code, for someone who lost every device.
   const owner = await open(devices['Desktop Chrome'], 'owner');
   await atGate(owner);
-  await owner.click('#gateOwner');
+  for (let i = 0; i < 5; i += 1) await owner.click('#gateTitle');
+  await owner.waitForSelector('#gateOwnerForm', { timeout: 10000 });
   await owner.fill('#gateOwnerKey', OWNER_KEY);
   await owner.fill('#gateOwnerName', 'Егор');
   await owner.click('#gateOwnerForm .gate-submit');

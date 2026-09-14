@@ -78,8 +78,11 @@ async function run(label, browserType, device) {
   check('stranger sees the club gate', await owner.isVisible('#clubGate'));
   await owner.screenshot({ path: path.join(OUT, `${label}-1-gate.png`) });
 
-  // The owner signs in.
-  await owner.click('#gateOwner');
+  // The owner signs in. The card offers only the invitation; five quick taps
+  // on its title open the owner's sign-in.
+  check('the gate offers no owner sign-in to invited people', (await owner.locator('#gateOwner, #gateOwnerForm').count()) === 0);
+  for (let i = 0; i < 5; i += 1) await owner.click('#gateTitle');
+  await owner.waitForSelector('#gateOwnerForm', { timeout: 10000 });
   await owner.fill('#gateOwnerKey', 'wrong key');
   await owner.click('#gateOwnerForm .gate-submit');
   await owner.waitForFunction(() => document.querySelector('#gateError')?.textContent.length > 0);

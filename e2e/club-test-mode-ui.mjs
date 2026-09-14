@@ -90,13 +90,38 @@ async function run(label, browserType, device) {
   check('a phone outside it sees no gate, no club button and no invite line',
     await stranger.isHidden('#clubGate') && await stranger.isHidden('#clubButton') && (await stranger.locator('[data-club-join]').count()) === 0);
 
-  // The owner taps the title five times.
+  // A phone that has not reached the club yet is not told the club is off
+  // (14 Sep 2026: «Клуб пока не включён» on a weak connection).
+  const cut = await browser.newContext({ ...device, serviceWorkers: 'block' });
+  if (/iPhone/.test(device.userAgent || '')) await cut.addInitScript(() => Object.defineProperty(navigator, 'standalone', { get: () => true }));
+  await cut.route('**/club/health', (route) => route.abort());
+  const unreached = await cut.newPage();
+  unreached.errors = [];
+  unreached.on('pageerror', (error) => { if (!/access control checks/i.test(error.message)) unreached.errors.push(error.message); });
+  pages.push(unreached);
+  await unreached.goto(siteUrl, { waitUntil: 'load' });
+  await unreached.waitForSelector('.station-card', { timeout: 30000 });
+  for (let i = 0; i < 5; i += 1) await unreached.tap('#heroTitle');
+  check('five taps without a connection to the club say so, not «не включён»', await becomes(unreached, () => {
+    const text = document.querySelector('#toastStack')?.textContent || '';
+    return text.includes('Нет связи с клубом') && !text.includes('не включён');
+  }));
+  await cut.unroute('**/club/health');
+  for (let i = 0; i < 5; i += 1) await unreached.tap('#heroTitle');
+  check('once the club answers, the same taps open the invitation form', await appears(unreached, '#clubGate:not([hidden]) #gateJoinForm:not([hidden])'));
+
+  // Five taps on the title open the invitation; five more, on the title of
+  // that screen, the owner's sign-in. People shown the owner's form first
+  // tried to type their invitation into it.
   const owner = await open(browser, device);
   pages.push(owner);
   await settled(owner, 'test');
   for (let i = 0; i < 5; i += 1) await owner.tap('#heroTitle');
-  check('five taps on the title open the owner sign-in', await appears(owner, '#clubGate:not([hidden]) #gateOwnerForm'));
+  check('five taps on the title open the invitation form', await appears(owner, '#clubGate:not([hidden]) #gateJoinForm:not([hidden])'));
+  check('with no owner sign-in on it', (await owner.locator('#gateOwnerForm, #gateOwner').count()) === 0);
   check('with «Не сейчас» to close it', await owner.isVisible('#gateClose'));
+  for (let i = 0; i < 5; i += 1) await owner.tap('#gateTitle');
+  check('five taps on its title open the owner sign-in', await appears(owner, '#clubGate:not([hidden]) #gateOwnerForm'));
   await owner.screenshot({ path: path.join(OUT, `${label}-t1-owner-sign-in.png`) });
   await owner.fill('#gateOwnerKey', 'wrong key');
   await owner.click('#gateShowKey');

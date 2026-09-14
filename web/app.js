@@ -485,13 +485,167 @@ async function refreshData() {
   }
 }
 
-// Precise location is a per-app switch on iPhone, and messenger browsers
-// locate worse than Safari; the fix has to be named, not guessed at.
-function preciseHint() {
+// ---------------------------------------------------------------- rough location
+// On 14 Sep 2026 an iPhone 15 Pro reported ±884 m again and again while its dot
+// sat on the right house and an iPhone beside it was precise. With GPS weak or
+// jammed, as happens around Petersburg, a phone finds itself by Wi-Fi and
+// states a cautious radius; with «Точная геопозиция» off for websites the dot
+// itself is off. Only the person can tell which, by looking at the dot. Once
+// they confirm it, that radius stops switching off what needs a precise place.
+const ROUGH_METRES = 300;
+const TRUSTED_METRES = 60;
+const TRUST_KEY = 'spbfi-trust-rough-fix-v1';
+const TRUST_MS = 12 * 60 * 60 * 1000;
+let roughTrustedAt = 0;
+
+function roughTrusted() {
+  let stored = 0;
+  try { stored = Number(localStorage.getItem(TRUST_KEY) || 0); } catch { /* the session still knows */ }
+  return Date.now() - Math.max(stored, roughTrustedAt) < TRUST_MS;
+}
+
+// The radius the app acts on. Beyond a kilometre and a half the dot is not a
+// house but a district, and no confirmation makes it one.
+function effectiveAccuracy(accuracy = state.accuracy) {
+  if (accuracy == null) return null;
+  return accuracy > ROUGH_METRES && accuracy <= 1500 && roughTrusted() ? TRUSTED_METRES : accuracy;
+}
+
+function setRoughTrusted(trusted) {
+  roughTrustedAt = trusted ? Date.now() : 0;
+  try {
+    if (trusted) localStorage.setItem(TRUST_KEY, String(roughTrustedAt));
+    else localStorage.removeItem(TRUST_KEY);
+  } catch { /* the session still knows */ }
+  renderLocateButton();
+  if (state.searchScope === 'device') renderSearchContext();
+  renderHerePanel();
+  refreshVerdicts(null, { force: true });
+  renderLocationHelpStatus();
+}
+
+function locationSteps() {
   const { iOS, inAppBrowser } = platformInfo();
-  if (inAppBrowser) return 'Приложение открыто внутри мессенджера — там место определяется хуже и обновляется с задержкой. Откройте его в Safari и добавьте на экран «Домой».';
-  if (iOS) return 'На iPhone точность ±1–3 км значит, что выключен переключатель «Точная геопозиция»: Настройки → Конфиденциальность и безопасность → Службы геолокации → Сайты Safari → «При использовании» и включить «Точная геопозиция». Потом закройте приложение и откройте снова.';
-  return 'Проверьте, что браузеру разрешена точная геолокация.';
+  const android = /Android/i.test(navigator.userAgent);
+  if (inAppBrowser) {
+    return { title: 'Открыто внутри мессенджера', steps: ['Во встроенном браузере Telegram и других мессенджеров место определяется хуже. Откройте ссылку в <b>Safari</b> и добавьте приложение на экран «Домой».'] };
+  }
+  if (iOS) {
+    return {
+      title: 'iPhone — проверьте по порядку',
+      steps: [
+        '<b>Точная геопозиция для сайтов.</b> Настройки → Конфиденциальность и безопасность → Службы геолокации → <b>Сайты Safari</b> → «При использовании» и включите <b>«Точная геопозиция»</b>. У «Карт» этот переключатель свой, поэтому в «Картах» место бывает точным, а здесь нет.',
+        '<b>Wi-Fi включён</b>, даже без подключения к сети: по сетям вокруг iPhone находит место, когда GPS ловит плохо.',
+        'Там же, в «Службах геолокации» → <b>Системные службы</b> → включите <b>«Сети и беспроводная связь»</b>.',
+        'Закройте приложение полностью (смахните вверх) и откройте снова.',
+      ],
+      check: 'Откройте «Карты». Если там синяя точка маленькая и точная, а здесь приложение пишет «приблизительно», — дело в пункте 1. Если и в «Картах» большой светлый круг — дело в сигнале: в Петербурге бывают помехи GPS, тогда помогает включённый Wi-Fi.',
+    };
+  }
+  if (android) {
+    return {
+      title: 'Android — проверьте по порядку',
+      steps: [
+        '<b>Точное местоположение для браузера.</b> Настройки → Приложения → Chrome (или ваш браузер) → Разрешения → Местоположение → «Разрешить только во время использования» и включите <b>«Точное местоположение»</b>.',
+        '<b>Геолокация Google.</b> Настройки → Местоположение → Службы определения местоположения → «Определение местоположения Google» (или «Точность определения») — включите. Wi-Fi тоже включите, даже без подключения к сети.',
+        'Закройте приложение и откройте снова.',
+      ],
+      check: 'Откройте «Яндекс Карты» или «Google Карты». Если там точка точная, а здесь приложение пишет «приблизительно», — дело в пункте 1. Если и там большой круг — дело в сигнале: в Петербурге бывают помехи GPS, тогда помогает включённый Wi-Fi.',
+    };
+  }
+  return { title: 'Что проверить', steps: ['Разрешите браузеру точное местоположение. Компьютер без GPS определяет место примерно — удобнее искать АЗС по адресу.'] };
+}
+
+function showLocationHelp() {
+  const guide = locationSteps();
+  openDrawer(`<h2>Где вы сейчас</h2>
+    <p class="drawer-address">Телефон сообщает погрешность ±${escapeHtml(formatMeters(state.accuracy || 0))}. Бывает, что точка при этом стоит верно: когда GPS ловит плохо, телефон берёт место по Wi-Fi и перестраховывается.</p>
+    <div class="drawer-status location-now" style="--status-color:#d58a13"><strong id="locationHelpStatus"></strong></div>
+    <div id="locationHelpMap" class="location-help-map" role="img" aria-label="Где вас видит телефон"></div>
+    <div class="location-question" id="locationQuestion">
+      <strong>Синяя точка стоит там, где вы?</strong>
+      <div class="location-answers">
+        <button type="button" class="gate-submit" id="locationYes">Да, точка на месте</button>
+        <button type="button" class="list-more" id="locationNo">Нет, не там</button>
+      </div>
+    </div>
+    <div id="locationSteps" hidden>
+      <h3 class="section-title">${escapeHtml(guide.title)}</h3>
+      <ol class="install-steps">${guide.steps.map((step) => `<li>${step}</li>`).join('')}</ol>
+      ${guide.check ? `<div class="drawer-status" style="--status-color:#0d5a43"><strong>Как понять, в чём дело</strong><p>${escapeHtml(guide.check)}</p></div>` : ''}
+    </div>
+    <button type="button" class="list-more" id="locationRecheck">📍 Проверить место ещё раз</button>
+    <button type="button" class="list-more" id="locationByAddress">⌕ Искать АЗС по адресу</button>`);
+  renderLocationHelpStatus();
+  drawLocationHelpMap();
+  $('#locationYes').addEventListener('click', () => {
+    setRoughTrusted(true);
+    $('#locationQuestion').innerHTML = '<strong>✅ Точка верная — так и считаем</strong><p>Приложение больше не называет место неточным: «я на заправке» и 👍/👎 работают. Если окажется, что точка не там, — нажмите «Проверить место ещё раз» или «изменить» под списком.</p>';
+  });
+  $('#locationNo').addEventListener('click', () => {
+    setRoughTrusted(false);
+    $('#locationQuestion').hidden = true;
+    $('#locationSteps').hidden = false;
+    $('#locationSteps').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+  $('#locationRecheck').addEventListener('click', () => {
+    if (!state.follow) startFollowing();
+    const status = $('#locationHelpStatus');
+    if (status) status.textContent = '◌ Проверяем место…';
+    refreshLocation({ manual: true, quiet: true });
+  });
+  $('#locationByAddress').addEventListener('click', () => {
+    closeDrawer();
+    const input = $('#searchInput');
+    input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    input?.focus();
+  });
+}
+
+function drawLocationHelpMap() {
+  const holder = $('#locationHelpMap');
+  if (!holder) return;
+  if (!state.location || typeof L === 'undefined') {
+    holder.hidden = true;
+    return;
+  }
+  const map = L.map(holder, {
+    zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false,
+    touchZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false,
+  }).setView([state.location.lat, state.location.lon], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+  L.marker([state.location.lat, state.location.lon], {
+    icon: L.divIcon({ className: '', html: '<div class="me-marker"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+    interactive: false,
+  }).addTo(map);
+  // The drawer slides in; the map measures itself once it has.
+  setTimeout(() => map.invalidateSize(), 350);
+}
+
+function renderLocationHelpStatus(error = null) {
+  const status = $('#locationHelpStatus');
+  if (!status) return;
+  const holder = status.closest('.drawer-status');
+  const paint = (color) => holder?.style.setProperty('--status-color', color);
+  if (error) {
+    paint('#b8333a');
+    status.textContent = error.code === 1 ? '⛔ Геолокация для этого сайта запрещена в настройках телефона.' : '⚠️ Телефон сейчас не дал место. Попробуйте ещё раз через несколько секунд.';
+    return;
+  }
+  if (!state.location) {
+    status.textContent = '◌ Место ещё не определено.';
+    return;
+  }
+  if (state.accuracy <= ROUGH_METRES) {
+    paint('#158257');
+    status.textContent = `✅ Сейчас: ±${formatMeters(state.accuracy)} — место точное`;
+  } else if (effectiveAccuracy() <= ROUGH_METRES) {
+    paint('#158257');
+    status.textContent = `✅ Точка подтверждена вами · телефон сообщает ±${formatMeters(state.accuracy)}`;
+  } else {
+    paint('#d58a13');
+    status.textContent = `⚠️ Сейчас: ±${formatMeters(state.accuracy)} по данным телефона`;
+  }
 }
 
 function formatMeters(metres) {
@@ -501,7 +655,8 @@ function formatMeters(metres) {
 function renderSearchContext({ waitingAccuracy = null } = {}) {
   const context = $('#searchContext');
   if (state.follow && waitingAccuracy) {
-    context.innerHTML = `<strong>Уточняем ваше место…</strong> Пока телефон даёт точность ±${escapeHtml(formatMeters(waitingAccuracy))} — этого мало, чтобы выбрать ближайшие АЗС. <span class="context-warn">${escapeHtml(preciseHint())}</span>`;
+    context.innerHTML = `<strong>Уточняем ваше место…</strong> Пока телефон даёт точность ±${escapeHtml(formatMeters(waitingAccuracy))} — этого мало, чтобы выбрать ближайшие АЗС. <button type="button" class="context-help" data-location-help>Что проверить</button>`;
+    context.querySelector('[data-location-help]').addEventListener('click', showLocationHelp);
     return;
   }
   if (state.searchScope === 'place') {
@@ -509,9 +664,12 @@ function renderSearchContext({ waitingAccuracy = null } = {}) {
   } else if (state.searchScope === 'device') {
     const age = state.locationAt ? Math.round((Date.now() - state.locationAt) / 1000) : null;
     const fresh = age == null ? '' : age < 20 ? ' · место обновлено только что' : ` · место обновлено ${formatAge(age)}`;
-    const precision = state.accuracy ? ` · ±${formatMeters(state.accuracy)}` : '';
-    const coarse = state.accuracy > 300
-      ? `<span class="context-warn">⚠️ Место определено неточно — список может быть не для вашей улицы. ${escapeHtml(preciseHint())}</span>`
+    const confirmed = state.accuracy > ROUGH_METRES && effectiveAccuracy() <= ROUGH_METRES;
+    const precision = !state.accuracy ? ''
+      : confirmed ? ' · точка подтверждена вами <button type="button" class="context-link" data-location-help>изменить</button>'
+        : ` · ±${formatMeters(state.accuracy)}`;
+    const coarse = effectiveAccuracy() > ROUGH_METRES
+      ? '<span class="context-warn">⚠️ Телефон даёт место приблизительно: ближайшие АЗС могут быть не те, а «я на заправке» и 👍/👎 не заработают. <button type="button" class="context-help" data-location-help>Что делать</button></span>'
       : '';
     context.innerHTML = `<strong>Рядом с вами</strong> · ближайшие сверху${fresh}${precision} <button type="button" data-clear-scope>Весь город</button>${coarse}`;
   } else if (state.searchScope === 'far') {
@@ -527,6 +685,7 @@ function renderSearchContext({ waitingAccuracy = null } = {}) {
     leaveOwnOnly();
     clearSearchScope({ keepText: false, reload: true });
   });
+  context.querySelectorAll('[data-location-help]').forEach((button) => button.addEventListener('click', showLocationHelp));
 }
 
 function clearSearchScope({ keepText = false, reload = true } = {}) {
@@ -680,6 +839,12 @@ function locate() {
   // pressed it for exactly that and it used to switch the mode off; leaving is
   // the "Весь город" link.
   if (state.follow) {
+    // A rough place does not get better by pressing again and again: the
+    // person is asked whether the dot is right, or shown what to switch on.
+    if (state.location && !state.locating && effectiveAccuracy() > ROUGH_METRES) {
+      showLocationHelp();
+      return;
+    }
     refreshLocation({ manual: true });
     return;
   }
@@ -698,11 +863,12 @@ function renderLocateButton() {
     button.innerHTML = '<span aria-hidden="true">◌</span> Определяем место…';
     return;
   }
-  const coarse = state.accuracy > 300;
+  const coarse = effectiveAccuracy() > ROUGH_METRES;
+  const confirmed = !coarse && state.accuracy > ROUGH_METRES;
   button.classList.toggle('coarse', coarse);
   button.innerHTML = coarse
-    ? `<span aria-hidden="true">⚠️</span> Место неточное · ±${formatMeters(state.accuracy)} · уточнить`
-    : `<span aria-hidden="true">📍</span> Вы здесь · ±${formatMeters(state.accuracy)} · обновить`;
+    ? `<span aria-hidden="true">⚠️</span> Место приблизительное · ±${formatMeters(state.accuracy)} · что делать`
+    : `<span aria-hidden="true">📍</span> Вы здесь · ${confirmed ? 'точка подтверждена' : `±${formatMeters(state.accuracy)}`} · обновить`;
 }
 
 function liveDistanceKm(station) {
@@ -711,7 +877,7 @@ function liveDistanceKm(station) {
 }
 
 function notePassedStations(here, accuracy) {
-  if (accuracy > 300) return;
+  if (effectiveAccuracy(accuracy) > ROUGH_METRES) return;
   const now = Date.now();
   for (const station of state.stations) {
     if (!station.location) continue;
@@ -734,6 +900,12 @@ function applyFix(coords, { force = false } = {}) {
   if (firstFix && accuracy > COARSE_METRES && Date.now() - state.fixStartedAt < COARSE_WAIT_MS) {
     state.pendingFix = coords;
     renderSearchContext({ waitingAccuracy: accuracy });
+    return;
+  }
+  // A quick low-power answer can land after a precise one and drag the radius
+  // back to hundreds of metres for the very same spot.
+  if (!firstFix && accuracy > ROUGH_METRES && state.accuracy != null && state.accuracy <= 100
+    && Date.now() - state.locationAt < 60000 && haversineKm(state.location, here) * 1000 < accuracy) {
     return;
   }
   const previous = state.location;
@@ -782,7 +954,7 @@ function applyFix(coords, { force = false } = {}) {
   if (moved) refreshPushLocation();
 }
 
-function refreshLocation({ manual = false } = {}) {
+function refreshLocation({ manual = false, quiet = false } = {}) {
   if (!navigator.geolocation) return;
   // A background refresh still waiting for the GPS must never swallow a tap:
   // the person pressed the button because the place looked wrong.
@@ -795,6 +967,7 @@ function refreshLocation({ manual = false } = {}) {
     if (state.locateToken === token && state.locating) {
       state.locating = false;
       renderLocateButton();
+      if (quiet) renderLocationHelpStatus({ code: 3 });
     }
   }, 17000);
   // Two requests at once: a quick one that may reuse a fix from the last half
@@ -803,32 +976,52 @@ function refreshLocation({ manual = false } = {}) {
   // straight away and the precise one sharpens it when it arrives.
   let answered = false;
   let pending = 2;
+  let saidRough = null;
+  // Said at once, so a tap never meets silence (the precise request can take
+  // its full fifteen seconds); a precise answer that comes later replaces the
+  // banner rather than stacking a second one.
+  const tell = () => {
+    if (!manual) return;
+    if (quiet) {
+      renderLocationHelpStatus();
+      return;
+    }
+    const rough = effectiveAccuracy() > ROUGH_METRES;
+    if (saidRough === false || saidRough === rough) return;
+    saidRough = rough;
+    const confirmed = !rough && state.accuracy > ROUGH_METRES;
+    showToast(
+      rough ? `⚠️ Место приблизительное · ±${formatMeters(state.accuracy)}` : `📍 Место обновлено${confirmed ? '' : ` · ±${formatMeters(state.accuracy)}`}`,
+      rough ? 'Нажмите — покажу, что проверить.' : 'Ближайшие АЗС — наверху списка.',
+      null,
+      { key: 'location', onClick: rough ? showLocationHelp : null },
+    );
+  };
   const onFix = ({ coords }) => {
+    pending -= 1;
     if (state.locateToken !== token) {
       applyFix(coords);
       return;
     }
     applyFix(coords, { force: manual && !answered });
-    if (answered) return;
-    answered = true;
-    state.locating = false;
-    renderLocateButton();
-    if (manual) {
-      showToast(
-        `📍 Место обновлено · ±${formatMeters(state.accuracy)}`,
-        state.accuracy > 300 ? 'Точность низкая — список может быть не для этой улицы.' : 'Ближайшие АЗС — наверху списка.',
-      );
+    if (!answered) {
+      answered = true;
+      state.locating = false;
+      renderLocateButton();
     }
+    tell();
   };
   const onError = (error) => {
     pending -= 1;
     if (answered || pending > 0 || state.locateToken !== token) return;
     state.locating = false;
     renderLocateButton();
-    if (manual) {
+    if (quiet) {
+      renderLocationHelpStatus(error);
+    } else if (manual) {
       showToast('Не удалось обновить место', error.code === 1
         ? 'Геолокация запрещена для этого сайта в настройках телефона.'
-        : 'Нет сигнала. Попробуйте ещё раз через несколько секунд.');
+        : 'Нет сигнала. Попробуйте ещё раз через несколько секунд.', null, { key: 'location' });
     }
   };
   navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: false, maximumAge: 30000, timeout: 6000 });
@@ -1592,15 +1785,26 @@ async function announceNewMarks(previous, marks) {
   if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
 }
 
-function showToast(title, subtitle, stationId) {
+function showToast(title, subtitle, stationId, { key = '', onClick = null } = {}) {
   const stack = $('#toastStack');
   if (!stack) return;
+  // Five taps on «обновить» stacked five identical banners over the whole
+  // screen (14 Sep 2026). A banner of the same kind, or with the same words,
+  // replaces the one before it, and three are all a phone screen shows.
+  const signature = key || `${title}\n${subtitle || ''}`;
+  stack.querySelectorAll('.toast').forEach((old) => { if (old.dataset.signature === signature) old.remove(); });
   const toast = document.createElement('button');
   toast.type = 'button';
   toast.className = 'toast';
+  toast.dataset.signature = signature;
   toast.innerHTML = `<strong>${escapeHtml(title)}</strong>${subtitle ? `<span>${escapeHtml(subtitle)}</span>` : ''}`;
-  toast.addEventListener('click', () => { toast.remove(); if (stationId) openStation(stationId); });
+  toast.addEventListener('click', () => {
+    toast.remove();
+    if (onClick) onClick();
+    else if (stationId) openStation(stationId);
+  });
   stack.prepend(toast);
+  [...stack.querySelectorAll('.toast')].slice(3).forEach((extra) => extra.remove());
   setTimeout(() => toast.classList.add('show'), 20);
   setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 12000);
 }
@@ -1832,6 +2036,7 @@ function handleNews(news = [], now = Date.now()) {
       else if (item.type === 'award') { burst('🏅'); showToast('🏅 Благодарность клуба', `${item.text} · +${item.liters} 🤝`); }
       else if (item.type === 'hero') { burst('🦸'); showToast('🦸 Вы — герой прошлой недели!', `${handshakes(item.liters)} за неделю. Спасибо от всего клуба.`); }
       else if (item.type === 'sponsor') showToast('🤝 Ваш приглашённый стал активным', 'Значок «Поручитель» — ваш.');
+      else if (item.type === 'invites') { burst('🎟'); showToast('🎟 Вам дали ещё приглашения', `+${item.count} от владельца · «👥 Клуб» → «Создать приглашение»`); }
     }, 600 * index);
   });
 }
@@ -2140,7 +2345,7 @@ function stationPlace(stationId) {
 
 function atPumpForVote(stationId) {
   const pump = stationPlace(stationId);
-  if (!pump || !state.location || Date.now() - (state.locationAt || 0) > 5 * 60 * 1000 || (state.accuracy || 0) > 500) return false;
+  if (!pump || !state.location || Date.now() - (state.locationAt || 0) > 5 * 60 * 1000 || (effectiveAccuracy() || 0) > 500) return false;
   return haversineKm(state.location, pump) * 1000 <= VOTE_RADIUS_METRES;
 }
 
@@ -2347,6 +2552,9 @@ const CLUB_ERRORS = {
   vote_not_here: '👍 и 👎 — только на этой заправке: оценить отметку может тот, кто сейчас сам видит колонки.',
   vote_needs_place: 'Чтобы оценить отметку, приложению нужно видеть, что вы на заправке. Разрешите доступ к геопозиции.',
   too_many_votes: 'На сегодня оценок достаточно — завтра можно снова.',
+  invites_left: 'У вас ещё есть приглашения — просить больше пока не нужно.',
+  owner_has_no_limit: 'У владельца приглашения не кончаются.',
+  bad_chat_url: 'Нужна ссылка на группу в Telegram — она начинается с https://t.me/',
   invite_expired: 'Срок кода истёк: он действует 7 дней. Попросите новый.',
   sponsor_banned: 'Пригласивший исключён из клуба, поэтому код недействителен.',
   rules_not_accepted: 'Чтобы вступить, нужно принять правила клуба.',
@@ -2656,8 +2864,10 @@ async function checkClub() {
   } catch {
     // The worker is unreachable. A saved membership keeps working offline and
     // nobody is locked out of the station list because of a network hiccup.
+    state.club.healthFailed = true;
     return;
   }
+  state.club.healthFailed = !health.ok;
   state.club.mode = clubModeFrom(health);
   state.club.features = health.ok ? (health.data || {}) : {};
   // Until the door is closed only the phones that joined are inside; for
@@ -2700,20 +2910,18 @@ function clubModeFrom(health) {
   return ['test', 'invite'].includes(health.data?.mode) ? health.data.mode : 'off';
 }
 
-// While the club is a test nobody else is shown a way in: the owner opens it
-// by tapping the page title five times. Quick taps reach the page as touches
-// but the browser merges them into a single click, so the taps are counted
-// from the pointer itself; a finger that slid was scrolling, not tapping.
-function bindSecretClubEntry() {
-  const title = $('#heroTitle');
-  if (!title) return;
+// Quick taps reach the page as touches but the browser merges them into a
+// single click, so the taps are counted from the pointer itself; a finger that
+// slid was scrolling, not tapping.
+function onFiveTaps(element, action) {
+  if (!element) return;
   let taps = [];
   let down = null;
-  title.addEventListener('pointerdown', (event) => {
+  element.addEventListener('pointerdown', (event) => {
     down = { x: event.clientX, y: event.clientY, at: Date.now() };
   });
-  title.addEventListener('pointercancel', () => { down = null; });
-  title.addEventListener('pointerup', (event) => {
+  element.addEventListener('pointercancel', () => { down = null; });
+  element.addEventListener('pointerup', (event) => {
     const tapped = down && Math.hypot(event.clientX - down.x, event.clientY - down.y) < 12 && Date.now() - down.at < 700;
     down = null;
     if (!tapped) return;
@@ -2721,10 +2929,43 @@ function bindSecretClubEntry() {
     taps = [...taps.filter((at) => now - at < 3000), now];
     if (taps.length < 5) return;
     taps = [];
-    if (state.club.enabled && state.club.member) showClub();
-    else if (state.club.mode === 'off') showToast('Клуб пока не включён', 'Его включает владелец в настройках сервера.');
-    else showClubGate({ mode: 'owner' });
+    action();
   });
+}
+
+// While the club is a test nobody else is shown a way in: five taps on the
+// page title open it. People shown the owner's sign-in first tried to type
+// their invitation into it (14 Sep 2026), so the invitation comes first and
+// the owner's way in is five more taps, on the title of that screen.
+function bindSecretClubEntry() {
+  onFiveTaps($('#heroTitle'), openClubEntry);
+}
+
+async function openClubEntry() {
+  if (state.club.enabled && state.club.member) {
+    showClub();
+    return;
+  }
+  // «Клуб пока не включён» was said to a phone that had simply not reached the
+  // club yet on a weak connection. It asks again before saying anything.
+  const known = () => ['test', 'invite', 'closed'].includes(state.club.mode);
+  if (!known()) {
+    await checkClub();
+    if ($('#clubGate') && !$('#clubGate').hidden) return;
+    if (state.club.enabled && state.club.member) {
+      showClub();
+      return;
+    }
+    if (state.club.healthFailed) {
+      showToast('Нет связи с клубом', 'Проверьте интернет и попробуйте ещё раз.', null, { key: 'club-entry' });
+      return;
+    }
+    if (!known()) {
+      showToast('Клуб пока не включён', 'Его включает владелец в настройках сервера.', null, { key: 'club-entry' });
+      return;
+    }
+  }
+  showClubGate({ mode: 'join' });
 }
 
 function clubJoinLine() {
@@ -2829,12 +3070,8 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
         <button type="submit" class="gate-submit">Войти как владелец</button>
         <small id="gateError" role="alert"></small>
       </form>
-      <button type="button" class="gate-link" id="gateBack">← У меня приглашение</button>`
-    : `${passkeysOffered() && !installFirst ? `<div class="gate-return">
-          <button type="button" class="gate-submit secondary" id="gatePasskey">🔑 Я уже в клубе — войти по ${unlockWords()}</button>
-          <small>Если вход в клуб запоминали на этом или другом своём устройстве.</small>
-        </div>` : ''}
-      <form id="gateJoinForm" class="gate-form"${installFirst ? ' hidden' : ''}>
+      <button type="button" class="gate-link" id="gateBack">← Вход по приглашению</button>`
+    : `<form id="gateJoinForm" class="gate-form"${installFirst ? ' hidden' : ''}>
         <label>Код приглашения<input id="gateCode" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="XXXX-XXXX" value="${escapeHtml(code)}" required><small>Можно вставить сюда всё сообщение с приглашением — код найдётся сам.${state.club.features?.returning ? ' Уже были в клубе? Подойдёт тот же код (неделю) или код для входа со своего телефона — имя и правила тогда не нужны.' : ''}</small></label>
         <label>Как вас называть<input id="gateName" maxlength="24" autocomplete="given-name" placeholder="Например, Саша"><small>Имя видят только участники — рядом с вашими отметками.</small></label>
         ${rules}
@@ -2843,15 +3080,21 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
         <small id="gateError" role="alert"></small>
       </form>
       ${installFirst ? rules : ''}
-      <button type="button" class="gate-link" id="gateOwner">Я владелец клуба</button>`;
+      ${passkeysOffered() && !installFirst ? `<div class="gate-return">
+          <strong class="gate-return-title">Уже были в клубе?</strong>
+          <button type="button" class="gate-submit secondary" id="gatePasskey">🔑 Войти по ${unlockWords()}</button>
+          <small>Если вход запоминали на этом или другом своём устройстве. Или введите выше тот же код приглашения.</small>
+        </div>` : ''}`;
   // Until the door is closed the gate is an offer, not a wall.
   const dismiss = state.club.mode !== 'closed' ? '<button type="button" class="gate-close" id="gateClose">Не сейчас ✕</button>' : '';
   gate.innerHTML = `<div class="gate-card">
       ${dismiss}
       <span class="brand-mark" aria-hidden="true"><span></span></span>
-      <p class="gate-kicker">Закрытый клуб</p>
-      <h1>Топливо СПб — для своих</h1>
-      <p class="gate-lead">Вход только по приглашению участника. Отметки здесь ставят люди, за которых кто-то поручился, — поэтому им можно верить.</p>
+      <p class="gate-kicker">${mode === 'owner' ? 'Вход для владельца клуба' : 'Закрытый клуб'}</p>
+      <h1 id="gateTitle">Топливо СПб — для своих</h1>
+      <p class="gate-lead">${mode === 'owner'
+        ? 'Этот вход — только для владельца. Если вам прислали приглашение, нажмите внизу «← Вход по приглашению».'
+        : 'Вход только по приглашению участника. Отметки здесь ставят люди, за которых кто-то поручился, — поэтому им можно верить.'}</p>
       ${alertBox}${install}${form}
     </div>`;
   gate.hidden = false;
@@ -2873,7 +3116,9 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
     const button = event.currentTarget;
     try { await navigator.clipboard.writeText(code); button.textContent = 'Скопировано'; } catch { button.textContent = code; }
   });
-  $('#gateOwner')?.addEventListener('click', () => showClubGate({ notice, banned, mode: 'owner' }));
+  // The owner's way in is not on the card, where invited people took it for
+  // theirs: five quick taps on its title.
+  onFiveTaps($('#gateTitle'), () => showClubGate({ notice, banned, mode: 'owner' }));
   $('#gateBack')?.addEventListener('click', () => showClubGate({ notice, banned, mode: 'join' }));
   // An invitation copied from a messenger arrives as one long message; the code
   // inside it is picked out, so nobody has to copy it letter by letter.
@@ -3025,6 +3270,23 @@ async function shareInvite(code, button) {
   }
 }
 
+function askInvitesButton(askedAt) {
+  const waiting = askedAt && Date.now() - askedAt < 12 * 60 * 60 * 1000;
+  return `<button type="button" class="list-more" id="clubAskInvites"${waiting ? ' disabled' : ''}>${waiting ? '🎟 Запрос отправлен владельцу' : '🎟 Попросить ещё приглашений у владельца'}</button>`;
+}
+
+function chatSettings(url) {
+  return `<div class="drawer-status club-chat-settings" style="--status-color:#229ed9">
+      <strong>💬 Чат клуба</strong>
+      <p>${url
+        ? 'Кнопку «Чат клуба в Telegram» видят только участники.'
+        : 'Создайте закрытую группу в Telegram, в её настройках откройте «Пригласительные ссылки», скопируйте ссылку и вставьте сюда. Кнопку «Чат клуба» увидят только участники.'}</p>
+      <input id="clubChatUrl" class="club-chat-input" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://t.me/+..." value="${escapeHtml(url || '')}">
+      <button type="button" class="list-more" id="clubChatSave">Сохранить ссылку</button>
+      <small class="remember-note" id="clubChatNote" role="status"></small>
+    </div>`;
+}
+
 async function showClub() {
   openDrawer('<div class="loading-state">Загружаем клуб…</div>');
   let me;
@@ -3053,6 +3315,7 @@ async function showClub() {
   $('#drawerContent').innerHTML = `
     <h2>Клуб «Топливо СПб»</h2>
     <p class="drawer-address">Вы в клубе как <b>${escapeHtml(member.name)}</b>${owner ? ' · владелец' : ''}.</p>
+    ${me.data.chat_url ? `<a class="list-more club-chat" href="${escapeHtml(me.data.chat_url)}" target="_blank" rel="noopener noreferrer">💬 Чат клуба в Telegram</a>` : ''}
     ${profileCard(profile)}
     ${me.data.refuted_by ? `<div class="drawer-status" style="--status-color:#b8333a"><strong>👎 Ваши отметки опровергли: ${me.data.refuted_by} ${plural(me.data.refuted_by, 'человек', 'человека', 'человек')} из 5</strong><p>Так решили участники, которые сами были на тех заправках. Отмечайте только то, что видите на колонках: после пяти разных людей — выбывание из клуба.</p></div>` : ''}
     <div id="clubBoard"></div>
@@ -3060,8 +3323,10 @@ async function showClub() {
       <strong>Пригласить человека</strong>
       <p>Только того, за кого ручаетесь: за ложные отметки исключают, а пригласивший отвечает за приглашённого. Код пускает одного человека и действует 7 дней.${owner ? '' : ` Осталось приглашений: <b>${Number(left) || 0}</b>.`}</p>
       <button type="button" class="list-more" id="clubInvite"${!owner && !left ? ' disabled' : ''}>Создать приглашение</button>
+      ${!owner && !left && state.club.features?.invites_more ? askInvitesButton(me.data.invites_asked) : ''}
       <div id="clubInviteResult"></div>
     </div>
+    ${owner && state.club.features?.chat ? chatSettings(me.data.chat_url) : ''}
     <h3 class="section-title">Мои приглашения</h3>
     <div class="source-list">${inviteRows}</div>
     ${owner ? '<h3 class="section-title">Участники</h3><div id="clubMembers" class="source-list"><div class="loading-state">Загружаем участников…</div></div>' : ''}
@@ -3074,6 +3339,8 @@ async function showClub() {
         <li><b>Отметка помогла</b> — скажите 🙏 «Спасибо». Автору +2 🤝.</li>
         ${state.club.features?.passkeys ? '<li><b>Запомните вход 🔑</b> — если приложение сбросится или смените телефон, вернётесь по Face ID или отпечатку.</li>' : ''}
         ${state.club.features?.returning ? '<li><b>Вылетели, а вход не запоминали</b> — введите тот же код приглашения (он пускает вас неделю) или код с другого своего устройства: «👥 Клуб» → «Войти на другом устройстве».</li>' : ''}
+        ${state.club.features?.invites_more && !owner ? '<li><b>Приглашения кончились</b> — «🎟 Попросить ещё приглашений у владельца» в разделе «Пригласить человека».</li>' : ''}
+        ${me.data.chat_url ? '<li><b>Вопросы и новости</b> — в чате клуба: кнопка «💬 Чат клуба в Telegram» вверху.</li>' : ''}
       </ol>
     </details>
     <h3 class="section-title">Правила клуба</h3>
@@ -3082,6 +3349,33 @@ async function showClub() {
   $('#clubInvite')?.addEventListener('click', createInvite);
   bindInviteButtons($('#drawerContent'));
   bindLoginSection();
+  $('#clubAskInvites')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    const result = await clubCall('/club/invites/more', { method: 'POST' }).catch(() => null);
+    if (result && handleClubRejection(result)) return;
+    if (!result?.ok) {
+      button.disabled = false;
+      showToast('Не получилось', result ? clubMessage(result) : 'Нет связи с клубом. Попробуйте ещё раз.');
+      return;
+    }
+    button.textContent = '🎟 Запрос отправлен владельцу';
+    showToast('🎟 Запрос отправлен', 'Владелец получит уведомление и сможет дать ещё приглашений.');
+  });
+  $('#clubChatSave')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    const note = $('#clubChatNote');
+    button.disabled = true;
+    const result = await clubCall('/club/settings', { method: 'POST', body: { chat_url: $('#clubChatUrl').value } }).catch(() => null);
+    button.disabled = false;
+    if (result && handleClubRejection(result)) return;
+    if (!result?.ok) {
+      note.textContent = result ? clubMessage(result) : 'Нет связи с клубом. Попробуйте ещё раз.';
+      return;
+    }
+    $('#clubChatUrl').value = result.data.chat_url || '';
+    note.textContent = result.data.chat_url ? '✅ Сохранено: участники видят кнопку «💬 Чат клуба в Telegram».' : 'Ссылка убрана.';
+  });
   loadLeaderboard();
   $('#clubLeave').addEventListener('click', () => {
     // It used to say a new invitation would be needed, which scared people
@@ -3169,14 +3463,15 @@ async function loadClubMembers() {
       item.invited ? `привёл(а): ${item.invited}` : null,
       item.passkeys ? '🔑 вход запомнен' : null,
       item.refuted_by ? `👎 опровергли: ${item.refuted_by} ${plural(item.refuted_by, 'человек', 'человека', 'человек')} из 5${item.refuted_names?.length ? ` (${item.refuted_names.map(escapeHtml).join(', ')})` : ''}${item.warned ? ', предупреждён(а)' : ''}` : null,
+      item.role !== 'owner' && item.invites_left != null ? `приглашений осталось: ${item.invites_left}` : null,
     ].filter(Boolean).join(' · ');
     const disputed = item.disputed_30d
       ? `<span class="club-flag">Противоположные отметки: ${item.disputed_30d} ${plural(item.disputed_30d, 'раз', 'раза', 'раз')} (${item.disputed_by_people_30d} ${plural(item.disputed_by_people_30d, 'человек', 'человека', 'человек')}) за 30 дней</span>`
       : '';
     const action = item.role === 'owner' ? '' : item.banned
       ? `<button type="button" class="club-small" data-unban="${escapeHtml(item.id)}">Вернуть в клуб</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`
-      : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button>${state.club.features?.returning ? `<button type="button" class="club-small" data-login-code="${escapeHtml(item.id)}">🔑 Код для входа</button>` : ''}<button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`;
-    return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? (item.banned_by === 'votes' ? ' — выбыл(а) по 👎' : ' — исключён(а)') : ''}</strong><small>${facts}</small>${disputed}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
+      : `<button type="button" class="club-small" data-award="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🏅 Наградить</button>${state.club.features?.invites_more ? `<button type="button" class="club-small${item.invites_asked ? ' asked' : ''}" data-grant="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">🎟 +3 приглашения</button>` : ''}${state.club.features?.returning ? `<button type="button" class="club-small" data-login-code="${escapeHtml(item.id)}">🔑 Код для входа</button>` : ''}<button type="button" class="club-small danger" data-ban="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Исключить</button><button type="button" class="club-small" data-remove="${escapeHtml(item.id)}" data-name="${escapeHtml(item.name)}">Удалить</button>`;
+    return `<div class="source-row club-member${item.banned ? ' banned' : ''}"><strong>${escapeHtml(item.name)}${item.banned ? (item.banned_by === 'votes' ? ' — выбыл(а) по 👎' : ' — исключён(а)') : ''}</strong><small>${facts}</small>${disputed}${item.invites_asked && !item.banned ? '<span class="club-flag ask">🎟 Просит ещё приглашений</span>' : ''}${item.banned && item.banned_reason ? `<small>Причина: ${escapeHtml(item.banned_reason)}</small>` : ''}${action}</div>`;
   }).join('');
   const invites = result.data.invites.length
     ? `<p class="drawer-address">Неиспользованные приглашения: ${result.data.invites.map((invite) => `${escapeHtml(invite.code)} (${escapeHtml(invite.by)})`).join(', ')}</p>`
@@ -3222,6 +3517,20 @@ async function loadClubMembers() {
       showToast(`«${button.dataset.name}» удалён из клуба`, 'Пришлите новый код — он сможет вступить заново.');
       loadClubMembers();
       pollGroupMarks();
+    });
+  });
+  box.querySelectorAll('[data-grant]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      const res = await clubCall('/club/invites/grant', { method: 'POST', body: { id: button.dataset.grant, count: 3 } }).catch(() => null);
+      if (res && handleClubRejection(res)) return;
+      if (!res?.ok) {
+        button.disabled = false;
+        alert(clubMessage(res));
+        return;
+      }
+      showToast(`🎟 «${button.dataset.name}»: +3 приглашения`, `Теперь может пригласить: ${res.data.left}.`);
+      loadClubMembers();
     });
   });
   // The last resort, for someone who lost every device and never saved a
@@ -3469,7 +3778,7 @@ function markedRecently(stationId, minutes = 15) {
 function renderHerePanel() {
   const panel = $('#herePanel');
   if (!panel) return;
-  if (!state.location || !state.stations.length || state.accuracy > 300) {
+  if (!state.location || !state.stations.length || effectiveAccuracy() > ROUGH_METRES) {
     panel.hidden = true;
     return;
   }
@@ -3595,7 +3904,7 @@ function renderStations({ append = false } = {}) {
     // them opened the card or did nothing. They live in a sibling block now.
     const actions = node.querySelector('.card-actions');
     const km = liveDistanceKm(station);
-    const near = state.location && state.accuracy <= 500 && km != null && km * 1000 <= NEARBY_REPORT_METRES;
+    const near = state.location && effectiveAccuracy() <= 500 && km != null && km * 1000 <= NEARBY_REPORT_METRES;
     if (near && markedRecently(station.id)) {
       const own = Object.values(state.marks[station.id]).sort((a, b) => b.at - a.at)[0];
       actions.innerHTML = `<span class="mark-sent">✔ Вы отметили ${escapeHtml(formatAge((Date.now() - own.at) / 1000))}</span> <button type="button" class="mark-link" data-open-station>Изменить</button>`;
