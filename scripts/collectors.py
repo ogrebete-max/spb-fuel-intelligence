@@ -388,10 +388,21 @@ def collect_own_reports() -> dict[str, Any]:
     # With the closed club's reader key set on the worker, the marks are not
     # readable without it; the key comes from a repository secret.
     reader_key = os.environ.get("SPBFI_REPORT_READER_KEY", "").strip()
-    payload = _json(
-        endpoint.rstrip("/") + "/reports", timeout=20,
-        extra_headers={"X-Reader-Key": reader_key} if reader_key else None,
-    )
+    # The club's server is in Moscow. From abroad, where the pipeline runs,
+    # about one connection in four stalled on the way (measured 14 Sep 2026),
+    # and another try soon after gets through. An answer such as 401 is not
+    # a stall and is not asked again.
+    for attempt in range(1, 4):
+        try:
+            payload = _json(
+                endpoint.rstrip("/") + "/reports", timeout=12,
+                extra_headers={"X-Reader-Key": reader_key} if reader_key else None,
+            )
+            break
+        except (OSError, ValueError) as error:
+            if attempt == 3 or getattr(error, "code", None):
+                raise
+            time.sleep(2 * attempt)
     return {"captured_at": _now(), "reports": payload.get("reports") or []}
 
 
