@@ -1,0 +1,1897 @@
+{
+ "captured_at": "2026-09-14T17:56:53Z",
+ "source": "benzokarta",
+ "reports_since": "2026-09-13T17:56:53Z",
+ "requests": 2,
+ "total_stations": 1036,
+ "stations_note": "24 stations kept, most reported first",
+ "stations": [
+  {
+   "id": "benzokarta:a656dbf9-f4ec-44cb-9bb2-76d2f0904d4d",
+   "lat": 59.8166253,
+   "lon": 30.3245775,
+   "network": "Газпромнефть",
+   "address": "Пулковское шоссе 42",
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "gas": "unavailable",
+    "dt": "available",
+    "100": "available",
+    "92": "available",
+    "95": "available",
+    "98": "available"
+   },
+   "reports": {
+    "count": 6,
+    "latest_by_grade": {
+     "92": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00"
+     },
+     "95": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00"
+     },
+     "98": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00"
+     },
+     "100": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00"
+     },
+     "dt": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00"
+     },
+     "gas": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00"
+     }
+    }
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-14T15:28:39.442035+00:00",
+    "sample": 6,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "gas": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:39.442035+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "gas": {
+      "price": 35,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0ef65eba-7c35-44f4-a301-dba368580f52",
+   "lat": 60.0141015,
+   "lon": 30.2949534,
+   "network": "Газпромнефть",
+   "address": null,
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "100": "available",
+    "92": "available",
+    "95": "available",
+    "98": "available"
+   },
+   "reports": {
+    "count": 5,
+    "latest_by_grade": {
+     "92": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00"
+     },
+     "95": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00"
+     },
+     "98": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00"
+     },
+     "100": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00"
+     },
+     "dt": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00"
+     }
+    }
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-13T21:37:55.037278+00:00",
+    "sample": 5,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T21:37:55.037278+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.19,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.2,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.46,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 96.91,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:4151dcc1-e3fd-4d1c-8634-20fa05271767",
+   "lat": 59.8150124,
+   "lon": 30.3250772,
+   "network": "Лукойл",
+   "address": "Пулковское шоссе 42 к5",
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "limited",
+    "92": "limited",
+    "95": "limited",
+    "98": "limited",
+    "100": "limited"
+   },
+   "reports": {
+    "count": 5,
+    "latest_by_grade": {
+     "92": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00"
+     },
+     "95": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00"
+     },
+     "98": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00"
+     },
+     "100": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00"
+     },
+     "dt": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00"
+     }
+    }
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-14T15:28:05.083324+00:00",
+    "sample": 5,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:28:05.083324+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 81.65,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 71.81,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.85,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.4,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:69a3b53a-a2fe-4fcf-a141-8ca66ec99c84",
+   "lat": 59.8245427,
+   "lon": 30.189184,
+   "network": "Татнефть",
+   "address": "проспект Народного Ополчения 201А",
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "92": "unavailable",
+    "95": "unavailable"
+   },
+   "reports": {
+    "count": 3,
+    "latest_by_grade": {
+     "92": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T23:04:59.282522+00:00"
+     },
+     "95": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T23:04:59.282522+00:00"
+     },
+     "dt": {
+      "status": "unavailable",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-13T23:04:59.282522+00:00"
+     }
+    }
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-13T23:04:59.282522+00:00",
+    "sample": 3,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T23:04:59.282522+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T23:04:59.282522+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T23:04:59.282522+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.07,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.79,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.33,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:4148a719-84f6-48f0-8344-feeebc2bb059",
+   "lat": 59.815021,
+   "lon": 30.3220263,
+   "network": "Роснефть",
+   "address": null,
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": "24/7",
+   "catalog_fuels": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "dt": "unavailable"
+   },
+   "reports": {
+    "count": 2,
+    "latest_by_grade": {
+     "95": {
+      "status": "available",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:24:41.907856+00:00"
+     },
+     "dt": {
+      "status": "available",
+      "queue": null,
+      "limit_liters": null,
+      "delivery_at": null,
+      "reported_at": "2026-09-14T15:24:41.907856+00:00"
+     }
+    }
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-14T15:24:41.907856+00:00",
+    "sample": 2,
+    "grades": {
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:24:41.907856+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-14T15:24:41.907856+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.45,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.5,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.45,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:00688f1b-492a-4ded-9519-d40be32013b9",
+   "lat": 59.9247906,
+   "lon": 30.4455669,
+   "network": "Лукойл",
+   "address": "улица Ворошилова 10",
+   "region": "Санкт-Петербург",
+   "city": "Санкт-Петербург",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "92": "available",
+    "95": "unavailable"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-27T18:41:29.726459+00:00",
+    "sample": 2,
+    "grades": {
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-27T18:41:29.726459+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-27T18:41:29.726459+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "95": {
+      "price": 72.71,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.85,
+      "availability": null,
+      "limit_liters": null
+     },
+     "dt": {
+      "price": 81.25,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:00ccb71f-0fc3-4b9f-996d-ecc6efe2576a",
+   "lat": 59.9454674,
+   "lon": 30.5204671,
+   "network": "Teboil",
+   "address": null,
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unavailable",
+    "92": "unavailable",
+    "95": "unavailable",
+    "98": "unavailable"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-07T07:21:36.504097+00:00",
+    "sample": 1,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-07T07:21:36.504097+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "95": {
+      "price": 69.85,
+      "availability": "available",
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65,
+      "availability": "available",
+      "limit_liters": null
+     },
+     "dt": {
+      "price": 79.78,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.39,
+      "availability": "available",
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:050d7a70-d102-4e58-a9a9-808c903e311f",
+   "lat": 59.8513543,
+   "lon": 30.3046116,
+   "network": "Татнефть",
+   "address": null,
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": "24/7",
+   "catalog_fuels": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "98": "unavailable",
+    "dt": "unavailable"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-07T09:14:20.206119+00:00",
+    "sample": 1,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-07T09:14:20.206119+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.07,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.79,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.33,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.9,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:07610d2f-ab55-4e11-b43a-a3914d25638d",
+   "lat": 60.0570714,
+   "lon": 30.3844267,
+   "network": "Киришиавтосервис",
+   "address": "1-й Верхний переулок 3 литА",
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unknown",
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-09T03:01:08.974975+00:00",
+    "sample": 4,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T03:01:08.974975+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T03:01:08.974975+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T03:01:08.974975+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T03:01:08.974975+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": null
+  },
+  {
+   "id": "benzokarta:08a495b0-035e-4f6a-a66b-2e13497dd547",
+   "lat": 60.0387727,
+   "lon": 30.0000103,
+   "network": "Роснефть",
+   "address": "Владимирский проспект 16",
+   "region": "Санкт-Петербург",
+   "city": "Сестрорецк",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unknown",
+    "92": "unknown",
+    "95": "unknown"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-08T14:18:12.342881+00:00",
+    "sample": 3,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-08T14:18:12.342881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-08T14:18:12.342881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-08T14:18:12.342881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.35,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.15,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.55,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0b52f61e-70ba-4fef-8c52-af3a6b77eb46",
+   "lat": 60.0049986,
+   "lon": 32.1305301,
+   "network": "Линос",
+   "address": "Центральная улица 34",
+   "region": "Ленинградская область",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unknown",
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-20T09:15:27.877858+00:00",
+    "sample": 4,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-20T09:15:27.877858+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-20T09:15:27.877858+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-20T09:15:27.877858+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-20T09:15:27.877858+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 79.33,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.05,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.76,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0b88fa8a-30a3-4da7-ac1e-5024f3ac0ca3",
+   "lat": 60.1321009,
+   "lon": 29.9868136,
+   "network": "Лукойл",
+   "address": null,
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unknown",
+    "100": "unknown",
+    "92": "unknown",
+    "95": "unknown"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-08T10:28:57.395617+00:00",
+    "sample": 3,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-08T10:28:57.395617+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-08T10:28:57.395617+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-08T10:28:57.395617+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": null
+  },
+  {
+   "id": "benzokarta:0c524833-70a9-4458-b56d-35ddc3464331",
+   "lat": 59.6054277,
+   "lon": 30.3431046,
+   "network": "Газпромнефть",
+   "address": null,
+   "region": "Ленинградская область",
+   "city": null,
+   "opening_hours": "24/7",
+   "catalog_fuels": {
+    "92": "available",
+    "95": "available",
+    "dt": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-08T17:25:26.827135+00:00",
+    "sample": 1,
+    "grades": {
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-08T17:25:26.827135+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 79.87,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 69.11,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.33,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0d2b7005-83a2-4d61-82d7-aa4cf7daee77",
+   "lat": 59.9065734,
+   "lon": 30.4522262,
+   "network": "Линос",
+   "address": null,
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "100": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-10T07:36:03.860623+00:00",
+    "sample": 5,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-10T07:36:03.860623+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-10T07:36:03.860623+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-10T07:36:03.860623+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-10T07:36:03.860623+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-10T07:36:03.860623+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "gas": {
+      "price": 36.45,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0d9c7432-a289-47d0-a6ea-892fbe9374a6",
+   "lat": 59.7197269,
+   "lon": 30.0644664,
+   "network": "Лукойл",
+   "address": "Кингисеппское шоссе 24",
+   "region": "Ленинградская область",
+   "city": "Красное Село",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unknown",
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-07T11:04:12.994212+00:00",
+    "sample": 4,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-07T11:04:12.994212+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-07T11:04:12.994212+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-07T11:04:12.994212+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-07T11:04:12.994212+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 81.65,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 71.81,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.71,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.4,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0e5a8b12-bc18-4fe6-9989-a87dd002d557",
+   "lat": 60.0484059,
+   "lon": 30.3403246,
+   "network": "Лукойл",
+   "address": "улица Есенина 21",
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unavailable",
+    "92": "unavailable",
+    "95": "unavailable"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-06T17:28:19.772139+00:00",
+    "sample": 1,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-06T17:28:19.772139+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.31,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.91,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 64.98,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0ed7533b-ba97-411d-89c0-4e705f539ac2",
+   "lat": 59.9133622,
+   "lon": 30.3586528,
+   "network": "Лукойл",
+   "address": "набережная Обводного канала 34",
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "92": "available",
+    "95": "available",
+    "100": "available",
+    "98": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-08-11T18:42:23.348857+00:00",
+    "sample": 2,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-08-11T18:42:23.348857+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-08-11T18:42:23.348857+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 81.65,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 72.71,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.85,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:0f0efc9c-26ac-4f7f-8d2e-c4bf59a3ed79",
+   "lat": 59.9913196,
+   "lon": 30.3331579,
+   "network": "Лукойл",
+   "address": "Большой Сампсониевский проспект 89",
+   "region": "Санкт-Петербург",
+   "city": "Санкт-Петербург",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "92": "available",
+    "95": "unavailable",
+    "98": "available",
+    "100": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-09T07:32:09.069881+00:00",
+    "sample": 5,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T07:32:09.069881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T07:32:09.069881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T07:32:09.069881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T07:32:09.069881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T07:32:09.069881+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 81.65,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 71.81,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.85,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.4,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:115d1325-864a-4d43-bee4-6229e12a5147",
+   "lat": 60.0339092,
+   "lon": 29.9813159,
+   "network": "Teboil",
+   "address": "Приморское шоссе 144",
+   "region": "Санкт-Петербург",
+   "city": "Лисий Нос",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unknown",
+    "92": "unknown",
+    "95": "unknown"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-10T18:57:35.841636+00:00",
+    "sample": 3,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-10T18:57:35.841636+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-10T18:57:35.841636+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-10T18:57:35.841636+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 79.9,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 69.29,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 64.96,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.39,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:11886f99-deed-4f6e-848d-fea51a8a5127",
+   "lat": 59.9406584,
+   "lon": 30.4327303,
+   "network": "Лукойл",
+   "address": "Магнитогорская улица 34",
+   "region": "Санкт-Петербург",
+   "city": "Санкт-Петербург",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "92": "unavailable",
+    "95": "available",
+    "98": "unavailable",
+    "100": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-17T20:30:55.842232+00:00",
+    "sample": 5,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-17T20:30:55.842232+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-17T20:30:55.842232+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-17T20:30:55.842232+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-17T20:30:55.842232+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-17T20:30:55.842232+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 81.65,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 71.81,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.71,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.4,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:12a0edff-5451-4c50-bf43-6401cc698544",
+   "lat": 59.8763486,
+   "lon": 30.3067461,
+   "network": "Лукойл",
+   "address": "Благодатная улица 10А",
+   "region": "Санкт-Петербург",
+   "city": "Санкт-Петербург",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "100": "available",
+    "92": "unavailable",
+    "95": "available",
+    "98": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-01T12:47:38.116405+00:00",
+    "sample": 5,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-01T12:47:38.116405+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-01T12:47:38.116405+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-01T12:47:38.116405+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "98": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-01T12:47:38.116405+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-01T12:47:38.116405+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 81.25,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 71.81,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.71,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 99.4,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:13466fbe-ea16-42e3-8f04-86dd29457d58",
+   "lat": 59.8931062,
+   "lon": 29.7946466,
+   "network": "Роснефть",
+   "address": "улица Федюнинского",
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "unknown",
+    "92": "unknown",
+    "95": "unknown"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-18T17:07:20.960448+00:00",
+    "sample": 1,
+    "grades": {
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-18T17:07:20.960448+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.45,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.15,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.35,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:13f01a4c-893e-43ea-a6b6-75dea1e21f8a",
+   "lat": 59.9621521,
+   "lon": 30.4876014,
+   "network": "Роснефть",
+   "address": null,
+   "region": "Санкт-Петербург",
+   "city": null,
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "100": "unavailable",
+    "92": "available",
+    "95": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-09-13T16:37:44.124913+00:00",
+    "sample": 4,
+    "grades": {
+     "100": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T16:37:44.124913+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T16:37:44.124913+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "95": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T16:37:44.124913+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     },
+     "dt": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-09-13T16:37:44.124913+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.25,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.15,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.25,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 98.85,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  },
+  {
+   "id": "benzokarta:1586d7a1-a4ef-437a-a59a-94994c7b9b2a",
+   "lat": 60.023457,
+   "lon": 30.4070326,
+   "network": "Роснефть",
+   "address": "Северная площадь 2",
+   "region": "Санкт-Петербург",
+   "city": "Санкт-Петербург",
+   "opening_hours": null,
+   "catalog_fuels": {
+    "dt": "available",
+    "100": "available",
+    "92": "available",
+    "95": "available",
+    "98": "available"
+   },
+   "reports": {
+    "count": 0,
+    "latest_by_grade": {}
+   },
+   "community": {
+    "overall": "unknown",
+    "updated_at": "2026-07-09T21:09:30.70605+00:00",
+    "sample": 1,
+    "grades": {
+     "92": {
+      "status": null,
+      "confidence": null,
+      "reported_at": "2026-07-09T21:09:30.70605+00:00",
+      "restriction": null,
+      "limit_liters": null,
+      "confirmations": 0
+     }
+    }
+   },
+   "transitcard": {
+    "status": "available",
+    "grades": {
+     "dt": {
+      "price": 80.35,
+      "availability": null,
+      "limit_liters": null
+     },
+     "95": {
+      "price": 70.3,
+      "availability": null,
+      "limit_liters": null
+     },
+     "92": {
+      "price": 65.15,
+      "availability": null,
+      "limit_liters": null
+     },
+     "100": {
+      "price": 98.8,
+      "availability": null,
+      "limit_liters": null
+     }
+    }
+   }
+  }
+ ]
+}

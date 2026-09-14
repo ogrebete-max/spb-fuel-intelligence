@@ -1,0 +1,2068 @@
+{
+ "captured_at": "2026-09-14T17:25:47.983498Z",
+ "source": "https://alfabank.ru/api/v1/azs-stations/public/stations",
+ "russia_total": 16375,
+ "stations_total_spb_lo": 899,
+ "stations_in_sample": 25,
+ "stations": [
+  {
+   "station_id": "36ffa4a9-292d-446f-9ae3-f089c8537cde",
+   "brand": {
+    "name": "Sigma Gas"
+   },
+   "address": {
+    "fullname": "ул. Парашютная, 62",
+    "location": {
+     "latitude": 60.041643,
+     "longitude": 30.238978
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "closed",
+     "restrictions": null,
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "AI95",
+     "status": "closed",
+     "restrictions": null,
+     "last_transaction_at": null,
+     "price": 62.0
+    },
+    {
+     "category": "AI98_100",
+     "status": "closed",
+     "restrictions": null,
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "closed",
+     "restrictions": null,
+     "last_transaction_at": null,
+     "price": null
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "60201",
+     "is_active": true
+    },
+    {
+     "partner_station_id": "64255",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "64992",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "68368",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:08:40Z",
+   "last_24h_alfa_transactions_count": 3
+  },
+  {
+   "station_id": "6ed43daa-87b4-43e2-959c-bf3be1c52d3d",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "Партизанская ул., 17А, Санкт-Петербург, Россия, 195248",
+    "location": {
+     "latitude": 59.947328,
+     "longitude": 30.435042
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T03:20:42Z",
+     "price": 65.25
+    },
+    {
+     "category": "AI95",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-13T10:44:14Z",
+     "price": 70.25
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T13:40:41Z",
+     "price": 80.75
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "46412",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "57332",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:08:31Z",
+   "last_24h_alfa_transactions_count": 90
+  },
+  {
+   "station_id": "01992eec-71c3-4768-8fb7-ca6939a7c59c",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "просп. Народного Ополчения, 26к3, Санкт-Петербург, Россия, 198215",
+    "location": {
+     "latitude": 59.837163,
+     "longitude": 30.270322
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T15:45:40Z",
+     "price": 65.35
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T03:14:10Z",
+     "price": 70.4
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T12:42:24Z",
+     "price": 80.95
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "57451",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:08:24Z",
+   "last_24h_alfa_transactions_count": 65
+  },
+  {
+   "station_id": "53eb3576-0d42-4132-b3cd-b0a39d3b6abd",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "Шафировский пр., 18, Санкт-Петербург, Россия, 195279",
+    "location": {
+     "latitude": 59.988768,
+     "longitude": 30.465254
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:53:35Z",
+     "price": 65.2
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:01:37Z",
+     "price": 70.2
+    },
+    {
+     "category": "AI98_100",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-07-02T21:14:18Z",
+     "price": 100.4
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T11:45:40Z",
+     "price": 80.7
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "57433",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:08:13Z",
+   "last_24h_alfa_transactions_count": 213
+  },
+  {
+   "station_id": "cb06c5bc-c22e-48ea-a5b8-899756e6eb08",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "ул. Нахимова, 18, Санкт-Петербург, Россия, 199226",
+    "location": {
+     "latitude": 59.940901,
+     "longitude": 30.226666
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T09:08:40Z",
+     "price": 65.15
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T15:48:51Z",
+     "price": 70.15
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T14:47:05Z",
+     "price": 80.85
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "46451",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "57339",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:08:12Z",
+   "last_24h_alfa_transactions_count": 64
+  },
+  {
+   "station_id": "feae1ab2-cb89-45aa-a4c0-fa50c0138d3c",
+   "brand": {
+    "name": "TATNEFT"
+   },
+   "address": {
+    "fullname": "пр. Стачек, 115А, Санкт-Петербург, Россия, 198262",
+    "location": {
+     "latitude": 59.8487,
+     "longitude": 30.2259
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T06:21:21Z",
+     "price": 65.5
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T05:20:42Z",
+     "price": 70.9
+    },
+    {
+     "category": "AI98_100",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 10000,
+       "start_date": null,
+       "end_date": null,
+       "comment": "ДТ Танеко, АИ-98  и АИ-100 - без ограничений"
+      }
+     ],
+     "last_transaction_at": "2026-09-11T14:45:59Z",
+     "price": 99.9
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 400,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T14:25:01Z",
+     "price": 80.3
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "53199",
+     "is_active": true
+    },
+    {
+     "partner_station_id": "68375",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:08:12Z",
+   "last_24h_alfa_transactions_count": 38
+  },
+  {
+   "station_id": "c495c658-b9c0-49b2-857c-bf8134fd0ad1",
+   "brand": {
+    "name": "Газпромнефть"
+   },
+   "address": {
+    "fullname": "Кушелевская дор., 8, Санкт-Петербург, Россия, 195220",
+    "location": {
+     "latitude": 59.988593,
+     "longitude": 30.367856
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T14:43:33Z",
+     "price": 65.43
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:23:26Z",
+     "price": 70.52
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T09:25:50Z",
+     "price": 80.0
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "49910",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:08:03Z",
+   "last_24h_alfa_transactions_count": 142
+  },
+  {
+   "station_id": "e416dfc9-86f4-4a9e-810c-0e90a7538e15",
+   "brand": {
+    "name": "Teboil"
+   },
+   "address": {
+    "fullname": "г. Санкт-Петербург, Индустриальный проспект, д. 47, корп. 1, лит. А",
+    "location": {
+     "latitude": 59.959564,
+     "longitude": 30.464558
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-11T11:10:18Z",
+     "price": 65.3
+    },
+    {
+     "category": "AI95",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-11T12:23:26Z",
+     "price": 73.3
+    },
+    {
+     "category": "AI98_100",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-07-16T17:44:58Z",
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T08:23:05Z",
+     "price": 80.2
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "45470",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "52218",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "66764",
+     "is_active": false
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:48Z",
+   "last_24h_alfa_transactions_count": 24
+  },
+  {
+   "station_id": "8962b419-9540-429b-ab75-bd5935a59a1e",
+   "brand": {
+    "name": "ЛУКОЙЛ"
+   },
+   "address": {
+    "fullname": "Свердловская наб., 9, Санкт-Петербург, Россия, 195009 (Автоматическая)",
+    "location": {
+     "latitude": 59.95956,
+     "longitude": 30.386446
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T13:23:46Z",
+     "price": 65.7
+    },
+    {
+     "category": "AI95",
+     "status": "unavailable",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T03:29:20Z",
+     "price": 72.6
+    },
+    {
+     "category": "AI98_100",
+     "status": "unavailable",
+     "restrictions": null,
+     "last_transaction_at": "2026-07-07T11:59:04Z",
+     "price": 99.4
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-11T08:18:46Z",
+     "price": 81.92
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "86940",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:40Z",
+   "last_24h_alfa_transactions_count": 125
+  },
+  {
+   "station_id": "60c89b12-ada6-40f6-9265-0f69dc0daa54",
+   "brand": {
+    "name": "Газпромнефть"
+   },
+   "address": {
+    "fullname": "просп. Обуховской Обороны, 303, Санкт-Петербург, Россия, 192076",
+    "location": {
+     "latitude": 59.84228,
+     "longitude": 30.48396
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T15:56:54Z",
+     "price": 65.86
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:50:55Z",
+     "price": 70.95
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T15:46:40Z",
+     "price": 80.31
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "59950",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:37Z",
+   "last_24h_alfa_transactions_count": 111
+  },
+  {
+   "station_id": "ac827584-bb44-40d5-8c7d-8448399813cc",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "Дальневосточный пр., 22 корпус 1, Санкт-Петербург, Россия, 193168",
+    "location": {
+     "latitude": 59.904585,
+     "longitude": 30.455266
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T15:50:44Z",
+     "price": 65.2
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T14:13:19Z",
+     "price": 70.2
+    },
+    {
+     "category": "AI98_100",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-07-02T19:29:42Z",
+     "price": 100.4
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T11:36:23Z",
+     "price": 80.7
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "57425",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:30Z",
+   "last_24h_alfa_transactions_count": 144
+  },
+  {
+   "station_id": "7b2075a6-e922-4199-bd16-9e159d958c7e",
+   "brand": {
+    "name": "Сургутнефтегаз"
+   },
+   "address": {
+    "fullname": "наб. Песочная, 30А",
+    "location": {
+     "latitude": 59.97037,
+     "longitude": 30.28506
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T08:34:39Z",
+     "price": 65.54
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T13:44:11Z",
+     "price": 70.97
+    },
+    {
+     "category": "AI98_100",
+     "status": "probably_unavailable",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-11T09:42:46Z",
+     "price": 99.9
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T14:09:09Z",
+     "price": 80.95
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "68681",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "70105",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:28Z",
+   "last_24h_alfa_transactions_count": 87
+  },
+  {
+   "station_id": "b6622dff-6b2d-4d67-bef4-5b2a8acff32d",
+   "brand": {
+    "name": "Газпромнефть"
+   },
+   "address": {
+    "fullname": "ул. Кржижановского, 10к3, Санкт-Петербург, Россия, 193312 (Автоматическая)",
+    "location": {
+     "latitude": 59.931719,
+     "longitude": 30.476961
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:09:54Z",
+     "price": 64.1
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:59:49Z",
+     "price": 68.99
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T02:15:42Z",
+     "price": 79.2
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "49818",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:24Z",
+   "last_24h_alfa_transactions_count": 1551
+  },
+  {
+   "station_id": "5660ffc2-086b-42fc-9279-6c5ee6defecf",
+   "brand": {
+    "name": "TATNEFT"
+   },
+   "address": {
+    "fullname": "д.Кипень, 42 км. Нарвского шоссе",
+    "location": {
+     "latitude": 59.676,
+     "longitude": 29.8623
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-13T05:27:49Z",
+     "price": 65.5
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T04:29:35Z",
+     "price": 70.9
+    },
+    {
+     "category": "AI98_100",
+     "status": "unavailable",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 10000,
+       "start_date": null,
+       "end_date": null,
+       "comment": "ДТ Танеко, АИ-98  и АИ-100 - без ограничений"
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 400,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T13:52:48Z",
+     "price": 80.3
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "53427",
+     "is_active": true
+    },
+    {
+     "partner_station_id": "67238",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:05Z",
+   "last_24h_alfa_transactions_count": 12
+  },
+  {
+   "station_id": "b0a4e61f-8fa2-4d94-98a4-1ec1c646f54f",
+   "brand": {
+    "name": "Газпромнефть"
+   },
+   "address": {
+    "fullname": "Выборгское ш., 503 корпус 5, Парголово, Санкт-Петербург, Россия, 194362",
+    "location": {
+     "latitude": 60.105295,
+     "longitude": 30.2487
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-13T17:50:28Z",
+     "price": 65.32
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:58:31Z",
+     "price": 70.63
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T13:12:36Z",
+     "price": 80.25
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "49982",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:07:03Z",
+   "last_24h_alfa_transactions_count": 94
+  },
+  {
+   "station_id": "01363062-9271-4654-a350-60d1cd6a53d9",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "Полюстровский пр., 73а, Санкт-Петербург, Россия, 194100",
+    "location": {
+     "latitude": 59.979829,
+     "longitude": 30.367139
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T10:59:49Z",
+     "price": 65.15
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T15:53:13Z",
+     "price": 70.4
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T09:22:57Z",
+     "price": 80.85
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "46461",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "57404",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:56Z",
+   "last_24h_alfa_transactions_count": 78
+  },
+  {
+   "station_id": "f4309f6e-f331-4b74-83d9-548b89daf1a2",
+   "brand": {
+    "name": "Teboil"
+   },
+   "address": {
+    "fullname": "г. Санкт-Петербург, Проспект Народного Ополчения",
+    "location": {
+     "latitude": 59.832064,
+     "longitude": 30.250695
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-13T07:33:30Z",
+     "price": 65.7
+    },
+    {
+     "category": "AI95",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-13T09:24:13Z",
+     "price": 70.89
+    },
+    {
+     "category": "AI98_100",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-06T23:44:05Z",
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T14:44:58Z",
+     "price": 80.57
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "45421",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "52170",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "66711",
+     "is_active": false
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:42Z",
+   "last_24h_alfa_transactions_count": 77
+  },
+  {
+   "station_id": "f31ab215-5492-45fd-9b37-20afa03b0dc5",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "пр. Королёва, 40, Санкт-Петербург, Россия, 197371",
+    "location": {
+     "latitude": 60.01792,
+     "longitude": 30.256804
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T12:56:58Z",
+     "price": 65.15
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:30:15Z",
+     "price": 70.4
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "probably_unavailable",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-13T18:34:23Z",
+     "price": 80.85
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "57460",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:39Z",
+   "last_24h_alfa_transactions_count": 92
+  },
+  {
+   "station_id": "132496df-deb9-4be1-b18e-9af144aea534",
+   "brand": {
+    "name": "ЛУКОЙЛ"
+   },
+   "address": {
+    "fullname": "Софийская ул., 1, Санкт-Петербург, Россия, 192102",
+    "location": {
+     "latitude": 59.888032,
+     "longitude": 30.380544
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T11:11:29Z",
+     "price": 66.26
+    },
+    {
+     "category": "AI95",
+     "status": "unavailable",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-05T14:24:38Z",
+     "price": null
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": null,
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T11:14:21Z",
+     "price": 82.49
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "86934",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:36Z",
+   "last_24h_alfa_transactions_count": 46
+  },
+  {
+   "station_id": "05b970e0-5ef2-4552-af1f-a50430ae30fe",
+   "brand": {
+    "name": "Газпромнефть"
+   },
+   "address": {
+    "fullname": "ул. Победы, 27, Ломоносов, Россия, 198412",
+    "location": {
+     "latitude": 59.90149,
+     "longitude": 29.768605
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-12T14:32:39Z",
+     "price": 65.86
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:28:48Z",
+     "price": 71.25
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T07:20:16Z",
+     "price": 80.12
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "49990",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "53316",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:17Z",
+   "last_24h_alfa_transactions_count": 85
+  },
+  {
+   "station_id": "8a57f603-9656-4387-9f48-65ec8bb8ee16",
+   "brand": {
+    "name": "Teboil"
+   },
+   "address": {
+    "fullname": "Горское шоссе, 50/1 Левашово пос., Выборгский р-н, Санкт-Петербург",
+    "location": {
+     "latitude": 60.085064,
+     "longitude": 30.219972
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-10T05:58:55Z",
+     "price": 65.94
+    },
+    {
+     "category": "AI95",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-10T03:57:25Z",
+     "price": 70.27
+    },
+    {
+     "category": "AI98_100",
+     "status": "probably_unavailable",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-06T18:40:47Z",
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "disabled",
+       "payment_type": "mobile",
+       "partner_name": "benzuber",
+       "limit": null,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T14:32:18Z",
+     "price": 80.97
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "81775",
+     "is_active": false
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:10Z",
+   "last_24h_alfa_transactions_count": 98
+  },
+  {
+   "station_id": "da6f083a-15cf-49da-9dcd-a971c9063c39",
+   "brand": {
+    "name": "Газпромнефть"
+   },
+   "address": {
+    "fullname": "Пулковское ш., 21 корпус 2, Санкт-Петербург, Ленинградская, Россия, 196240",
+    "location": {
+     "latitude": 59.82369,
+     "longitude": 30.319183
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T00:16:45Z",
+     "price": 65.37
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:56:06Z",
+     "price": 70.58
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T12:56:11Z",
+     "price": 82.15
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "50556",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:07Z",
+   "last_24h_alfa_transactions_count": 130
+  },
+  {
+   "station_id": "6d69dcdd-46b3-4a9f-8a82-d4f64e69de51",
+   "brand": {
+    "name": "Роснефть"
+   },
+   "address": {
+    "fullname": "Московское ш., 181, Санкт-Петербург, Ленинградская обл., Россия, 196634",
+    "location": {
+     "latitude": 59.771155,
+     "longitude": 30.457342
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T07:16:46Z",
+     "price": 65.55
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 30,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T13:33:10Z",
+     "price": 70.6
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 50,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T16:04:27Z",
+     "price": 80.95
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "46409",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "57367",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:06:01Z",
+   "last_24h_alfa_transactions_count": 111
+  },
+  {
+   "station_id": "5263b560-61b3-4030-bfe0-7e73c8c35cee",
+   "brand": {
+    "name": "Газпромнефть"
+   },
+   "address": {
+    "fullname": "Пулковское ш., 120, Санкт-Петербург, Россия, 196140",
+    "location": {
+     "latitude": 59.749288,
+     "longitude": 30.315989
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T06:59:10Z",
+     "price": 65.27
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T16:53:01Z",
+     "price": 70.27
+    },
+    {
+     "category": "AI98_100",
+     "status": "unknown",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": null,
+     "price": null
+    },
+    {
+     "category": "DIESEL",
+     "status": "unavailable",
+     "restrictions": [
+      {
+       "type": "limit",
+       "payment_type": "all",
+       "partner_name": "benzuber",
+       "limit": 40,
+       "start_date": null,
+       "end_date": null,
+       "comment": null
+      }
+     ],
+     "last_transaction_at": "2026-09-14T06:10:24Z",
+     "price": 80.12
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "45713",
+     "is_active": false
+    },
+    {
+     "partner_station_id": "51364",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:05:58Z",
+   "last_24h_alfa_transactions_count": 67
+  },
+  {
+   "station_id": "8573cf3c-e2a4-4da0-a3ea-b4c5656b6f20",
+   "brand": {
+    "name": "ЛУКОЙЛ"
+   },
+   "address": {
+    "fullname": "Большой Сампсониевский пр., 87, Санкт-Петербург, Россия, 194156",
+    "location": {
+     "latitude": 59.991431,
+     "longitude": 30.333037
+    }
+   },
+   "fuels": [
+    {
+     "category": "AI92",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T07:45:09Z",
+     "price": 66.26
+    },
+    {
+     "category": "AI95",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T10:22:25Z",
+     "price": 73.16
+    },
+    {
+     "category": "AI98_100",
+     "status": "unavailable",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-06T05:18:53Z",
+     "price": 99.4
+    },
+    {
+     "category": "DIESEL",
+     "status": "available",
+     "restrictions": null,
+     "last_transaction_at": "2026-09-14T06:30:09Z",
+     "price": 82.49
+    }
+   ],
+   "partner_stations": [
+    {
+     "partner_station_id": "86950",
+     "is_active": true
+    }
+   ],
+   "last_alfa_transaction_time": "2026-09-14T17:05:58Z",
+   "last_24h_alfa_transactions_count": 86
+  }
+ ]
+}

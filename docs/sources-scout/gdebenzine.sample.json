@@ -1,0 +1,1553 @@
+{
+ "captured_at": "2026-09-14T18:03:32Z",
+ "source": "gdebenzine",
+ "pins_national": 21752,
+ "total_stations": 718,
+ "stations_note": "80 most recently updated stations kept",
+ "stations": [
+  {
+   "id": "gdebenzine:osm_305135086",
+   "lat": 59.1237481,
+   "lon": 31.6377546,
+   "name": "Роснефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 69
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_305809296",
+   "lat": 59.6820773,
+   "lon": 30.2437469,
+   "name": "Газпромнефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "yes"
+   },
+   "prices": {
+    "98": 71.79,
+    "dt": 80.43
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_322665153",
+   "lat": 59.8647781,
+   "lon": 30.491876,
+   "name": "Роснефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "100": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.2,
+    "dt": 80.75
+   },
+   "price_age_hours": 1,
+   "reports": 20,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_436839390",
+   "lat": 59.8300868,
+   "lon": 30.5316787,
+   "name": "Роснефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "no"
+   },
+   "prices": {
+    "95": 73.4
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_687452205",
+   "lat": 59.8980741,
+   "lon": 30.4455096,
+   "name": "Газпромнефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "no"
+   },
+   "prices": {
+    "dt": 80.18
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_927736586",
+   "lat": 59.5517132,
+   "lon": 30.8836301,
+   "name": "Неизвестная АЗС",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 10,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1085392973",
+   "lat": 59.5811378,
+   "lon": 30.1382662,
+   "name": "Роснефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "no",
+    "100": "no",
+    "dt": "no"
+   },
+   "prices": {
+    "92": 65.3,
+    "98": 72.7,
+    "dt": 81.2
+   },
+   "price_age_hours": 1,
+   "reports": 12,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1172365844",
+   "lat": 59.8915635,
+   "lon": 30.2588967,
+   "name": "Роснефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.35,
+    "95": 70.4
+   },
+   "price_age_hours": 1,
+   "reports": 55,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1344767012",
+   "lat": 59.8540309,
+   "lon": 30.9640973,
+   "name": "Роснефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 69.9
+   },
+   "price_age_hours": 1,
+   "reports": 16,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1367513762",
+   "lat": 59.5264319,
+   "lon": 30.9060057,
+   "name": "Кириши",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {
+    "dt": 78
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1561179781",
+   "lat": 59.8494562,
+   "lon": 30.4630382,
+   "name": "Роснефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80.95
+   },
+   "price_age_hours": 1,
+   "reports": 21,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1711388667",
+   "lat": 59.6104388,
+   "lon": 30.0412761,
+   "name": "Октан",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 8,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1770219124",
+   "lat": 59.6317361,
+   "lon": 30.4109762,
+   "name": "Нева-ойл",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {
+    "dt": 80
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1827860933",
+   "lat": 59.3907992,
+   "lon": 31.1571628,
+   "name": "Teboil",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65,
+    "95": 69.8,
+    "dt": 80.46
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_2334637130",
+   "lat": 59.7459294,
+   "lon": 31.0843072,
+   "name": "Нева Ойл",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_2594842102",
+   "lat": 59.413845,
+   "lon": 31.1124995,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes",
+    "100": "yes"
+   },
+   "prices": {
+    "dt": 80.49
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_2970292040",
+   "lat": 59.3910092,
+   "lon": 31.1526382,
+   "name": "Teboil",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80.4
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_3350016129",
+   "lat": 59.8997455,
+   "lon": 30.7204485,
+   "name": "Teboil",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.43,
+    "95": 70
+   },
+   "price_age_hours": 1,
+   "reports": 8,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_3646400231",
+   "lat": 59.7541568,
+   "lon": 30.3213312,
+   "name": "Киришиавтосервис",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "98": "no",
+    "dt": "no"
+   },
+   "prices": {
+    "92": 65.54,
+    "98": 99.9,
+    "dt": 80.95
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_5656295723",
+   "lat": 59.8440178,
+   "lon": 30.4310208,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "100": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.9,
+    "dt": 80.3
+   },
+   "price_age_hours": 1,
+   "reports": 9,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_5656295726",
+   "lat": 59.7817532,
+   "lon": 30.3240356,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.6,
+    "100": 100.3
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_5656295728",
+   "lat": 59.668183,
+   "lon": 30.6480247,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80.25
+   },
+   "price_age_hours": 1,
+   "reports": 8,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_5656295729",
+   "lat": 59.5429315,
+   "lon": 30.1389906,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 71.54
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_7721840279",
+   "lat": 59.7009437,
+   "lon": 30.5533506,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "100": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 66.47,
+    "dt": 80.74
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_9437050235",
+   "lat": 59.963087,
+   "lon": 31.9518246,
+   "name": "ЭкспрессДизель",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {
+    "95": 75
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_10605980726",
+   "lat": 59.9898447,
+   "lon": 30.325743,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.52
+   },
+   "price_age_hours": 1,
+   "reports": 17,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_10651650544",
+   "lat": 59.879644,
+   "lon": 30.2793395,
+   "name": "Газпромнефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.74
+   },
+   "price_age_hours": 1,
+   "reports": 17,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_11865925916",
+   "lat": 59.9363564,
+   "lon": 31.812906,
+   "name": "Сургутнефтегаз",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {
+    "92": 65.54,
+    "dt": 80.95
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12199670660",
+   "lat": 59.9662213,
+   "lon": 30.4829307,
+   "name": "Лукойл",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes",
+    "98": "yes"
+   },
+   "prices": {
+    "92": 66.26,
+    "95": 72.26,
+    "dt": 82.49
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12219356001",
+   "lat": 59.9190218,
+   "lon": 30.5056825,
+   "name": "Benzo Style",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "no"
+   },
+   "prices": {
+    "dt": 75
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12692552889",
+   "lat": 59.945409,
+   "lon": 30.4800237,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.5,
+    "98": 99.9
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595054",
+   "lat": 59.8814826,
+   "lon": 30.3211593,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80.3
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595055",
+   "lat": 59.8084739,
+   "lon": 30.4649818,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "98": 99.9
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595057",
+   "lat": 59.9865509,
+   "lon": 30.3623371,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80.3
+   },
+   "price_age_hours": 1,
+   "reports": 9,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595058",
+   "lat": 59.9387669,
+   "lon": 30.2463847,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "98": 99,
+    "dt": 80.3
+   },
+   "price_age_hours": 1,
+   "reports": 8,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595061",
+   "lat": 59.8513543,
+   "lon": 30.3046116,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.9,
+    "98": 99.9,
+    "dt": 80.3
+   },
+   "price_age_hours": 1,
+   "reports": 8,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595063",
+   "lat": 59.8971057,
+   "lon": 30.3196333,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.5
+   },
+   "price_age_hours": 1,
+   "reports": 22,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595066",
+   "lat": 59.8788573,
+   "lon": 30.3976839,
+   "name": "Татнефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "98": "yes",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.5,
+    "98": 99.9
+   },
+   "price_age_hours": 1,
+   "reports": 20,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595071",
+   "lat": 59.8428653,
+   "lon": 30.1766413,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.5
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_13119304347",
+   "lat": 59.9008689,
+   "lon": 30.5249736,
+   "name": "Неизвестная АЗС",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 88
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_13269887333",
+   "lat": 59.2080515,
+   "lon": 31.2458682,
+   "name": "Лукойл",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes",
+    "98": "yes",
+    "100": "yes"
+   },
+   "prices": {
+    "92": 66.2,
+    "95": 73.16,
+    "100": 99.4
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_13717975849",
+   "lat": 59.9159607,
+   "lon": 30.4517702,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T17:25:09.544Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 71.46
+   },
+   "price_age_hours": 1,
+   "reports": 14,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1888160724",
+   "lat": 59.9562205,
+   "lon": 30.4659654,
+   "name": "Nord Point",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T16:55:08.228Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 79.74
+   },
+   "price_age_hours": 1,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595068",
+   "lat": 59.8887718,
+   "lon": 30.4214675,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T16:55:08.228Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 79.9
+   },
+   "price_age_hours": 1,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1851435058",
+   "lat": 60.5382745,
+   "lon": 28.6879851,
+   "name": "Роснефть",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T16:50:06.404Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.55,
+    "95": 70.1,
+    "dt": 81.15
+   },
+   "price_age_hours": 22,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_2926408583",
+   "lat": 60.8053998,
+   "lon": 28.7105328,
+   "name": "ВТК",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T16:50:06.404Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 2,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_10168201011",
+   "lat": 60.6884023,
+   "lon": 28.7484232,
+   "name": "Лукойл",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T16:50:06.404Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 66.26,
+    "95": 72.26,
+    "dt": 82.49
+   },
+   "price_age_hours": 22,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_84711923",
+   "lat": 60.0318975,
+   "lon": 30.4317729,
+   "name": "Nord Point",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T16:40:23.030Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {
+    "95": 66.97,
+    "dt": 78.19
+   },
+   "price_age_hours": 68,
+   "reports": 12,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_286134677",
+   "lat": 58.8036642,
+   "lon": 33.3809695,
+   "name": "Альтаир",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T16:40:07.666Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 3,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_8431644176",
+   "lat": 59.525341,
+   "lon": 30.0852281,
+   "name": "Петромастер",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T16:20:07.786Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 1,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1406160262",
+   "lat": 60.9927922,
+   "lon": 35.4655298,
+   "name": "Киришиавтосервис",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T16:10:06.637Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {
+    "95": 70.97
+   },
+   "price_age_hours": 2,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1160978221",
+   "lat": 59.1971309,
+   "lon": 29.9208757,
+   "name": "Линос",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T15:55:07.287Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 4,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_380582834",
+   "lat": 58.5252403,
+   "lon": 31.6613836,
+   "name": "СНГ",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T15:35:05.980Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 4,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1933374606",
+   "lat": 58.6651006,
+   "lon": 30.283263,
+   "name": "Новгороднефтепродукт АЗС-54",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T15:35:05.980Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 8,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_2984729820",
+   "lat": 58.5239688,
+   "lon": 31.237535,
+   "name": "Лукойл",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T15:35:05.980Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 2,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_286133975",
+   "lat": 58.8936312,
+   "lon": 34.5453851,
+   "name": "Новгородоблгаз",
+   "status": "NONE",
+   "updated_at": "2026-09-14T15:30:09.266Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 2,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_286134043",
+   "lat": 58.890551,
+   "lon": 34.4995819,
+   "name": "СургутНефтеГаз",
+   "status": "NONE",
+   "updated_at": "2026-09-14T15:30:09.266Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "no"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_253283769",
+   "lat": 59.8236932,
+   "lon": 30.319641,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T15:20:08.078Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.37,
+    "95": 71
+   },
+   "price_age_hours": 3,
+   "reports": 7,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_3350016128",
+   "lat": 59.9005459,
+   "lon": 30.7160055,
+   "name": "Teboil",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T15:20:08.078Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80.35
+   },
+   "price_age_hours": 3,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_5656295724",
+   "lat": 59.8376701,
+   "lon": 30.3038358,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T15:20:08.078Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 72.7,
+    "dt": 80.28
+   },
+   "price_age_hours": 3,
+   "reports": 20,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_12941595062",
+   "lat": 59.799661,
+   "lon": 30.389377,
+   "name": "Татнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T15:20:08.078Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "98": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 80.3
+   },
+   "price_age_hours": 11,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_3269731522",
+   "lat": 59.2178325,
+   "lon": 31.476935,
+   "name": "Татнефть",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T15:15:08.183Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.1,
+    "dt": 80.3
+   },
+   "price_age_hours": 28,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1202094232",
+   "lat": 61.3704245,
+   "lon": 31.8888545,
+   "name": "Пальмира-Ладога",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T15:00:07.487Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 2,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_297856408",
+   "lat": 59.1070703,
+   "lon": 31.6368985,
+   "name": "Сургутнефтегаз",
+   "status": "NONE",
+   "updated_at": "2026-09-14T14:50:07.462Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "no"
+   },
+   "prices": {
+    "dt": 80.79
+   },
+   "price_age_hours": 35,
+   "reports": 7,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1642977363",
+   "lat": 59.8119937,
+   "lon": 30.394456,
+   "name": "Роснефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:50:07.462Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.6
+   },
+   "price_age_hours": 17,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_4199939596",
+   "lat": 59.7478602,
+   "lon": 30.5077506,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:50:07.462Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "100": "yes",
+    "dt": "yes",
+    "98": "yes"
+   },
+   "prices": {
+    "100": 99.4
+   },
+   "price_age_hours": 3,
+   "reports": 31,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_6860174690",
+   "lat": 59.9445715,
+   "lon": 30.5134735,
+   "name": "РосГаз",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:50:07.462Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.2
+   },
+   "price_age_hours": 80,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_13266922076",
+   "lat": 59.9081065,
+   "lon": 30.3039813,
+   "name": "Татнефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T14:50:07.462Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 8,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_13824241462",
+   "lat": 59.825579,
+   "lon": 30.1910993,
+   "name": "Неизвестная АЗС",
+   "status": "NONE",
+   "updated_at": "2026-09-14T14:50:07.462Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "yes",
+    "dt": "no"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_286134744",
+   "lat": 59.3206064,
+   "lon": 31.2898785,
+   "name": "Роснефть",
+   "status": "UNKNOWN",
+   "updated_at": "2026-09-14T14:45:07.641Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_297010868",
+   "lat": 59.1099262,
+   "lon": 35.2284569,
+   "name": "Славнефть",
+   "status": "NONE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_429683573",
+   "lat": 59.3474963,
+   "lon": 34.8636211,
+   "name": "Киришиавтосервис",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 65.5,
+    "95": 70.97
+   },
+   "price_age_hours": 4,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_807895905",
+   "lat": 59.4890829,
+   "lon": 34.4452195,
+   "name": "Лукойл",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "unknown",
+    "dt": "yes",
+    "95": "yes"
+   },
+   "prices": {
+    "95": 73,
+    "98": 73.16,
+    "dt": 82.49
+   },
+   "price_age_hours": 4,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1307138938",
+   "lat": 60.7184426,
+   "lon": 33.6269313,
+   "name": "КиришиАвтоСервис",
+   "status": "NONE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "no",
+    "95": "no",
+    "dt": "no"
+   },
+   "prices": {
+    "95": 70.97
+   },
+   "price_age_hours": 4,
+   "reports": 9,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1330186091",
+   "lat": 60.7276787,
+   "lon": 33.5855446,
+   "name": "Киришиавтосервис",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes"
+   },
+   "prices": {
+    "95": 70.97
+   },
+   "price_age_hours": 4,
+   "reports": 7,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1493364780",
+   "lat": 59.1519295,
+   "lon": 35.3346497,
+   "name": "ТАТ",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "unknown",
+    "dt": "yes"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 4,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_1975535323",
+   "lat": 60.4256357,
+   "lon": 33.859518,
+   "name": "Сургутнефтегаз",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "unknown",
+    "dt": "unknown"
+   },
+   "prices": {},
+   "price_age_hours": null,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_3176201996",
+   "lat": 60.0718335,
+   "lon": 32.3442872,
+   "name": "Авро",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "unknown",
+    "95": "yes",
+    "dt": "yes"
+   },
+   "prices": {
+    "dt": 74
+   },
+   "price_age_hours": 4,
+   "reports": 5,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_4660933889",
+   "lat": 60.2004304,
+   "lon": 32.6607936,
+   "name": "Газпромнефть",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "100": "yes",
+    "dt": "unknown"
+   },
+   "prices": {
+    "95": 69.95,
+    "100": 99.9
+   },
+   "price_age_hours": 4,
+   "reports": 6,
+   "comments": 0
+  },
+  {
+   "id": "gdebenzine:osm_9408487674",
+   "lat": 60.726726,
+   "lon": 33.4738379,
+   "name": "Киришиавтосервис АЗС-222",
+   "status": "AVAILABLE",
+   "updated_at": "2026-09-14T14:30:08.319Z",
+   "grades_derived": {
+    "92": "yes",
+    "95": "yes",
+    "dt": "yes"
+   },
+   "prices": {
+    "92": 70.97,
+    "95": 65.54,
+    "dt": 80.95
+   },
+   "price_age_hours": 4,
+   "reports": 6,
+   "comments": 0
+  }
+ ]
+}

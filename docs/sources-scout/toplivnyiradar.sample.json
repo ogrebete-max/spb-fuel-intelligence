@@ -1,0 +1,1944 @@
+{
+ "captured_at": "2026-09-14T17:58:43Z",
+ "source": "toplivnyiradar",
+ "bbox": [
+  59.6,
+  29.5,
+  60.35,
+  31.1
+ ],
+ "requests": 4,
+ "truncated_tiles": 0,
+ "total_stations": 832,
+ "stations_note": "30 stations with the freshest own status kept",
+ "stations": [
+  {
+   "id": "toplivnyiradar:36969",
+   "lat": 59.82458824222683,
+   "lon": 30.553281401486952,
+   "brand": "Газпромнефть АЗС № 24",
+   "address": "Советский просп., 55, корп. 1",
+   "city": "Колпино",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T12:56:25.872580+00:00",
+    "trust_level": "medium",
+    "confirmations": 2,
+    "last_confirmed_at": "2026-09-14T12:56:25.872580+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T12:56:25.862814+00:00",
+      "last_confirmed_at": "2026-09-14T12:56:25.862814+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T12:56:25.87258+00:00",
+      "last_confirmed_at": "2026-09-14T12:56:25.87258+00:00",
+      "confirmations": 1
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:20:54.660477+00:00",
+      "last_confirmed_at": "2026-09-14T05:20:54.660477+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:20:54.660477+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 3,
+      "p": 66.1,
+      "t": "2026-09-14 02:18:35"
+     },
+     "95": {
+      "n": 3,
+      "p": 73.0,
+      "t": "2026-09-14 00:16:14"
+     },
+     "98": {
+      "n": 1,
+      "p": 73.01,
+      "t": "2026-09-09 17:57:47"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.31,
+      "t": "2026-09-13 15:10:23"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:11241",
+   "lat": 59.9052341,
+   "lon": 30.4187227,
+   "brand": "Татнефть",
+   "address": "проспект Обуховской Обороны, 49 к3",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "osm",
+   "own": {
+    "status": "queue",
+    "status_at": "2026-09-14T08:12:21.242797+00:00",
+    "trust_level": "medium",
+    "confirmations": 3,
+    "last_confirmed_at": "2026-09-14T08:12:21.242797+00:00",
+    "queue": true,
+    "limit_l": 30,
+    "limit_detail": "30 л",
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T08:12:21.22799+00:00",
+      "last_confirmed_at": "2026-09-14T08:12:21.22799+00:00",
+      "confirmations": 1
+     },
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T08:12:21.242797+00:00",
+      "last_confirmed_at": "2026-09-14T08:12:21.242797+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T08:12:21.237904+00:00",
+      "last_confirmed_at": "2026-09-14T08:12:21.237904+00:00",
+      "confirmations": 1
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587268+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 0,
+      "p": 65.0,
+      "t": "2026-08-28 17:00:00"
+     },
+     "95": {
+      "n": 3,
+      "p": 69.9,
+      "t": "2026-07-11 07:25:01"
+     },
+     "ДТ": {
+      "n": 2,
+      "p": 79.9,
+      "t": "2026-09-14 04:42:52"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37156",
+   "lat": 59.89269368257254,
+   "lon": 30.25569726145474,
+   "brand": "Лукойл АЗС №134",
+   "address": "Оборонная ул., 30, лит. А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "limit",
+    "status_at": "2026-09-14T05:24:13.492188+00:00",
+    "trust_level": "high",
+    "confirmations": 13,
+    "last_confirmed_at": "2026-09-14T05:24:13.492188+00:00",
+    "queue": false,
+    "limit_l": 10,
+    "limit_detail": "10 л",
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-12T10:27:25.545468+00:00",
+      "last_confirmed_at": "2026-09-12T10:27:25.545468+00:00",
+      "confirmations": 1
+     },
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-12T10:27:25.560823+00:00",
+      "last_confirmed_at": "2026-09-12T10:27:25.560823+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:24:13.492188+00:00",
+      "last_confirmed_at": "2026-09-14T05:24:13.492188+00:00",
+      "confirmations": 2
+     },
+     "100": {
+      "status": "ok",
+      "status_at": "2026-07-08T07:39:58.137203+00:00",
+      "last_confirmed_at": "2026-07-08T07:39:58.137203+00:00",
+      "confirmations": 1
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": null,
+    "status_at": "2026-09-14T05:23:17.218983+00:00",
+    "fuels_now": null,
+    "prices": {
+     "92": {
+      "n": 3,
+      "p": 64.98,
+      "t": "2026-07-10 20:06:55"
+     },
+     "95": {
+      "n": 3,
+      "p": 71.81,
+      "t": "2026-07-10 08:50:07"
+     },
+     "ДТ": {
+      "n": 3,
+      "p": 80.31,
+      "t": "2026-07-11 02:04:59"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37232",
+   "lat": 59.947338,
+   "lon": 30.435104,
+   "brand": "ПЕТЕРБУРГСКАЯ ТОПЛИВНАЯ КОМПАНИЯ",
+   "address": "Партизанская Ул., д. 17А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587290+00:00",
+    "trust_level": "fresh",
+    "confirmations": 1,
+    "last_confirmed_at": "2026-09-14T05:23:38.587290+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-07-15T05:01:44.424107+00:00",
+      "last_confirmed_at": "2026-07-15T05:01:44.424107+00:00",
+      "confirmations": 1
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587290+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587290+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587290+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 65.25,
+      "t": "2026-09-13 22:25:43"
+     },
+     "95": {
+      "n": 1,
+      "p": 70.25,
+      "t": "2026-09-13 22:25:43"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.75,
+      "t": "2026-09-13 22:25:43"
+     }
+    },
+    "confirmations": 1
+   }
+  },
+  {
+   "id": "toplivnyiradar:37022",
+   "lat": 59.918195394391205,
+   "lon": 30.422171872287066,
+   "brand": "ПТК АЗС № 125",
+   "address": "Дальневосточный просп., 1, лит. А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587276+00:00",
+    "trust_level": "fresh",
+    "confirmations": 1,
+    "last_confirmed_at": "2026-09-14T05:23:38.587276+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "95": {
+      "status": "ok",
+      "status_at": "2026-07-13T05:03:20.063297+00:00",
+      "last_confirmed_at": "2026-07-13T05:03:20.063297+00:00",
+      "confirmations": 1
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587276+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587276+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587276+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 65.2,
+      "t": "2026-09-13 15:10:31"
+     },
+     "95": {
+      "n": 4,
+      "p": 70.2,
+      "t": "2026-09-13 22:32:33"
+     },
+     "100": {
+      "n": 5,
+      "p": 100.4,
+      "t": "2026-09-12 06:41:30"
+     },
+     "ДТ": {
+      "n": 3,
+      "p": 80.7,
+      "t": "2026-09-13 19:24:06"
+     }
+    },
+    "confirmations": 5
+   }
+  },
+  {
+   "id": "toplivnyiradar:37026",
+   "lat": 59.911661161404254,
+   "lon": 30.42302225881503,
+   "brand": "Neste Oil АЗС № 303",
+   "address": "Октябрьская наб., 12А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587273+00:00",
+    "trust_level": "medium",
+    "confirmations": 4,
+    "last_confirmed_at": "2026-09-14T05:23:38.587273+00:00",
+    "queue": false,
+    "limit_l": 20,
+    "limit_detail": "20 л",
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587273+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587273+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587273+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587273+00:00",
+      "confirmations": 1
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587273+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587273+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587273+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 65.5,
+      "t": "2026-09-13 05:34:19"
+     },
+     "95": {
+      "n": 2,
+      "p": 70.9,
+      "t": "2026-09-13 05:01:39"
+     },
+     "98": {
+      "n": 3,
+      "p": 99.9,
+      "t": "2026-09-06 20:23:34"
+     },
+     "100": {
+      "n": 3,
+      "p": 99.9,
+      "t": "2026-07-10 06:10:02"
+     },
+     "ДТ": {
+      "n": 2,
+      "p": 80.3,
+      "t": "2026-09-14 04:40:54"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37030",
+   "lat": 59.902083,
+   "lon": 30.440307,
+   "brand": "Линос",
+   "address": "Октябрьская наб., 38 к3, эт. 1",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587267+00:00",
+    "trust_level": "medium",
+    "confirmations": 3,
+    "last_confirmed_at": "2026-09-14T05:23:38.587267+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587267+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587267+00:00",
+      "confirmations": 1
+     },
+     "92": {
+      "status": "ok",
+      "status_at": "2026-07-08T17:06:53.565023+00:00",
+      "last_confirmed_at": "2026-07-08T17:06:53.565023+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-07-08T17:06:53.557113+00:00",
+      "last_confirmed_at": "2026-07-08T17:06:53.557113+00:00",
+      "confirmations": 1
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587267+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 3,
+      "p": 65.23,
+      "t": "2026-07-12 17:47:55"
+     },
+     "95": {
+      "n": 5,
+      "p": 72.54,
+      "t": "2026-09-10 11:31:27"
+     },
+     "ДТ": {
+      "n": 3,
+      "p": 80.18,
+      "t": "2026-09-14 05:19:55"
+     }
+    },
+    "confirmations": 5
+   }
+  },
+  {
+   "id": "toplivnyiradar:37231",
+   "lat": 59.93439278703221,
+   "lon": 30.442161166675902,
+   "brand": "Лукойл АЗС №59",
+   "address": "Заневский просп., 75",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587282+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:38.587282+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587282+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587282+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587282+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 0,
+      "p": 66.26,
+      "t": "2026-08-28 17:00:00"
+     },
+     "95": {
+      "n": 3,
+      "p": 72.26,
+      "t": "2026-08-07 00:30:00"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 82.49,
+      "t": "2026-09-13 22:16:38"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:41345",
+   "lat": 59.9053593,
+   "lon": 30.4074727,
+   "brand": "Роснефть",
+   "address": "г. Санкт-Петербург, Хрустальная ул., 22",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "dir",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587270+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:38.587270+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587270+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587270+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587270+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587270+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587270+00:00",
+    "fuels_now": "92,ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 64.8,
+      "t": "2026-09-13 21:58:53"
+     },
+     "95": {
+      "n": 1,
+      "p": 72.65,
+      "t": "2026-09-12 19:41:00"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.65,
+      "t": "2026-09-03 16:16:26"
+     }
+    },
+    "confirmations": 1
+   }
+  },
+  {
+   "id": "toplivnyiradar:37223",
+   "lat": 59.916667203998195,
+   "lon": 30.417126926641,
+   "brand": "ПТК АЗС № 54",
+   "address": "Октябрьская наб., 2, лит. А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587274+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:38.587274+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587274+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587274+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587274+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 65.25,
+      "t": "2026-09-11 03:19:19"
+     },
+     "95": {
+      "n": 1,
+      "p": 70.25,
+      "t": "2026-09-11 03:19:19"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.75,
+      "t": "2026-09-14 05:13:13"
+     }
+    },
+    "confirmations": 1
+   }
+  },
+  {
+   "id": "toplivnyiradar:41325",
+   "lat": 59.9080107,
+   "lon": 30.4434917,
+   "brand": "Роснефть №14",
+   "address": "г. Санкт-Петербург, Дальневосточный проспект, 11",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "dir",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:38.587271+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:38.587271+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587271+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587271+00:00",
+      "confirmations": null
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587271+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587271+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:38.587271+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:38.587271+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:38.587271+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 65.18,
+      "t": "2026-09-13 19:14:26"
+     },
+     "95": {
+      "n": 1,
+      "p": 71.0,
+      "t": "2026-09-14 00:56:20"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 79.14,
+      "t": "2026-09-11 09:04:58"
+     }
+    },
+    "confirmations": 1
+   }
+  },
+  {
+   "id": "toplivnyiradar:37011",
+   "lat": 59.93990153812414,
+   "lon": 30.45038786838176,
+   "brand": "Лукойл АЗС № 161",
+   "address": "просп. Косыгина, 2, лит. А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:35.040162+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:35.040162+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:35.040162+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040162+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:35.040162+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040162+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:35.040162+00:00",
+    "fuels_now": "92,ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 66.26,
+      "t": "2026-09-13 17:26:41"
+     },
+     "95": {
+      "n": 1,
+      "p": 72.26,
+      "t": "2026-09-13 17:26:41"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 82.49,
+      "t": "2026-09-13 17:26:41"
+     }
+    },
+    "confirmations": 1
+   }
+  },
+  {
+   "id": "toplivnyiradar:37031",
+   "lat": 59.9056000988219,
+   "lon": 30.45217143166625,
+   "brand": "Роснефть. Подсолнух.",
+   "address": "Дальневосточный пр.",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:35.040132+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:35.040132+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:35.040132+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040132+00:00",
+      "confirmations": null
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:35.040132+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040132+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:35.040132+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040132+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:35.040132+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 65.4,
+      "t": "2026-09-13 19:55:57"
+     },
+     "95": {
+      "n": 3,
+      "p": 70.54,
+      "t": "2026-09-14 03:57:57"
+     },
+     "100": {
+      "n": 1,
+      "p": 99.35,
+      "t": "2026-07-13 14:00:44"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.18,
+      "t": "2026-09-13 19:32:13"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37033",
+   "lat": 59.904587296019,
+   "lon": 30.45521004028168,
+   "brand": "АЗС BP & Wild Bean Café",
+   "address": "Дальневосточный просп., 22, корп. 1",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "queue",
+    "status_at": "2026-09-14T05:23:35.040127+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:35.040127+00:00",
+    "queue": true,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "queue",
+      "status_at": "2026-09-14T05:23:35.040127+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040127+00:00",
+      "confirmations": null
+     },
+     "95": {
+      "status": "queue",
+      "status_at": "2026-09-14T05:23:35.040127+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040127+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "queue",
+      "status_at": "2026-09-14T05:23:35.040127+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040127+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "queue",
+    "status_at": "2026-09-14T05:23:35.040127+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 66.2,
+      "t": "2026-09-14 05:18:55"
+     },
+     "95": {
+      "n": 5,
+      "p": 70.2,
+      "t": "2026-09-14 05:18:55"
+     },
+     "100": {
+      "n": 3,
+      "p": 98.85,
+      "t": "2026-07-10 14:09:21"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.7,
+      "t": "2026-09-14 01:48:50"
+     }
+    },
+    "confirmations": 5
+   }
+  },
+  {
+   "id": "toplivnyiradar:37002",
+   "lat": 59.936588,
+   "lon": 30.477565,
+   "brand": "Shell №1120",
+   "address": "Хасанская ул., 1. корп. 1, лит. А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:35.040159+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:35.040159+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:35.040159+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:35.040159+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:35.040159+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 8,
+      "p": 65.37,
+      "t": "2026-09-13 16:18:54"
+     },
+     "95": {
+      "n": 7,
+      "p": 70.44,
+      "t": "2026-09-13 15:25:31"
+     },
+     "100": {
+      "n": 3,
+      "p": 99.39,
+      "t": "2026-07-11 04:51:18"
+     },
+     "ДТ": {
+      "n": 5,
+      "p": 80.23,
+      "t": "2026-09-13 12:57:38"
+     }
+    },
+    "confirmations": 8
+   }
+  },
+  {
+   "id": "toplivnyiradar:37236",
+   "lat": 59.95997194911324,
+   "lon": 30.461310014187344,
+   "brand": "Лукойл АЗС №93",
+   "address": "Индустриальный просп., 46а",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:20.120099+00:00",
+    "trust_level": "fresh",
+    "confirmations": 1,
+    "last_confirmed_at": "2026-09-14T05:23:20.120099+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120099+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120099+00:00",
+      "confirmations": 1
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:20.120099+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 0,
+      "p": 66.26,
+      "t": "2026-09-14 04:28:32"
+     },
+     "95": {
+      "n": 1,
+      "p": 74.0,
+      "t": "2026-09-12 17:32:36"
+     },
+     "100": {
+      "n": 2,
+      "p": 99.4,
+      "t": "2026-09-12 17:56:12"
+     },
+     "ДТ": {
+      "n": 2,
+      "p": 82.49,
+      "t": "2026-09-13 11:11:06"
+     }
+    },
+    "confirmations": 2
+   }
+  },
+  {
+   "id": "toplivnyiradar:36995",
+   "lat": 59.96212696990477,
+   "lon": 30.48766612027225,
+   "brand": "ТНК",
+   "address": "Ириновский просп., 52",
+   "city": "Кудрово",
+   "region": "Ленинградская область",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:20.120103+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:20.120103+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120103+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120103+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:20.120103+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 3,
+      "p": 65.2,
+      "t": "2026-09-10 14:20:44"
+     },
+     "95": {
+      "n": 4,
+      "p": 70.2,
+      "t": "2026-09-10 23:29:02"
+     },
+     "100": {
+      "n": 3,
+      "p": 99.35,
+      "t": "2026-07-12 20:50:34"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.7,
+      "t": "2026-09-14 03:41:47"
+     }
+    },
+    "confirmations": 4
+   }
+  },
+  {
+   "id": "toplivnyiradar:37234",
+   "lat": 59.9614242648763,
+   "lon": 30.471200358398857,
+   "brand": "Газпромнефть АЗС № 38",
+   "address": "ул. Потапова, 7",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:20.120100+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:20.120100+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120100+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120100+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:20.120100+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 4,
+      "p": 64.43,
+      "t": "2026-09-14 00:53:11"
+     },
+     "95": {
+      "n": 3,
+      "p": 71.88,
+      "t": "2026-09-13 22:03:29"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 79.73,
+      "t": "2026-09-13 11:22:43"
+     }
+    },
+    "confirmations": 4
+   }
+  },
+  {
+   "id": "toplivnyiradar:41329",
+   "lat": 59.9575599,
+   "lon": 30.4663556,
+   "brand": "СЗТК",
+   "address": "г. Санкт-Петербург, Индустриальный проспект, 43",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "dir",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:20.120098+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:20.120098+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120098+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120098+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:20.120098+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 65.3,
+      "t": "2026-09-11 12:17:47"
+     },
+     "95": {
+      "n": 4,
+      "p": 70.4,
+      "t": "2026-09-11 12:20:24"
+     },
+     "100": {
+      "n": 3,
+      "p": 99.39,
+      "t": "2026-07-16 21:53:03"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.2,
+      "t": "2026-09-13 11:04:38"
+     }
+    },
+    "confirmations": 4
+   }
+  },
+  {
+   "id": "toplivnyiradar:11153",
+   "lat": 59.9621534,
+   "lon": 30.4586657,
+   "brand": "Роснефть",
+   "address": "шоссе Революции",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "osm",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:20.120102+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:20.120102+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120102+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120102+00:00",
+      "confirmations": null
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120102+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120102+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120102+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120102+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:20.120102+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 65.0,
+      "t": "2026-09-13 02:36:14"
+     },
+     "95": {
+      "n": 2,
+      "p": 70.25,
+      "t": "2026-09-14 01:55:07"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.0,
+      "t": "2026-09-13 02:36:14"
+     }
+    },
+    "confirmations": 2
+   }
+  },
+  {
+   "id": "toplivnyiradar:37007",
+   "lat": 59.95877317545047,
+   "lon": 30.476176095333564,
+   "brand": "Neste Oil АЗС № 430",
+   "address": "Ириновский просп., 26",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:20.120096+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:20.120096+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120096+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120096+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:20.120096+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 0,
+      "p": 65.0,
+      "t": "2026-08-28 17:00:00"
+     },
+     "95": {
+      "n": 3,
+      "p": 70.3,
+      "t": "2026-08-07 00:20:00"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 79.9,
+      "t": "2026-09-12 10:46:24"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37261",
+   "lat": 59.983182,
+   "lon": 30.456434,
+   "brand": "Circle K",
+   "address": "Зотовский проспект, 9",
+   "city": "Мурино",
+   "region": "Ленинградская область",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:20.120114+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:20.120114+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:20.120114+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:20.120114+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:20.120114+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 64.4,
+      "t": "2026-09-13 07:58:01"
+     },
+     "95": {
+      "n": 1,
+      "p": 69.45,
+      "t": "2026-09-12 16:08:36"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 79.73,
+      "t": "2026-09-13 07:58:01"
+     }
+    },
+    "confirmations": 1
+   }
+  },
+  {
+   "id": "toplivnyiradar:37192",
+   "lat": 59.966995,
+   "lon": 30.283783,
+   "brand": "Роснефть Азс № 404",
+   "address": "Левашовский 19",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:17.219027+00:00",
+    "trust_level": "high",
+    "confirmations": 7,
+    "last_confirmed_at": "2026-09-14T05:23:17.219027+00:00",
+    "queue": false,
+    "limit_l": 30,
+    "limit_detail": "30 л",
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219027+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219027+00:00",
+      "confirmations": 1
+     },
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219027+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219027+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219027+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219027+00:00",
+      "confirmations": 1
+     },
+     "100": {
+      "status": "out",
+      "status_at": "2026-07-04T21:11:11.300596+00:00",
+      "last_confirmed_at": "2026-07-04T21:11:11.300596+00:00",
+      "confirmations": 1
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:17.219027+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 65.15,
+      "t": "2026-09-01 20:48:11"
+     },
+     "95": {
+      "n": 3,
+      "p": 70.15,
+      "t": "2026-09-14 04:42:13"
+     },
+     "98": {
+      "n": 1,
+      "p": 73.0,
+      "t": "2026-09-10 14:11:33"
+     },
+     "ДТ": {
+      "n": 2,
+      "p": 80.85,
+      "t": "2026-09-13 16:00:28"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37451",
+   "lat": 59.95553569677927,
+   "lon": 30.24159029770889,
+   "brand": "ПТК АЗС № 80",
+   "address": "просп. Кима, 32, лит. А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "queue",
+    "status_at": "2026-09-14T05:23:17.219025+00:00",
+    "trust_level": "medium",
+    "confirmations": 4,
+    "last_confirmed_at": "2026-09-14T05:23:17.219025+00:00",
+    "queue": true,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "queue",
+      "status_at": "2026-09-14T05:23:17.219025+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219025+00:00",
+      "confirmations": 1
+     },
+     "92": {
+      "status": "queue",
+      "status_at": "2026-09-14T05:23:17.219025+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219025+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "queue",
+      "status_at": "2026-09-14T05:23:17.219025+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219025+00:00",
+      "confirmations": 1
+     },
+     "100": {
+      "status": "out",
+      "status_at": "2026-07-03T13:21:06.947711+00:00",
+      "last_confirmed_at": "2026-07-03T13:21:06.947711+00:00",
+      "confirmations": 1
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "queue",
+    "status_at": "2026-09-14T05:23:17.219025+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 65.1,
+      "t": "2026-09-14 05:21:39"
+     },
+     "95": {
+      "n": 3,
+      "p": 73.1,
+      "t": "2026-09-14 05:21:39"
+     },
+     "98": {
+      "n": 1,
+      "p": 73.1,
+      "t": "2026-09-05 08:10:35"
+     },
+     "100": {
+      "n": 2,
+      "p": 99.45,
+      "t": "2026-07-15 05:08:56"
+     },
+     "ДТ": {
+      "n": 3,
+      "p": 80.8,
+      "t": "2026-09-14 05:21:39"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:11164",
+   "lat": 59.9524002,
+   "lon": 30.2623545,
+   "brand": "Global Gas",
+   "address": "Уральская улица 8Б, Санкт-Петербург",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "osm",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:17.219021+00:00",
+    "trust_level": "fresh",
+    "confirmations": 1,
+    "last_confirmed_at": "2026-09-14T05:23:17.219021+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219021+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219021+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219021+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219021+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219021+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219021+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:17.219021+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 66.0,
+      "t": "2026-09-14 04:55:30"
+     },
+     "95": {
+      "n": 1,
+      "p": 73.16,
+      "t": "2026-09-14 04:54:40"
+     },
+     "100": {
+      "n": 3,
+      "p": 99.4,
+      "t": "2026-08-21 09:39:47"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 82.49,
+      "t": "2026-09-13 08:18:02"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37454",
+   "lat": 59.940881,
+   "lon": 30.22671,
+   "brand": "Роснефть АЗК №337",
+   "address": "Нахимова, 18А",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:17.219015+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:17.219015+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219015+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219015+00:00",
+      "confirmations": null
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219015+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219015+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219015+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219015+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:17.219015+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 65.1,
+      "t": "2026-09-12 05:37:52"
+     },
+     "95": {
+      "n": 1,
+      "p": 70.15,
+      "t": "2026-09-14 01:43:40"
+     },
+     "ДТ": {
+      "n": 4,
+      "p": 80.85,
+      "t": "2026-09-09 22:17:31"
+     }
+    },
+    "confirmations": 4
+   }
+  },
+  {
+   "id": "toplivnyiradar:11240",
+   "lat": 59.9387669,
+   "lon": 30.2463847,
+   "brand": "Татнефть",
+   "address": "Малый проспект В.О.",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "osm",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:17.219013+00:00",
+    "trust_level": "none",
+    "confirmations": 0,
+    "last_confirmed_at": "2026-09-14T05:23:17.219013+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219013+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219013+00:00",
+      "confirmations": null
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219013+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219013+00:00",
+      "confirmations": null
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.219013+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.219013+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:17.219013+00:00",
+    "fuels_now": "92,95,ДТ",
+    "prices": {
+     "92": {
+      "n": 3,
+      "p": 65.1,
+      "t": "2026-09-13 06:27:40"
+     },
+     "95": {
+      "n": 3,
+      "p": 70.0,
+      "t": "2026-09-14 03:16:52"
+     },
+     "100": {
+      "n": 3,
+      "p": 98.95,
+      "t": "2026-07-10 19:16:13"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.8,
+      "t": "2026-09-13 04:04:48"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:37149",
+   "lat": 59.9044222278647,
+   "lon": 30.28670497810709,
+   "brand": "Лукойл АЗС № 53",
+   "address": "ул. Розенштейна, 37, лит. Б",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:17.218993+00:00",
+    "trust_level": "high",
+    "confirmations": 12,
+    "last_confirmed_at": "2026-09-14T05:23:17.218993+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.218993+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.218993+00:00",
+      "confirmations": 1
+     },
+     "92": {
+      "status": "out",
+      "status_at": "2026-07-16T15:48:05.535699+00:00",
+      "last_confirmed_at": "2026-07-16T15:48:05.535699+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "out",
+      "status_at": "2026-07-16T15:48:05.527276+00:00",
+      "last_confirmed_at": "2026-07-16T15:48:05.527276+00:00",
+      "confirmations": 1
+     },
+     "100": {
+      "status": "out",
+      "status_at": "2026-07-16T15:48:05.54013+00:00",
+      "last_confirmed_at": "2026-07-16T15:48:05.54013+00:00",
+      "confirmations": 1
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:17.218993+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 67.0,
+      "t": "2026-09-08 19:53:55"
+     },
+     "95": {
+      "n": 1,
+      "p": 73.16,
+      "t": "2026-09-13 16:18:43"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 82.0,
+      "t": "2026-09-09 14:24:35"
+     }
+    },
+    "confirmations": 1
+   }
+  },
+  {
+   "id": "toplivnyiradar:37132",
+   "lat": 59.903375,
+   "lon": 30.33709,
+   "brand": "Лукойл",
+   "address": "25 Черниговская улица",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "fsq",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:17.218992+00:00",
+    "trust_level": "medium",
+    "confirmations": 3,
+    "last_confirmed_at": "2026-09-14T05:23:17.218992+00:00",
+    "queue": true,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "out",
+      "status_at": "2026-07-04T07:41:26.192747+00:00",
+      "last_confirmed_at": "2026-07-04T07:41:26.192747+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "out",
+      "status_at": "2026-07-04T07:41:26.192747+00:00",
+      "last_confirmed_at": "2026-07-04T07:41:26.192747+00:00",
+      "confirmations": 1
+     },
+     "100": {
+      "status": "ok",
+      "status_at": "2026-07-07T10:20:34.500943+00:00",
+      "last_confirmed_at": "2026-07-07T10:20:34.500943+00:00",
+      "confirmations": 1
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.218992+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.218992+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:17.218992+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 1,
+      "p": 66.26,
+      "t": "2026-09-10 14:14:02"
+     },
+     "95": {
+      "n": 2,
+      "p": 73.16,
+      "t": "2026-09-12 17:42:06"
+     },
+     "100": {
+      "n": 3,
+      "p": 99.4,
+      "t": "2026-07-11 08:44:27"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 82.79,
+      "t": "2026-09-14 05:08:36"
+     }
+    },
+    "confirmations": 3
+   }
+  },
+  {
+   "id": "toplivnyiradar:11004",
+   "lat": 59.8994684,
+   "lon": 30.2885312,
+   "brand": "Сургутнефтегаз",
+   "address": "Балтийская улица 43 литА, Санкт-Петербург",
+   "city": "Санкт-Петербург",
+   "region": "Санкт-Петербург",
+   "catalog_source": "osm",
+   "own": {
+    "status": "ok",
+    "status_at": "2026-09-14T05:23:17.218990+00:00",
+    "trust_level": "medium",
+    "confirmations": 2,
+    "last_confirmed_at": "2026-09-14T05:23:17.218990+00:00",
+    "queue": false,
+    "limit_l": null,
+    "limit_detail": null,
+    "paused_until": null,
+    "grades": {
+     "92": {
+      "status": "ok",
+      "status_at": "2026-07-12T12:14:56.349772+00:00",
+      "last_confirmed_at": "2026-07-12T12:14:56.349772+00:00",
+      "confirmations": 1
+     },
+     "95": {
+      "status": "ok",
+      "status_at": "2026-07-12T12:14:56.34183+00:00",
+      "last_confirmed_at": "2026-07-12T12:14:56.34183+00:00",
+      "confirmations": 1
+     },
+     "dt": {
+      "status": "ok",
+      "status_at": "2026-09-14T05:23:17.218990+00:00",
+      "last_confirmed_at": "2026-09-14T05:23:17.218990+00:00",
+      "confirmations": null
+     }
+    }
+   },
+   "external": {
+    "source": "gdebenz",
+    "status": "yes",
+    "status_at": "2026-09-14T05:23:17.218990+00:00",
+    "fuels_now": "ДТ",
+    "prices": {
+     "92": {
+      "n": 2,
+      "p": 65.34,
+      "t": "2026-07-17 08:41:39"
+     },
+     "95": {
+      "n": 2,
+      "p": 70.97,
+      "t": "2026-09-07 06:40:06"
+     },
+     "ДТ": {
+      "n": 1,
+      "p": 80.95,
+      "t": "2026-09-12 15:52:05"
+     }
+    },
+    "confirmations": 2
+   }
+  }
+ ]
+}

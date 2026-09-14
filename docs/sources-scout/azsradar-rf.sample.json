@@ -1,0 +1,1839 @@
+{
+ "captured_at": "2026-09-14T17:56:43Z",
+ "source": "azsradar-rf",
+ "url": "https://xn--80aaapn8cdd.xn--p1ai/api/stations?minLat=58.4&maxLat=61.4&minLng=27.6&maxLng=35.8",
+ "rows_returned": 1061,
+ "total_stations": 1061,
+ "stations_note": "48 most recently voted stations kept",
+ "stations": [
+  {
+   "id": "azsradar:27853",
+   "lat": 59.9551067,
+   "lon": 30.2841113,
+   "brand": "teboil",
+   "name": "Teboil",
+   "address": "Санкт-Петербург, Ждановская улица, 2А",
+   "catalog_fuels": [
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "95": "ok",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T17:49:57.946Z",
+    "confidence_level": "medium",
+    "confidence_percent": 60,
+    "queue": "Больше 20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "maybe_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:49:33.983Z"
+   }
+  },
+  {
+   "id": "azsradar:24317",
+   "lat": 59.9915394,
+   "lon": 30.6592808,
+   "brand": "other",
+   "name": "Neste",
+   "address": "Колтушское шоссе, 303",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T17:49:02.535Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:56:40.917Z"
+   }
+  },
+  {
+   "id": "azsradar:26215",
+   "lat": 59.9094851,
+   "lon": 30.4446194,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "Дальневосточный проспект, 11 к2",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T17:26:26.454Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Больше 20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "no_data",
+    "grades": {
+     "92": "available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:53:09.551Z"
+   }
+  },
+  {
+   "id": "azsradar:19004",
+   "lat": 60.0516616,
+   "lon": 30.3825635,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "проспект Культуры, 33",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T17:05:51.710Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:42.446Z"
+   }
+  },
+  {
+   "id": "azsradar:18922",
+   "lat": 59.8320904,
+   "lon": 30.2506696,
+   "brand": "teboil",
+   "name": "Teboil",
+   "address": "проспект Народного Ополчения, 147",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98"
+   ],
+   "votes": {
+    "overall": "empty",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty"
+    },
+    "updated_at": "2026-09-14T16:58:53.249Z",
+    "confidence_level": "high",
+    "confidence_percent": 80,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "maybe_available",
+     "100": "maybe_available",
+     "dt": "available",
+     "98": "no_data"
+    },
+    "updated_at": "2026-09-14T17:46:43.117Z"
+   }
+  },
+  {
+   "id": "azsradar:26117",
+   "lat": 59.6993821,
+   "lon": 30.3939569,
+   "brand": "lukoil",
+   "name": "Лукойл",
+   "address": "Гусарская улица, 10А",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T16:49:57.090Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "empty",
+     "100": "empty",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:48:35.552Z"
+   }
+  },
+  {
+   "id": "azsradar:18830",
+   "lat": 59.8433331,
+   "lon": 30.3545243,
+   "brand": "lukoil",
+   "name": "Лукойл",
+   "address": "улица Орджоникидзе, 50",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "ok",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T16:22:20.129Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:56:32.682Z"
+   }
+  },
+  {
+   "id": "azsradar:18193",
+   "lat": 59.9008689,
+   "lon": 30.5249736,
+   "brand": "other",
+   "name": "АЗС",
+   "address": "КАД",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T16:18:52.350Z",
+    "confidence_level": "medium",
+    "confidence_percent": 60,
+    "queue": "5–20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "maybe_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:53:07.371Z"
+   }
+  },
+  {
+   "id": "azsradar:27775",
+   "lat": 59.8260408,
+   "lon": 30.4115354,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Малая Балканская улица",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T15:37:19.379Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:56:27.003Z"
+   }
+  },
+  {
+   "id": "azsradar:23116",
+   "lat": 59.8443732,
+   "lon": 30.4223564,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Карпатская улица",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T15:36:35.632Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:40.110Z"
+   }
+  },
+  {
+   "id": "azsradar:20225",
+   "lat": 59.8353891,
+   "lon": 30.4304711,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "Карпатская улица, 15",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T15:35:40.623Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "not_available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "not_available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "maybe_available"
+    },
+    "updated_at": "2026-09-14T17:56:29.062Z"
+   }
+  },
+  {
+   "id": "azsradar:19367",
+   "lat": 59.6986746,
+   "lon": 30.4401395,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Фильтровское шоссе, 12",
+   "catalog_fuels": [
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T15:26:57.091Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "maybe_available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:51:33.874Z"
+   }
+  },
+  {
+   "id": "azsradar:26506",
+   "lat": 59.8696209,
+   "lon": 29.9714927,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "улица Фрунзе, 2",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T15:21:30.177Z",
+    "confidence_level": "medium",
+    "confidence_percent": 60,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:09.824Z"
+   }
+  },
+  {
+   "id": "azsradar:27788",
+   "lat": 60.0225068,
+   "lon": 30.4090076,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "Санкт-Петербург, Гражданский проспект, 93",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "empty",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T15:19:51.581Z",
+    "confidence_level": "medium",
+    "confidence_percent": 60,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:56:42.446Z"
+   }
+  },
+  {
+   "id": "azsradar:23113",
+   "lat": 59.934754,
+   "lon": 30.4868263,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "проспект Наставников",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "empty",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T14:21:20.965Z",
+    "confidence_level": "medium",
+    "confidence_percent": 60,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "maybe_available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "maybe_available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "not_available"
+    },
+    "updated_at": "2026-09-14T17:56:20.569Z"
+   }
+  },
+  {
+   "id": "azsradar:17959",
+   "lat": 59.799661,
+   "lon": 30.389377,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "Витебский проспект",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T14:21:19.601Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:50:59.720Z"
+   }
+  },
+  {
+   "id": "azsradar:20177",
+   "lat": 60.0664313,
+   "lon": 30.3439242,
+   "brand": "lukoil",
+   "name": "Лукойл",
+   "address": "проспект Энгельса, 164",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "98": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T14:20:43.528Z",
+    "confidence_level": "medium",
+    "confidence_percent": 60,
+    "queue": "Больше 20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "empty",
+     "dt": "available",
+     "98": "no_data"
+    },
+    "updated_at": "2026-09-14T17:52:01.428Z"
+   }
+  },
+  {
+   "id": "azsradar:14372",
+   "lat": 59.7922592,
+   "lon": 30.3937488,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "Витебский проспект",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T14:20:05.491Z",
+    "confidence_level": "medium",
+    "confidence_percent": 60,
+    "queue": "Больше 20 машин",
+    "limit_liters": 30,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:47:13.917Z"
+   }
+  },
+  {
+   "id": "azsradar:23669",
+   "lat": 59.9012631,
+   "lon": 29.0986743,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "улица Петра Великого, 10",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "empty",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T14:19:16.500Z",
+    "confidence_level": "high",
+    "confidence_percent": 80,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:35.849Z"
+   }
+  },
+  {
+   "id": "azsradar:18984",
+   "lat": 59.9248702,
+   "lon": 30.3719461,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Миргородская улица, 1А",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T14:10:38.699Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:39.988Z"
+   }
+  },
+  {
+   "id": "azsradar:26225",
+   "lat": 59.7861793,
+   "lon": 30.1389814,
+   "brand": "teboil",
+   "name": "Teboil",
+   "address": "Колхозная улица",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T13:59:50.923Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "maybe_available",
+    "sber": "available",
+    "grades": {
+     "92": "maybe_available",
+     "95": "maybe_available",
+     "100": "maybe_available",
+     "dt": "maybe_available"
+    },
+    "updated_at": "2026-09-14T17:55:51.032Z"
+   }
+  },
+  {
+   "id": "azsradar:19523",
+   "lat": 59.9098422,
+   "lon": 30.2893688,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "улица Циолковского, 18 литЯ",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T13:29:47.086Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "5–20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:50:39.502Z"
+   }
+  },
+  {
+   "id": "azsradar:27432",
+   "lat": 60.0290459,
+   "lon": 30.2594554,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Автобусная улица, 12",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T13:28:51.041Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:50:35.906Z"
+   }
+  },
+  {
+   "id": "azsradar:25105",
+   "lat": 60.0232982,
+   "lon": 30.2944521,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "Вербная улица",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T13:25:05.029Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:10.373Z"
+   }
+  },
+  {
+   "id": "azsradar:17247",
+   "lat": 60.2012861,
+   "lon": 29.938263,
+   "brand": "teboil",
+   "name": "Teboil",
+   "address": "«Скандинавия»",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T12:59:30.787Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "100": "empty",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:35:20.930Z"
+   }
+  },
+  {
+   "id": "azsradar:21109",
+   "lat": 59.8245427,
+   "lon": 30.189184,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "проспект Народного Ополчения, 201А",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T12:59:23.719Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data",
+     "100": "empty",
+     "dt": "maybe_available",
+     "propane": "no_data"
+    },
+    "updated_at": "2026-09-14T17:55:11.652Z"
+   }
+  },
+  {
+   "id": "azsradar:17966",
+   "lat": 59.7491591,
+   "lon": 30.3133116,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "Пулковское шоссе",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T12:56:31.434Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:38:26.875Z"
+   }
+  },
+  {
+   "id": "azsradar:26116",
+   "lat": 59.724843,
+   "lon": 30.4437343,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Новодеревенская улица, 14 литА",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T12:22:54.665Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Больше 20 машин",
+    "limit_liters": 30,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:54:13.322Z"
+   }
+  },
+  {
+   "id": "azsradar:9042",
+   "lat": 59.8684359,
+   "lon": 30.2486105,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "дорога на Турухтанные острова, 12 литК",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T12:21:53.477Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "maybe_available",
+     "95": "available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:32.734Z"
+   }
+  },
+  {
+   "id": "azsradar:23031",
+   "lat": 60.0315917,
+   "lon": 30.6261198,
+   "brand": "other",
+   "name": "Neste",
+   "address": "Дорога Жизни, 9Б",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T12:10:31.704Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "not_available",
+    "sber": "available",
+    "grades": {
+     "92": "not_available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "maybe_available"
+    },
+    "updated_at": "2026-09-14T17:56:39.948Z"
+   }
+  },
+  {
+   "id": "azsradar:20954",
+   "lat": 60.0164823,
+   "lon": 30.3126853,
+   "brand": "other",
+   "name": "Киришиавтосервис",
+   "address": "Фермское шоссе",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "empty",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T11:37:20.317Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "not_available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "not_available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "not_available"
+    },
+    "updated_at": "2026-09-14T17:48:26.364Z"
+   }
+  },
+  {
+   "id": "azsradar:27866",
+   "lat": 60.0164961,
+   "lon": 30.3126955,
+   "brand": "other",
+   "name": "АЗС",
+   "address": "Фермское шоссе",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "empty",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T11:37:02.707Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "maybe_available"
+    },
+    "updated_at": "2026-09-14T17:56:42.446Z"
+   }
+  },
+  {
+   "id": "azsradar:19245",
+   "lat": 59.8262055,
+   "lon": 30.1856256,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "Авангардная улица, 36",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T11:04:57.954Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "not_available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "not_available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "not_available"
+    },
+    "updated_at": "2026-09-14T17:55:43.085Z"
+   }
+  },
+  {
+   "id": "azsradar:1561",
+   "lat": 59.6887575,
+   "lon": 29.9203834,
+   "brand": "other",
+   "name": "Киришиавтосервис 13",
+   "address": "квартал 1, 1А",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "98": "ok",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T10:35:58.299Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Больше 20 машин",
+    "limit_liters": 30,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "no_data",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "maybe_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:01:28.621Z"
+   }
+  },
+  {
+   "id": "azsradar:22048",
+   "lat": 59.8513957,
+   "lon": 30.0915991,
+   "brand": "tatneft",
+   "name": "Татнефть",
+   "address": "проспект Будённого, 29",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "98": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T10:24:37.567Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:38.015Z"
+   }
+  },
+  {
+   "id": "azsradar:24150",
+   "lat": 60.0016028,
+   "lon": 30.4466312,
+   "brand": "other",
+   "name": "Киришиавтосервис",
+   "address": "Пискарёвский проспект, 135",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T10:11:31.922Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "no_data",
+    "grades": {
+     "92": "available",
+     "95": "maybe_available",
+     "100": "maybe_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:40.702Z"
+   }
+  },
+  {
+   "id": "azsradar:1836",
+   "lat": 60.3744544,
+   "lon": 30.2763516,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "«Сортавала»",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T10:11:25.315Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "5–20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:46:31.439Z"
+   }
+  },
+  {
+   "id": "azsradar:18976",
+   "lat": 59.9798912,
+   "lon": 30.3673443,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Полюстровский проспект, 73",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T10:03:32.468Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Больше 20 машин",
+    "limit_liters": 30,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "not_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:55:15.944Z"
+   }
+  },
+  {
+   "id": "azsradar:20084",
+   "lat": 59.9652128,
+   "lon": 30.3722586,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Минеральная улица, 16",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T10:01:51.965Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "maybe_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:41.027Z"
+   }
+  },
+  {
+   "id": "azsradar:19060",
+   "lat": 59.9913196,
+   "lon": 30.3331579,
+   "brand": "lukoil",
+   "name": "Лукойл",
+   "address": "Большой Сампсониевский проспект, 89",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "98": "ok",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T09:50:12.888Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "До 5 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:56:42.199Z"
+   }
+  },
+  {
+   "id": "azsradar:19309",
+   "lat": 59.8479396,
+   "lon": 30.2816795,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "проспект Народного Ополчения, 16",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T09:48:06.475Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "maybe_available",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:36.526Z"
+   }
+  },
+  {
+   "id": "azsradar:21059",
+   "lat": 59.836936,
+   "lon": 30.2700696,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "проспект Народного Ополчения, 26 к3",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T09:46:30.872Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:56:32.682Z"
+   }
+  },
+  {
+   "id": "azsradar:19721",
+   "lat": 59.8785771,
+   "lon": 30.4461984,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "переулок Матюшенко, 3А",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T09:41:06.966Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Больше 20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "100": "empty",
+     "dt": "available"
+    },
+    "updated_at": "2026-09-14T17:56:39.988Z"
+   }
+  },
+  {
+   "id": "azsradar:20049",
+   "lat": 59.9300913,
+   "lon": 31.0003288,
+   "brand": "gazpromneft",
+   "name": "Газпром Нефть",
+   "address": "Красный тракт",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "empty",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T09:40:44.935Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:49:31.624Z"
+   }
+  },
+  {
+   "id": "azsradar:27772",
+   "lat": 59.7984899,
+   "lon": 30.6664699,
+   "brand": "gazpromneft",
+   "name": "Газпромнефть",
+   "address": "41К-078",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T09:07:48.338Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "no_data",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "no_data",
+     "95": "no_data"
+    },
+    "updated_at": "2026-09-14T17:49:33.652Z"
+   }
+  },
+  {
+   "id": "azsradar:18969",
+   "lat": 59.7778083,
+   "lon": 30.3239428,
+   "brand": "rosneft",
+   "name": "Роснефть",
+   "address": "Пулковское шоссе, 55",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "empty"
+    },
+    "updated_at": "2026-09-14T09:04:07.935Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "not_available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "not_available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "not_available"
+    },
+    "updated_at": "2026-09-14T17:56:22.480Z"
+   }
+  },
+  {
+   "id": "azsradar:20635",
+   "lat": 59.9922562,
+   "lon": 30.3545741,
+   "brand": "other",
+   "name": "ТопСис",
+   "address": "Политехническая улица",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "ok",
+     "95": "ok",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T08:56:04.075Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "5–20 машин",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "available",
+    "sber": "maybe_available",
+    "grades": {
+     "92": "available",
+     "95": "available",
+     "100": "maybe_available",
+     "dt": "maybe_available"
+    },
+    "updated_at": "2026-09-14T17:56:41.027Z"
+   }
+  },
+  {
+   "id": "azsradar:18997",
+   "lat": 59.8825467,
+   "lon": 30.3891485,
+   "brand": "other",
+   "name": "nord point",
+   "address": "Софийская улица, 17 к2",
+   "catalog_fuels": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "votes": {
+    "overall": "ok",
+    "grades": {
+     "92": "empty",
+     "95": "empty",
+     "dt": "ok"
+    },
+    "updated_at": "2026-09-14T08:34:38.792Z",
+    "confidence_level": "outdated",
+    "confidence_percent": 0,
+    "queue": "Нет",
+    "limit_liters": null,
+    "break_until": null
+   },
+   "bank_forecast": {
+    "tbank": "not_available",
+    "sber": "no_data",
+    "grades": {
+     "92": "not_available",
+     "95": "not_available",
+     "100": "not_available",
+     "dt": "not_available"
+    },
+    "updated_at": "2026-09-14T17:56:39.988Z"
+   }
+  }
+ ]
+}

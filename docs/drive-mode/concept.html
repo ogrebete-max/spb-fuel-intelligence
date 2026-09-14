@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Режим «За рулём»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+:root {
+  --ground: #eef2ea; --panel: #fbfcf7; --ink: #10231d; --muted: #56655f; --line: #d6ddd0;
+  --brand: #0d5a43; --link: #0d5a43; --chip: #e1e9d9; --mark: #c9f169; --mark-ink: #0d3328; --risk: #b8372d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0a1310; --panel: #101c18; --ink: #e6eee9; --muted: #9aada4; --line: #22342d;
+    --brand: #7fdcae; --link: #8fe3bb; --chip: #17261f; --mark: #c9f169; --mark-ink: #0d3328; --risk: #ff8a80;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0a1310; --panel: #101c18; --ink: #e6eee9; --muted: #9aada4; --line: #22342d;
+  --brand: #7fdcae; --link: #8fe3bb; --chip: #17261f; --mark: #c9f169; --mark-ink: #0d3328; --risk: #ff8a80;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ground); color: var(--ink);
+  font: 16px/1.55 "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-block: 40px 72px; padding-inline: max(16px, calc((100% - 1140px) / 2));
+}
+h1, h2, h3 { font-family: Unbounded, "Golos Text", system-ui, sans-serif; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 54px); font-weight: 700; line-height: 1.04; letter-spacing: -.01em; }
+h2 { font-size: clamp(22px, 3.2vw, 30px); font-weight: 700; line-height: 1.15; }
+h3 { font-size: 16px; font-weight: 700; line-height: 1.3; }
+p { margin: 0; }
+a { color: var(--link); text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+button { font: inherit; }
+.page { display: grid; gap: 84px; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.intro { display: grid; gap: 18px; max-width: 800px; }
+.lead { font-size: clamp(17px, 2.2vw, 20px); max-width: 60ch; }
+.hl { background: linear-gradient(transparent 58%, color-mix(in srgb, var(--mark) 70%, transparent) 58%); padding-inline: 2px; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tags span { font-size: 13px; font-weight: 600; border-radius: 999px; padding: 5px 12px; background: var(--chip); }
+.section-head { display: grid; gap: 10px; max-width: 800px; margin-bottom: 32px; }
+.section-head p { color: var(--muted); max-width: 64ch; }
+
+/* ---------- Live demo ---------- */
+.demo { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 40px 64px; align-items: center; }
+.demo-stage { display: grid; justify-items: center; position: relative; }
+.demo-stage::before { content: ""; position: absolute; inset: 6% -8%; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--mark) 42%, transparent), transparent); filter: blur(12px); }
+.demo-side { display: grid; gap: 18px; align-content: center; }
+.demo-side > p { color: var(--muted); max-width: 52ch; }
+.trip { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.trip button { width: 100%; text-align: left; display: grid; grid-template-columns: 112px 1fr; gap: 12px; align-items: baseline; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 14px; padding: 12px 16px; cursor: pointer; transition: background-color .35s, border-color .35s, transform .35s; }
+.trip button b { font: 600 12px/1.2 Unbounded, sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--brand); }
+.trip button span { font-size: 15px; }
+.trip button[aria-current="step"] { background: var(--mark); border-color: var(--mark); color: var(--mark-ink); transform: translateX(6px); }
+.trip button[aria-current="step"] b { color: var(--mark-ink); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.play { border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; font-size: 14px; background: var(--ink); color: var(--ground); cursor: pointer; }
+.switch { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: var(--chip); }
+.switch button { border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 14px; background: transparent; color: var(--ink); cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 4px rgba(16, 35, 29, .2); }
+.note { font-size: 14px; color: var(--muted); max-width: 52ch; }
+
+/* ---------- Phone mockups: night by default, .is-day for day ---------- */
+.phone {
+  --scr: #101915; --sheet: #0a110e; --ink: #eef4ef; --sub: #a9bab2; --faint: #8fa29a; --rule: #1d2b25; --said: #131f1a;
+  --chipbg: #1a2822; --chipink: #8fa29a; --okbg: rgba(62, 207, 122, .16); --okink: #6fe7a6;
+  --badbg: rgba(242, 102, 91, .17); --badink: #ff948a; --limbg: rgba(240, 165, 58, .17); --limink: #ffc46b;
+  --yes: #5fe39a; --no: #ff8a80; --mine: #c9f169; --glow: rgba(201, 241, 105, .5); --glow2: rgba(201, 241, 105, .9);
+  --p-yes: #3ecf7a; --p-no: #f2665b; --p-lim: #f0a53a; --p-unk: #7f8f88; --p-ink: #06130d; --ring: rgba(5, 8, 7, .55);
+  --btn-yes: #3ecf7a; --btn-no: #f2665b; --btn-ink: #06130d;
+  --plate: #c9f169; --plateink: #0d3328; --glass: rgba(5, 8, 7, .6); --glassink: #fff;
+  --car: #c9f169; --carline: #0a110e; --grab: #33433c; --shade: rgba(0, 0, 0, .45);
+  position: relative; z-index: 1; width: 100%; max-width: 280px; aspect-ratio: 280 / 580; background: #050807; border-radius: 42px; padding: 9px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 26px 50px -20px rgba(8, 20, 16, .5);
+}
+.phone.is-day {
+  --scr: #e9eee4; --sheet: #fbfcf7; --ink: #10231d; --sub: #4f5e58; --faint: #66756f; --rule: #e1e7da; --said: #eef3e8;
+  --chipbg: #e4eade; --chipink: #56655f; --okbg: #d3eedb; --okink: #106b3c; --badbg: #fadcd8; --badink: #a92e26; --limbg: #fbe7c6; --limink: #8a5405;
+  --yes: #13804a; --no: #c23b31; --mine: #0d3328; --glow: rgba(13, 90, 67, .28); --glow2: rgba(13, 90, 67, .55);
+  --p-yes: #158257; --p-no: #b8333a; --p-lim: #b8720c; --p-unk: #7d8a85; --p-ink: #fff; --ring: #fff;
+  --btn-yes: #158257; --btn-no: #b8333a; --btn-ink: #fff;
+  --plate: #0d3328; --plateink: #c9f169; --glass: rgba(251, 252, 247, .78); --glassink: #10231d;
+  --car: #0d3328; --carline: #fff; --grab: #cfd8c9; --shade: rgba(16, 35, 29, .16);
+}
+.phone.big { max-width: 330px; }
+.phone.land { width: 620px; max-width: none; aspect-ratio: 620 / 300; margin-inline: auto; }
+.scr { position: relative; height: 100%; border-radius: 34px; overflow: hidden; background: var(--scr); color: var(--ink); font-family: "Golos Text", system-ui, sans-serif; isolation: isolate; transition: background-color .5s, color .5s; }
+.scr::after { content: ""; position: absolute; inset: 0; z-index: 20; pointer-events: none; border-radius: inherit; background: linear-gradient(128deg, rgba(255, 255, 255, .08), transparent 34%); }
+.land .scr { border-radius: 30px; }
+.notch { position: absolute; z-index: 9; top: 8px; left: 50%; translate: -50% 0; width: 86px; height: 24px; border-radius: 14px; background: #050807; }
+.land .notch { top: 50%; left: 8px; translate: 0 -50%; width: 24px; height: 86px; }
+.sb { position: absolute; z-index: 8; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 12px 26px 0; font-size: 11px; font-weight: 600; color: var(--ink); transition: color .5s; }
+.map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map .day { opacity: 0; transition: opacity .6s; }
+.is-day .map .day { opacity: 1; }
+.top { position: absolute; z-index: 6; top: 42px; left: 12px; right: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.land .top { top: 14px; left: 42px; }
+.mygrade { background: var(--plate); color: var(--plateink); border-radius: 14px; padding: 7px 12px; font-size: 13px; font-weight: 600; transition: background-color .5s, color .5s; }
+.mygrade b { font: 700 16px Unbounded, sans-serif; margin-left: 4px; }
+.x, .speed { background: var(--glass); color: var(--glassink); box-shadow: 0 2px 10px var(--shade); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.x { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 19px; line-height: 1; }
+.speed { position: absolute; z-index: 6; left: 12px; top: 94px; border-radius: 12px; padding: 6px 10px; font: 700 15px Unbounded, sans-serif; font-variant-numeric: tabular-nums; }
+.speed small { font: 500 10px "Golos Text", sans-serif; color: var(--sub); margin-left: 3px; }
+.pin { --c: var(--p-yes); position: absolute; z-index: 4; translate: -50% -100%; display: grid; justify-items: center; transition: opacity .6s; }
+.pin.no { --c: var(--p-no); }
+.pin.lim { --c: var(--p-lim); }
+.pin.unk { --c: var(--p-unk); }
+.pin b { position: relative; min-width: 42px; height: 32px; padding: 0 8px; border-radius: 10px; display: grid; place-items: center; background: var(--c); color: var(--p-ink); font: 700 16px Unbounded, sans-serif; box-shadow: 0 0 0 3px var(--ring), 0 0 22px color-mix(in srgb, var(--c) 50%, transparent); transition: background-color .5s; }
+.is-day .pin b { box-shadow: 0 0 0 3px var(--ring), 0 4px 12px rgba(16, 35, 29, .3); }
+.pin.no b { text-decoration-line: line-through; text-decoration-thickness: 2px; }
+.pin::after { content: ""; border: 7px solid transparent; border-top: 9px solid var(--c); border-bottom: 0; }
+.pin i { position: absolute; top: -9px; right: -9px; width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center; background: #fbfcf7; color: #0d3328; font: 700 10px "Golos Text", sans-serif; font-style: normal; box-shadow: 0 0 0 2px var(--scr); }
+.pin.here b { box-shadow: 0 0 0 3px var(--mine), 0 0 26px var(--glow); }
+.dot { position: absolute; z-index: 3; width: 11px; height: 11px; border-radius: 50%; background: #7b8a84; box-shadow: 0 0 0 2px var(--scr); translate: -50% -50%; transition: opacity .6s; }
+.edge { position: absolute; z-index: 5; left: 0; display: flex; align-items: baseline; gap: 5px; padding: 7px 12px 7px 9px; border-radius: 0 14px 14px 0; background: var(--p-yes); color: var(--p-ink); font: 700 14px Unbounded, sans-serif; box-shadow: 0 4px 14px var(--shade); }
+.edge small { font: 600 11px "Golos Text", sans-serif; }
+.car { position: absolute; z-index: 5; left: 50%; top: 70%; width: 34px; height: 34px; translate: -50% -50%; }
+.car path { fill: var(--car); stroke: var(--carline); stroke-width: 2; stroke-linejoin: round; transition: fill .5s; }
+.sheet, .full { position: absolute; z-index: 7; left: 0; right: 0; bottom: 0; background: var(--sheet); display: grid; gap: 10px; box-shadow: 0 -10px 30px var(--shade); transition: background-color .5s; }
+.sheet { border-radius: 24px 24px 0 0; padding: 10px 18px 22px; }
+.sheet::before { content: ""; justify-self: center; width: 42px; height: 4px; border-radius: 2px; background: var(--grab); }
+.full { top: 94px; border-radius: 24px 24px 0 0; padding: 18px 18px 22px; gap: 14px; align-content: start; }
+.where { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.line1 { font-size: 20px; font-weight: 700; line-height: 1.22; }
+.big-title { font: 700 22px/1.15 Unbounded, sans-serif; }
+.yes-t { color: var(--yes); }
+.no-t { color: var(--no); }
+.meta { font-size: 13px; color: var(--sub); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border-radius: 10px; padding: 6px 9px; font: 700 13px Unbounded, sans-serif; background: var(--chipbg); color: var(--chipink); }
+.chip.ok { background: var(--okbg); color: var(--okink); }
+.chip.bad { background: var(--badbg); color: var(--badink); }
+.chip.lim { background: var(--limbg); color: var(--limink); }
+.chip.mine { box-shadow: 0 0 0 2px var(--mine); }
+.hint { font-size: 12.5px; color: var(--faint); border-top: 1px solid var(--rule); padding-top: 10px; }
+.lock { font-size: 13px; font-weight: 600; color: var(--sub); background: var(--chipbg); border-radius: 12px; padding: 9px 12px; }
+.not { font-size: 14px; color: var(--yes); font-weight: 600; }
+.btn-huge { display: grid; gap: 10px; }
+.btn-huge span { height: 74px; border-radius: 20px; display: grid; place-items: center; font: 700 21px Unbounded, sans-serif; color: var(--btn-ink); }
+.btn-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.btn-row span { height: 58px; border-radius: 16px; display: grid; place-items: center; font: 700 14px "Golos Text", sans-serif; color: var(--btn-ink); }
+.b-yes { background: var(--btn-yes); }
+.b-no { background: var(--btn-no); }
+.btn-row .b-skip { background: var(--chipbg); color: var(--ink); }
+.seg { display: flex; gap: 6px; }
+.seg span { flex: 1; text-align: center; padding: 11px 0; border-radius: 12px; background: var(--chipbg); font-size: 14px; font-weight: 600; color: var(--ink); }
+.said { background: var(--said); border-radius: 16px; padding: 12px 14px; display: grid; gap: 4px; }
+.bar { height: 6px; border-radius: 3px; background: var(--chipbg); overflow: hidden; }
+.bar i { display: block; width: 62%; height: 100%; background: var(--mine); }
+.undo { justify-self: start; border-radius: 14px; padding: 10px 16px; background: var(--chipbg); color: var(--ink); font-weight: 600; font-size: 15px; }
+.check { width: 64px; height: 64px; }
+.check circle { fill: var(--btn-yes); }
+.check path { fill: none; stroke: var(--btn-ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.land-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 1.7fr 1fr; }
+.land-map { position: relative; overflow: hidden; }
+.land-side { background: var(--sheet); padding: 16px 16px 14px; display: grid; gap: 10px; align-content: start; transition: background-color .5s; }
+.ahead { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.ahead.last { border-bottom: 0; padding-bottom: 0; }
+.ahead .t { font-weight: 700; font-size: 15px; }
+.ahead .t small { font-weight: 500; color: var(--sub); font-size: 12px; margin-left: 4px; }
+
+/* The current light map, as the app draws it today */
+.scr.app { background: #eef2ea; color: #10231d; }
+.app .sb { color: #10231d; }
+.appbar { position: absolute; z-index: 6; top: 34px; left: 0; right: 0; padding: 8px 16px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; background: linear-gradient(#eef2ea 70%, transparent); }
+.logo { width: 26px; height: 26px; border-radius: 8px; background: #0d3328; box-shadow: inset 0 -8px 0 #c9f169; }
+.lbl { position: absolute; z-index: 4; display: flex; align-items: center; gap: 4px; translate: -6px -50%; }
+.lbl::before { content: ""; flex: none; width: 11px; height: 11px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px #fff, 0 1px 3px rgba(0, 0, 0, .3); }
+.lbl p { display: grid; gap: 1px; padding: 3px 6px; border-radius: 7px; background: rgba(255, 255, 255, .96); border: 1px solid #d6ddd0; box-shadow: 0 2px 6px rgba(0, 0, 0, .15); font-size: 8.5px; line-height: 1.25; white-space: nowrap; color: #10231d; }
+.lbl i { font-style: normal; display: flex; gap: 3px; }
+.lbl em { font-style: normal; font-weight: 800; }
+.lbl .y { color: #158257; }
+.lbl .n { color: #b8333a; text-decoration: line-through; }
+.lbl .l { color: #b8720c; }
+.lbl .u { color: #9aa5a0; }
+.drive-btn { position: absolute; z-index: 6; right: 14px; bottom: 150px; background: #0d3328; color: #c9f169; font: 700 15px Unbounded, sans-serif; border-radius: 18px; padding: 12px 16px; box-shadow: 0 0 0 4px rgba(201, 241, 105, .45), 0 10px 24px rgba(13, 51, 40, .35); }
+.prompt { position: absolute; z-index: 7; left: 12px; right: 12px; bottom: 16px; background: #fbfcf7; color: #10231d; border-radius: 20px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 12px 30px rgba(16, 35, 29, .25); }
+.prompt p { font-size: 14.5px; font-weight: 600; line-height: 1.35; }
+.prompt .row { display: flex; gap: 8px; }
+.prompt .row span { flex: 1; text-align: center; border-radius: 12px; padding: 10px 0; font-weight: 700; font-size: 14px; }
+.p-on { background: #0d3328; color: #c9f169; }
+.p-off { background: #e1e9d9; color: #10231d; }
+
+/* ---------- Demo states ---------- */
+.map-wrap { position: absolute; inset: 0; transform-origin: 62% 40%; transition: transform 1.4s cubic-bezier(.2, .8, .2, 1); }
+[data-state="near"] .map-wrap { transform: scale(1.3) translateY(6%); }
+[data-state="here"] .map-wrap, [data-state="sent"] .map-wrap { transform: scale(1.7) translateY(7%); }
+[data-state]:not([data-state="far"]) .dim { opacity: .15; }
+.stage-panel { transform: translateY(105%); opacity: 0; transition: transform .75s cubic-bezier(.2, .8, .2, 1), opacity .45s, background-color .5s; }
+[data-state="far"] .s-far, [data-state="near"] .s-near, [data-state="here"] .s-here, [data-state="sent"] .s-sent { transform: none; opacity: 1; }
+.s-sent .check path { stroke-dasharray: 60; stroke-dashoffset: 60; transition: stroke-dashoffset .6s .45s; }
+[data-state="sent"] .s-sent .check path { stroke-dashoffset: 0; }
+.s-sent .bar i { width: 100%; transition: width 2.8s linear .3s; }
+[data-state="sent"] .s-sent .bar i { width: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .pin.here b { animation: glow 2.6s ease-in-out infinite; }
+  @keyframes glow { 50% { box-shadow: 0 0 0 3px var(--mine), 0 0 40px var(--glow2); } }
+  .gallery .phone, .pair .phone { transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
+  .gallery figure:hover .phone, .pair figure:hover .phone { transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* ---------- Review ---------- */
+.verdict { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 26px 28px; display: grid; gap: 16px; max-width: 920px; }
+.verdict-title { font: 700 clamp(19px, 2.4vw, 23px)/1.25 Unbounded, "Golos Text", sans-serif; }
+.conds { margin: 0; padding-left: 24px; display: grid; gap: 10px; }
+.conds li::marker { font-weight: 700; color: var(--brand); }
+.roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 36px 44px; margin-top: 44px; }
+.roles h3 { margin-bottom: 14px; }
+.role { font: 600 11px/1.2 "Golos Text", sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.plain li { padding-left: 18px; position: relative; }
+.plain li::before { content: ""; position: absolute; left: 0; top: .62em; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+.risks { margin-top: 52px; max-width: 920px; }
+.risks h3 { margin-bottom: 8px; }
+.risk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 6px 32px; padding: 14px 0; border-top: 1px solid var(--line); }
+.risk.head { border-top: 0; padding-bottom: 6px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.risk b { font-weight: 600; }
+.risk span { color: var(--muted); }
+.metrics-block { margin-top: 52px; }
+.metrics-block > p { color: var(--muted); margin: 6px 0 20px; max-width: 64ch; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px 32px; margin: 0; }
+.metrics div { display: grid; gap: 6px; align-content: start; border-top: 2px solid var(--ink); padding-top: 12px; }
+.metrics dt { font: 700 28px/1.1 Unbounded, sans-serif; font-variant-numeric: tabular-nums; }
+.metrics dd { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+/* ---------- Day and night ---------- */
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 280px)) minmax(0, 1fr); gap: 36px 40px; align-items: start; }
+.pair figcaption { max-width: 280px; }
+.pair-text { display: grid; gap: 14px; align-content: start; }
+.pair-text h3 + .plain { margin-bottom: 14px; }
+@media (max-width: 960px) {
+  .pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pair-text { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .pair { grid-template-columns: 1fr; }
+}
+
+/* ---------- Gallery ---------- */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 52px 28px; align-items: start; }
+figure { margin: 0; display: grid; gap: 16px; justify-items: center; }
+figcaption { display: grid; gap: 6px; width: 100%; max-width: 290px; }
+.wide figcaption { max-width: 620px; }
+.step { font: 600 12px/1.2 Unbounded, "Golos Text", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+figcaption p { font-size: 14.5px; color: var(--muted); }
+figcaption .voice { color: var(--ink); background: var(--chip); border-radius: 12px; padding: 10px 12px; margin-top: 4px; }
+.new { justify-self: start; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: var(--mark); color: var(--mark-ink); border-radius: 6px; padding: 2px 7px; }
+.wide { grid-column: 1 / -1; }
+.hscroll { width: 100%; overflow-x: auto; padding-bottom: 6px; }
+
+/* ---------- Closing sections ---------- */
+.unique { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 30px 34px; }
+.unique article { display: grid; gap: 8px; align-content: start; }
+.ui-line { justify-self: start; font-size: 14px; font-weight: 600; background: var(--ink); color: var(--ground); border-radius: 10px; padding: 7px 11px; }
+.unique p { color: var(--muted); font-size: 15px; }
+.keep { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.keep section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; display: grid; gap: 12px; align-content: start; }
+.keep ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.keep li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; }
+.keep li::before { font-weight: 700; }
+.keep .off li::before { content: "✕"; color: var(--risk); }
+.keep .on li::before { content: "✓"; color: var(--brand); }
+.keep-note { margin-top: 18px; color: var(--muted); max-width: 64ch; }
+.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 20px; max-width: 800px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 52px 1fr; gap: 16px; align-items: start; }
+.steps li::before { content: counter(s); font: 700 22px Unbounded, sans-serif; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); color: var(--brand); }
+.steps li.first::before { background: var(--mark); color: var(--mark-ink); }
+.steps h3 { margin-bottom: 4px; }
+.steps p { color: var(--muted); }
+.done { display: inline-block; font: 600 12px "Golos Text", sans-serif; color: var(--mark-ink); background: var(--mark); border-radius: 8px; padding: 1px 8px; margin-left: 4px; vertical-align: 2px; }
+.ask { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px 24px; max-width: 800px; display: grid; gap: 10px; }
+.ask ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 24px 44px; margin: 0; }
+.facts div { display: grid; gap: 4px; align-content: start; }
+.facts dt { font: 700 15px/1.3 Unbounded, "Golos Text", sans-serif; color: var(--brand); }
+.facts dd { margin: 0; font-size: 15px; }
+.sources { font-size: 13px; color: var(--muted); display: grid; gap: 8px; max-width: 800px; margin-top: 32px; }
+.sources ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.sources a { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .demo { grid-template-columns: 1fr; }
+  .demo-stage::before { inset: 4% 0; }
+  .trip button { grid-template-columns: 1fr; gap: 2px; }
+  .risk { grid-template-columns: 1fr; }
+  .risk.head { display: none; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="roads" viewBox="0 0 270 570">
+    <rect width="270" height="570" fill="#101915"/>
+    <path d="M-10 440 C40 430 60 480 30 580 L-10 580 Z" fill="#10262d"/>
+    <g fill="#17231e">
+      <rect x="14" y="40" width="70" height="90" rx="8"/><rect x="20" y="300" width="64" height="70" rx="8"/>
+      <rect x="196" y="70" width="60" height="110" rx="8"/><rect x="198" y="330" width="58" height="120" rx="8"/>
+      <rect x="96" y="470" width="30" height="60" rx="8"/>
+    </g>
+    <rect x="200" y="196" width="56" height="104" rx="10" fill="#132a22"/>
+    <path d="M-20 262 C70 250 150 272 290 236" stroke="#253630" stroke-width="18" fill="none"/>
+    <path d="M60 600 C70 520 40 420 64 330 S40 150 30 -20" stroke="#1f2e28" stroke-width="10" fill="none"/>
+    <path d="M146 600 C146 470 120 380 150 290 S214 120 186 -20" stroke="#33473f" stroke-width="34" fill="none" stroke-linecap="round"/>
+    <path d="M146 600 C146 470 120 380 150 290 S214 120 186 -20" stroke="#56705f" stroke-width="2" stroke-dasharray="12 12" fill="none"/>
+  </symbol>
+  <symbol id="roads-light" viewBox="0 0 270 570">
+    <rect width="270" height="570" fill="#e2e9dc"/>
+    <path d="M-10 440 C40 430 60 480 30 580 L-10 580 Z" fill="#c6dbe2"/>
+    <g fill="#d3ddcb">
+      <rect x="14" y="40" width="70" height="90" rx="8"/><rect x="20" y="300" width="64" height="70" rx="8"/>
+      <rect x="196" y="70" width="60" height="110" rx="8"/><rect x="198" y="330" width="58" height="120" rx="8"/>
+      <rect x="96" y="470" width="30" height="60" rx="8"/>
+    </g>
+    <rect x="200" y="196" width="56" height="104" rx="10" fill="#cde2c1"/>
+    <path d="M-20 262 C70 250 150 272 290 236" stroke="#ffffff" stroke-width="16" fill="none"/>
+    <path d="M60 600 C70 520 40 420 64 330 S40 150 30 -20" stroke="#f7f9f3" stroke-width="9" fill="none"/>
+    <path d="M146 600 C146 470 120 380 150 290 S214 120 186 -20" stroke="#fefefb" stroke-width="30" fill="none" stroke-linecap="round"/>
+    <path d="M146 600 C146 470 120 380 150 290 S214 120 186 -20" stroke="#d3ddcb" stroke-width="2" stroke-dasharray="12 12" fill="none"/>
+  </symbol>
+</svg>
+
+<main class="page">
+  <header class="intro">
+    <span class="eyebrow">Топливо СПб · концепция для обсуждения · версия 2 · 14 сентября 2026</span>
+    <h1>Режим «За рулём»</h1>
+    <p class="lead">Едете — видите только заправки впереди и цифру своей марки. Подъехали — крупно «Вы на АЗС» и две огромные кнопки. <span class="hl">Главное отличие от всех: отметки своих людей с именами и 👍.</span></p>
+    <div class="tags"><span>Дневная и ночная тема</span><span>Живой показ поездки</span><span>Без кнопки «Я пассажир»</span><span>Разбор перед разработкой</span></div>
+  </header>
+
+  <section class="demo" aria-label="Живой показ поездки">
+    <div class="demo-stage">
+      <div class="phone big" id="demoPhone" data-follow data-state="far">
+        <div class="scr">
+          <div class="notch"></div><div class="sb"><span>9:43</span><span>LTE</span></div>
+          <div class="map-wrap">
+            <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+            <div class="pin here" style="left:66%;top:48%"><b>95<i>Л</i></b></div>
+            <div class="pin no dim" style="left:24%;top:38%"><b>95</b></div>
+            <div class="pin dim" style="left:62%;top:26%"><b>95</b></div>
+            <span class="dot dim" style="left:17%;top:58%"></span><span class="dot dim" style="left:84%;top:62%"></span>
+          </div>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="speed"><span id="demoSpeed">52</span><small>км/ч</small></div>
+          <svg class="car" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+          <div class="sheet stage-panel s-far">
+            <span class="where">Через 1 км справа</span>
+            <p class="line1">Роснефть · <span class="yes-t">95 есть</span></p>
+            <p class="meta">12 мин назад · Лена 👍 2 · очередь маленькая</p>
+          </div>
+          <div class="sheet stage-panel s-near">
+            <span class="where">Через 300 м справа</span>
+            <p class="line1">Роснефть, Московское ш., 12</p>
+            <div class="chips"><span class="chip ok">92 ✓</span><span class="chip ok mine">95 ✓</span><span class="chip bad">98 ✕</span><span class="chip lim">ДТ 20 л</span></div>
+            <p class="meta">Очередь ≈ 5 машин и уменьшается · Лена 12 мин · 👍 2</p>
+            <p class="lock">🔒 Отметить — на остановке</p>
+          </div>
+          <div class="full stage-panel s-here">
+            <span class="where">Вы на АЗС</span>
+            <p class="big-title">Роснефть, Московское ш., 12</p>
+            <p class="not">Не та? Рядом Лукойл, 90 м →</p>
+            <div class="btn-huge"><span class="b-yes">95 есть</span><span class="b-no">95 нет</span></div>
+            <div class="seg"><span>очереди нет</span><span>мало</span><span>много</span></div>
+          </div>
+          <div class="full stage-panel s-sent">
+            <svg class="check" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30"/><path d="M19 33 L28 42 L46 23"/></svg>
+            <p class="big-title">Отправлено своим</p>
+            <p class="meta">95 есть · Роснефть, Московское ш., 12 · уведомление получили свои в радиусе 7 км</p>
+            <div class="bar"><i></i></div>
+            <span class="undo">Отменить</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="demo-side">
+      <h2>Проиграть поездку</h2>
+      <p>Так режим ведёт себя на подъезде к заправке. Нажмите на шаг, чтобы остановиться на нём, или переключите тему.</p>
+      <ol class="trip">
+        <li><button type="button" id="goFar" data-go="far"><b>≈ 1 км</b><span>Одна строка: что есть и кто видел</span></button></li>
+        <li><button type="button" id="goNear" data-go="near"><b>≈ 300 м</b><span>Все марки, лимит и очередь</span></button></li>
+        <li><button type="button" id="goHere" data-go="here"><b>У колонки</b><span>«Вы на АЗС» и две огромные кнопки</span></button></li>
+        <li><button type="button" id="goSent" data-go="sent"><b>Готово</b><span>Своим ушло уведомление, можно отменить</span></button></li>
+      </ol>
+      <div class="controls">
+        <button type="button" class="play" id="demoPlay" aria-pressed="false">▶ Проиграть</button>
+        <div class="switch" role="group" aria-label="Тема экрана">
+          <button type="button" id="modeAuto" data-mode="auto" aria-pressed="true">Авто</button>
+          <button type="button" id="modeDay" data-mode="day" aria-pressed="false">☀️ День</button>
+          <button type="button" id="modeNight" data-mode="night" aria-pressed="false">🌙 Ночь</button>
+        </div>
+      </div>
+      <p class="note" id="modeNote">Авто: днём тема светлая, после заката в Петербурге — тёмная.</p>
+    </div>
+  </section>
+  <section aria-labelledby="reviewTitle">
+    <div class="section-head">
+      <h2 id="reviewTitle">Разбор: будет ли это хорошо</h2>
+      <p>Посмотрел на концепцию трижды: как дизайнер, как продакт-менеджер и как тот, кто принимает работу перед выпуском. Сначала вывод, ниже подробности.</p>
+    </div>
+    <div class="verdict">
+      <p class="verdict-title">Да, за рулём станет лучше, чем сейчас, — при пяти условиях.</p>
+      <ol class="conds">
+        <li><b>Режим добавляем, карту не трогаем.</b> Светлая карта со всеми метками остаётся для планирования: дома, на стоянке, в очереди. «За рулём» — отдельный экран на время поиска топлива.</li>
+        <li><b>Две темы.</b> Днём светлая, ночью тёмная, переключаются сами по закату.</li>
+        <li><b>Кнопки — только на остановке.</b> Переключатель «Я пассажир» не нужен.</li>
+        <li><b>Статус не только цветом.</b> Зачёркнутая цифра, ✓ и ✕, слова «есть» и «нет».</li>
+        <li><b>Сначала живая поездка.</b> Проверяем на Android и iPhone и только потом предлагаем режим всем.</li>
+      </ol>
+    </div>
+
+    <div class="roles">
+      <div>
+        <span class="role">Дизайнер</span>
+        <h3>Читается за секунду</h3>
+        <ul class="plain">
+          <li>Одна задача на экран, крупные цифры и понятные цвета — правильное направление.</li>
+          <li>На текущей карте подписи 12 px и налезают друг на друга: с держателя их не прочитать. В режиме — одна цифра вашей марки и не больше трёх заправок.</li>
+          <li>Тёмный экран днём бликует на солнце, светлый ночью слепит. Поэтому нужны обе темы, а не одна.</li>
+          <li>Примерно каждый двенадцатый мужчина плохо различает красный и зелёный. Поэтому «нет» — ещё и зачёркнутая цифра.</li>
+          <li>Эффекты только со смыслом: свечение у нужной заправки и плавная шторка. Никакого мигания.</li>
+        </ul>
+      </div>
+      <div>
+        <span class="role">Продакт-менеджер</span>
+        <h3>Отвечает на главный вопрос</h3>
+        <ul class="plain">
+          <li>В дефицит у водителя два вопроса: «Где сейчас есть 95?» и «Как сказать своим, что тут есть?». Режим отвечает ровно на них.</li>
+          <li>Режим нужен на 5–15 минут поиска, а не на всю поездку. Маршрут ведёт Яндекс: кнопка «Маршрут в Яндекс Картах» уже есть в карточке.</li>
+          <li>Наш козырь перед ГдеБЕНЗ и Яндексом — имя своего и 👍 прямо на метке. Его нельзя прятать в «Подробнее».</li>
+          <li>Вкладки сразу не удаляем: прячем в «Ещё», чтобы ничего не потерялось.</li>
+        </ul>
+      </div>
+      <div>
+        <span class="role">Разработка и приёмка</span>
+        <h3>Делается в нашем приложении</h3>
+        <ul class="plain">
+          <li>Скорость и направление берём из геопозиции браузера, отдельное приложение не нужно.</li>
+          <li>Ночная карта — те же карты OpenStreetMap, только затемнённые. Новый поставщик карт не нужен.</li>
+          <li>Экран не гаснет: на Android это работает давно, на iPhone — с iOS 18.4.</li>
+          <li>Свёрнутое приложение не знает, где вы: так устроены браузеры. Уведомления своих всё равно приходят.</li>
+          <li>Телефон в держателе греется: на стоянке реже спрашиваем геопозицию, тяжёлых анимаций на карте нет.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="risks">
+      <h3>Где может стать хуже и что с этим делаем</h3>
+      <div class="risk head"><span>Риск</span><span>Что делаем</span></div>
+      <div class="risk"><b>Видны только заправки впереди — можно пропустить хорошую сбоку</b><span>Если впереди нет вашей марки, режим сам показывает ближайшую, где она есть, и в какую сторону ехать. Обычная карта — одним касанием на ✕.</span></div>
+      <div class="risk"><b>Две заправки через дорогу — отметка уйдёт не туда</b><span>«Не та? Рядом Лукойл, 90 м» прямо под названием. Экран «Вы на АЗС» — только после 20 секунд стоянки ближе 100 м.</span></div>
+      <div class="risk"><b>Огромную кнопку легко нажать случайно</b><span>«Отменить» несколько секунд, потом удаление своей отметки в течение часа — уже работает.</span></div>
+      <div class="risk"><b>Едут с Яндекс Навигатором, наш экран закрыт</b><span>Уведомления своих приходят и в фоне. Режим открывают, когда нужно топливо, а маршрут отдают Яндексу.</span></div>
+      <div class="risk"><b>В городе GPS прыгает, карта дёргается</b><span>Направление учитываем только быстрее 10 км/ч. Стоите — карта не крутится.</span></div>
+      <div class="risk"><b>На iPhone нет полного экрана и экран поворачивается</b><span>Раскладка для обеих ориентаций и проверка на живом iPhone. Большинство ваших — на Android, там проще.</span></div>
+    </div>
+
+    <div class="metrics-block">
+      <h3>Как поймём, что стало лучше</h3>
+      <p>Цели на первые две недели. Считаем по статистике самого приложения, без опросов.</p>
+      <dl class="metrics">
+        <div><dt>≤ 5 с</dt><dd>от остановки у колонки до отправленной отметки</dd></div>
+        <div><dt>&lt; 5%</dt><dd>отметок, где пришлось нажать «Не та?»</dd></div>
+        <div><dt>&lt; 3%</dt><dd>отметок, отменённых сразу после отправки</dd></div>
+        <div><dt>0</dt><dd>жалоб «кнопки сбрасываются» и «не понимаю, у какой я АЗС»</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section aria-labelledby="dayNightTitle">
+    <div class="section-head">
+      <h2 id="dayNightTitle">День и ночь</h2>
+      <p>Светлый фон никуда не девается. Днём режим светлый, как ваша карта сейчас, только крупнее и спокойнее. Ночью тёмный, чтобы экран не слепил.</p>
+    </div>
+    <div class="pair">
+      <figure>
+        <div class="phone is-day"><div class="scr">
+          <div class="notch"></div><div class="sb"><span>13:20</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="speed">34<small>км/ч</small></div>
+          <div class="pin here" style="left:62%;top:25%"><b>95<i>Л</i></b></div>
+          <div class="pin no" style="left:28%;top:34%"><b>95</b></div>
+          <svg class="car" style="top:42%" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+          <div class="sheet">
+            <span class="where">Через 300 м справа</span>
+            <p class="line1">Роснефть, Московское ш., 12</p>
+            <div class="chips"><span class="chip ok">92 ✓</span><span class="chip ok mine">95 ✓</span><span class="chip bad">98 ✕</span><span class="chip lim">ДТ 20 л</span></div>
+            <p class="meta">Очередь ≈ 5 машин · Лена 12 мин · 👍 2</p>
+            <p class="lock">🔒 Отметить — на остановке</p>
+          </div>
+        </div></div>
+        <figcaption><span class="step">☀️ День</span><p>Светлый фон, тёмный текст, насыщенные метки с белой обводкой — читается даже на солнце.</p></figcaption>
+      </figure>
+      <figure>
+        <div class="phone"><div class="scr">
+          <div class="notch"></div><div class="sb"><span>22:40</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="speed">34<small>км/ч</small></div>
+          <div class="pin here" style="left:62%;top:25%"><b>95<i>Л</i></b></div>
+          <div class="pin no" style="left:28%;top:34%"><b>95</b></div>
+          <svg class="car" style="top:42%" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+          <div class="sheet">
+            <span class="where">Через 300 м справа</span>
+            <p class="line1">Роснефть, Московское ш., 12</p>
+            <div class="chips"><span class="chip ok">92 ✓</span><span class="chip ok mine">95 ✓</span><span class="chip bad">98 ✕</span><span class="chip lim">ДТ 20 л</span></div>
+            <p class="meta">Очередь ≈ 5 машин · Лена 12 мин · 👍 2</p>
+            <p class="lock">🔒 Отметить — на остановке</p>
+          </div>
+        </div></div>
+        <figcaption><span class="step">🌙 Ночь</span><p>Тёмный фон и светящиеся метки: экран не слепит и не отсвечивает в лобовом стекле.</p></figcaption>
+      </figure>
+      <div class="pair-text">
+        <h3>Как переключается</h3>
+        <ul class="plain">
+          <li><b>Само, по солнцу.</b> <span id="sunLine">Сегодня в Петербурге рассвет в 06:24, закат в 19:26.</span> В июне тёмная тема включится около половины одиннадцатого вечера, в декабре — около четырёх дня.</li>
+          <li><b>Или вручную:</b> «Авто», «День», «Ночь» — как переключатель у живого показа.</li>
+          <li><b>Без мигания.</b> Тема зависит только от времени суток, поэтому в тоннеле и на крытой парковке не прыгает.</li>
+        </ul>
+        <h3>Что берём от светлой карты</h3>
+        <ul class="plain">
+          <li>Цифры марок прямо на метке</li>
+          <li>Зачёркнутую цифру, когда марки нет</li>
+          <li>Те же цвета статусов, что сейчас в приложении</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="passengerTitle">
+    <div class="section-head">
+      <h2 id="passengerTitle">Кнопку «Я пассажир» убираем</h2>
+      <p>Она появилась, чтобы водитель не нажимал на ходу, — похожий переключатель есть у Waze. Но у колонки машина и так стоит, а отметку по дороге проще попросить на светофоре. Отдельная кнопка только мешает.</p>
+    </div>
+    <div class="keep">
+      <section class="off">
+        <h3>Было в первой версии</h3>
+        <ul>
+          <li>Переключатель «Я пассажир — показать кнопки» на шторке</li>
+          <li>Лишняя надпись перед глазами водителя</li>
+          <li>Нажмёт каждый, кому очень нужно, — пользы от такого вопроса нет</li>
+        </ul>
+      </section>
+      <section class="on">
+        <h3>Стало</h3>
+        <ul>
+          <li>Едете — шторка только показывает: что есть, кто видел, очередь</li>
+          <li>Остановились на светофоре или в пробке — кнопки появились сами, тронулись — исчезли</li>
+          <li>Проехали заправку — на ближайшей остановке один вопрос: «Что с 95 на Роснефти?»</li>
+          <li>У колонки — две огромные кнопки, как и было</li>
+        </ul>
+      </section>
+    </div>
+    <p class="keep-note">Если пассажирам всё же не хватит кнопок на ходу, добавим долгое нажатие на шторку — без надписей на экране.</p>
+  </section>
+  <section aria-labelledby="galleryTitle">
+    <div class="section-head">
+      <h2 id="galleryTitle">Экраны одной поездки</h2>
+      <p>Восемь моментов: от обычной карты до отправленной отметки. Переключатель «День / Ночь» у живого показа меняет и эти экраны. Цифры и имена — пример.</p>
+    </div>
+    <div class="gallery">
+      <figure>
+        <div class="phone"><div class="scr app">
+          <div class="notch"></div><div class="sb"><span>9:41</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads-light"/></svg>
+          <div class="appbar"><span class="logo"></span>Топливо СПб</div>
+          <div class="lbl" style="left:10%;top:24%;--c:#b8333a"><p><b>Лукойл</b><i><em class="y">92</em><em class="n">95</em><em class="u">98</em><em class="y">ДТ</em></i></p></div>
+          <div class="lbl" style="left:50%;top:31%;--c:#158257"><p><b>Роснефть</b><i><em class="y">92</em><em class="y">95</em><em class="n">98</em><em class="y">ДТ</em></i></p></div>
+          <div class="lbl" style="left:14%;top:43%;--c:#d58a13"><p><b>Газпромнефть</b><i><em class="l">92</em><em class="l">95</em><em class="u">100</em></i></p></div>
+          <div class="lbl" style="left:54%;top:52%;--c:#8a9691"><p><b>Нева</b><i><em class="u">92</em><em class="u">95</em></i></p></div>
+          <div class="drive-btn">🚗 За рулём</div>
+          <div class="prompt"><p>Похоже, вы за рулём. Включить крупный режим?</p><div class="row"><span class="p-on">Включить</span><span class="p-off">Не сейчас</span></div></div>
+        </div></div>
+        <figcaption>
+          <span class="step">Вход · обычная карта</span>
+          <h3>Светлая карта остаётся</h3>
+          <p>Для планирования всё как сейчас: сеть и все марки на метке. Режим включается кнопкой «За рулём», или приложение само предложит, если скорость больше 15 км/ч дольше полминуты.</p>
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone" data-follow><div class="scr">
+          <div class="notch"></div><div class="sb"><span>9:43</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="speed">52<small>км/ч</small></div>
+          <div class="pin" style="left:67%;top:50%"><b>95<i>Л</i></b></div>
+          <div class="pin no" style="left:24%;top:40%"><b>95</b></div>
+          <div class="pin" style="left:62%;top:30%"><b>95</b></div>
+          <span class="dot" style="left:17%;top:58%"></span><span class="dot" style="left:84%;top:62%"></span><span class="dot" style="left:40%;top:22%"></span>
+          <svg class="car" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+          <div class="sheet">
+            <span class="where">Через 1 км справа</span>
+            <p class="line1">Роснефть · <span class="yes-t">95 есть</span></p>
+            <p class="meta">12 мин назад · Лена 👍 2 · очередь маленькая</p>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="step">≈ 1 км до заправки</span>
+          <h3>Одна строка, без кнопок</h3>
+          <p>Карта повёрнута по дороге, машина внизу. Горят не больше трёх заправок впереди, на каждой цифра вашей марки. Буква в кружке — отметка своего.</p>
+          <p class="voice">🔊 «Через километр справа Роснефть. Девяносто пятый есть, Лена, двенадцать минут».</p>
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone" data-follow><div class="scr">
+          <div class="notch"></div><div class="sb"><span>9:51</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="speed">47<small>км/ч</small></div>
+          <div class="pin no" style="left:66%;top:50%"><b>95</b></div>
+          <div class="pin no" style="left:30%;top:36%"><b>95</b></div>
+          <div class="pin unk" style="left:62%;top:28%"><b>95</b></div>
+          <div class="edge" style="top:44%">← 95 <small>2,4 км</small></div>
+          <svg class="car" style="top:62%" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+          <div class="sheet">
+            <span class="where">Впереди 95 нет</span>
+            <p class="line1">Ближайшая с 95 — Нева, <span class="yes-t">2,4 км налево</span></p>
+            <p class="meta">Саша видел 18 мин назад · 👍 1 · лимит 30 л</p>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="new">Новое</span>
+          <span class="step">Впереди нет вашей марки</span>
+          <h3>Не пропустить заправку сбоку</h3>
+          <p>Если впереди всё красное, режим сам показывает ближайшую заправку с вашей маркой и в какую сторону ехать. Метка у края экрана — туда.</p>
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone" data-follow><div class="scr">
+          <div class="notch"></div><div class="sb"><span>9:44</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="speed">34<small>км/ч</small></div>
+          <div class="pin here" style="left:62%;top:25%"><b>95<i>Л</i></b></div>
+          <div class="pin no" style="left:28%;top:34%"><b>95</b></div>
+          <svg class="car" style="top:42%" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+          <div class="sheet">
+            <span class="where">Через 300 м справа</span>
+            <p class="line1">Роснефть, Московское ш., 12</p>
+            <div class="chips"><span class="chip ok">92 ✓</span><span class="chip ok mine">95 ✓</span><span class="chip bad">98 ✕</span><span class="chip lim">ДТ 20 л</span></div>
+            <p class="meta">Очередь ≈ 5 машин · Лена 12 мин · 👍 2</p>
+            <p class="lock">🔒 Отметить — на остановке</p>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="step">≈ 300 м</span>
+          <h3>Все марки, лимит и очередь</h3>
+          <p>Зелёная цифра — есть, красная зачёркнутая — нет, жёлтая — с лимитом. Ваша марка обведена. Кнопок на ходу нет: они появятся на остановке.</p>
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone" data-follow><div class="scr">
+          <div class="notch"></div><div class="sb"><span>9:47</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="speed">0<small>км/ч</small></div>
+          <div class="pin" style="left:68%;top:50%"><b>95<i>Л</i></b></div>
+          <span class="dot" style="left:30%;top:30%"></span>
+          <svg class="car" style="top:32%" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+          <div class="sheet">
+            <span class="where">Проехали Роснефть</span>
+            <p class="line1">Что с 95 на Роснефти?</p>
+            <div class="btn-row"><span class="b-yes">95 есть</span><span class="b-no">95 нет</span><span class="b-skip">не видел</span></div>
+            <p class="meta">Тронетесь — вопрос исчезнет сам</p>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="new">Новое</span>
+          <span class="step">Светофор · скорость 0</span>
+          <h3>Отметка по дороге — на остановке</h3>
+          <p>Проехали заправку — на ближайшем светофоре или в пробке спросим одним вопросом. Поэтому кнопка «Я пассажир» больше не нужна.</p>
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone" data-follow><div class="scr">
+          <div class="notch"></div><div class="sb"><span>9:52</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="full">
+            <span class="where">Вы на АЗС</span>
+            <p class="big-title">Роснефть, Московское ш., 12</p>
+            <p class="not">Не та? Рядом Лукойл, 90 м →</p>
+            <div class="btn-huge"><span class="b-yes">95 есть</span><span class="b-no">95 нет</span></div>
+            <p class="meta">Очередь, если видно</p>
+            <div class="seg"><span>нет</span><span>мало</span><span>много</span></div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="step">У колонки · стоим 20 секунд</span>
+          <h3>«Вы на АЗС» и две огромные кнопки</h3>
+          <p>Сразу видно, у какой заправки вы стоите: карточки больше не перепутать. Отметка — одно касание, очередь — по желанию.</p>
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone" data-follow><div class="scr">
+          <div class="notch"></div><div class="sb"><span>10:12</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="full">
+            <span class="where">Вы на АЗС</span>
+            <p class="big-title">Лукойл, пр. Энгельса, 150</p>
+            <div class="said">
+              <p class="meta">Лена отметила 12 минут назад</p>
+              <p class="line1"><span class="yes-t">95 есть</span> · очередь мало</p>
+            </div>
+            <div class="btn-huge"><span class="b-yes">👍 Так и есть</span><span class="b-no">👎 Уже нет</span></div>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="step">У колонки · есть свежая отметка своего</span>
+          <h3>Подтвердить своего одним касанием</h3>
+          <p>Лена узнает, что её отметку подтвердили, а остальные увидят, что ей можно верить.</p>
+          <p>Если свежей отметки своих нет, здесь обычные кнопки «95 есть» и «95 нет».</p>
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone" data-follow><div class="scr">
+          <div class="notch"></div><div class="sb"><span>9:53</span><span>LTE</span></div>
+          <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+          <div class="top"><span class="mygrade">Моя марка <b>95</b></span><span class="x">✕</span></div>
+          <div class="full">
+            <svg class="check" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30"/><path d="M19 33 L28 42 L46 23"/></svg>
+            <p class="big-title">Отправлено своим</p>
+            <p class="meta">95 есть · Роснефть, Московское ш., 12 · уведомление получили свои в радиусе 7 км</p>
+            <div class="bar"><i></i></div>
+            <span class="undo">Отменить · 3 с</span>
+            <p class="hint">Потом экран сам вернётся к карте.</p>
+          </div>
+        </div></div>
+        <figcaption>
+          <span class="step">После отметки</span>
+          <h3>Видно, что ушло, и можно отменить</h3>
+          <p>Ошиблись кнопкой — «Отменить» ещё несколько секунд. Позже свою отметку можно удалить в течение часа.</p>
+        </figcaption>
+      </figure>
+
+      <figure class="wide">
+        <div class="hscroll">
+          <div class="phone land" data-follow><div class="scr">
+            <div class="notch"></div>
+            <div class="land-grid">
+              <div class="land-map">
+                <svg class="map" viewBox="0 0 270 570" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><use href="#roads"/><use class="day" href="#roads-light"/></svg>
+                <div class="top"><span class="mygrade">Моя марка <b>95</b></span></div>
+                <div class="pin" style="left:62%;top:52%"><b>95<i>Л</i></b></div>
+                <div class="pin no" style="left:28%;top:40%"><b>95</b></div>
+                <span class="dot" style="left:82%;top:30%"></span><span class="dot" style="left:16%;top:74%"></span>
+                <svg class="car" style="top:80%" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg>
+                <div class="speed" style="top:auto;bottom:12px;left:42px">52<small>км/ч</small></div>
+              </div>
+              <div class="land-side">
+                <span class="where">Впереди</span>
+                <div class="ahead">
+                  <p class="t">Роснефть <small>справа · 1,0 км</small></p>
+                  <div class="chips"><span class="chip ok">92 ✓</span><span class="chip ok mine">95 ✓</span></div>
+                  <p class="meta">Лена · 12 мин · 👍 2</p>
+                </div>
+                <div class="ahead last">
+                  <p class="t">Лукойл <small>слева · 2,4 км</small></p>
+                  <div class="chips"><span class="chip ok">92 ✓</span><span class="chip bad mine">95 ✕</span></div>
+                  <p class="meta">Яндекс: есть · Саша 20 мин: нет</p>
+                </div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+        <figcaption>
+          <span class="step">Телефон боком</span>
+          <h3>Карта слева, две ближайшие заправки справа</h3>
+          <p>На iPhone нельзя запретить поворот экрана, поэтому режим одинаково работает и вертикально, и боком. Если источники спорят, показываем обе версии, а свежая отметка своего главнее.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+  <section aria-labelledby="uniqueTitle">
+    <div class="section-head">
+      <h2 id="uniqueTitle">Чего нет у других</h2>
+      <p>Всё это держится на том, что у нас свои люди, а не анонимная толпа. Работает прямо в нашем приложении, без новых установок.</p>
+    </div>
+    <div class="unique">
+      <article>
+        <span class="ui-line">95 · Лена · 12 мин · 👍 2</span>
+        <h3>Имя очевидца на метке</h3>
+        <p>У всех отметки анонимные. У нас видно, кто из своих видел и сколько человек подтвердили.</p>
+      </article>
+      <article>
+        <span class="ui-line">Саша стоял 25 минут</span>
+        <h3>Сколько реально ждали</h3>
+        <p>Время в очереди считается само по геопозиции. Это замер знакомого человека, а не прикидка.</p>
+      </article>
+      <article>
+        <span class="ui-line">Заправились? 95 есть — 👍 / 👎</span>
+        <h3>Вопрос в нужный момент</h3>
+        <p>После заправки приложение одним вопросом просит подтвердить отметку. Ответ сразу уходит своим.</p>
+      </article>
+      <article>
+        <span class="ui-line">⛽ Привезли 95 на Лукойл — Саша</span>
+        <h3>Бензовоз для своих</h3>
+        <p>Увидели бензовоз — одна кнопка, и уведомление получают все свои в радиусе 7 км.</p>
+      </article>
+      <article>
+        <span class="ui-line">Кто рядом — гляньте 95 на Роснефти</span>
+        <h3>Попросить своих проверить</h3>
+        <p>Перед поездкой можно попросить тех, кто рядом, посмотреть на колонки. Анонимную толпу о таком не попросишь.</p>
+      </article>
+      <article>
+        <span class="ui-line">Яндекс: есть · Лена 10 мин назад: нет</span>
+        <h3>Спор источников на виду</h3>
+        <p>Если данные расходятся, показываем обе версии. Свежая отметка своего человека главнее.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="keepTitle">
+    <div class="section-head">
+      <h2 id="keepTitle">Что убираем, что оставляем</h2>
+      <p>На ходу на экране только то, что помогает решить: заезжать или нет. Обычная карта остаётся для планирования.</p>
+    </div>
+    <div class="keep">
+      <section class="off">
+        <h3>Убираем с главного экрана</h3>
+        <ul>
+          <li>Вкладки «Свои», «Недавние», «Можно ехать» — прячем в «Ещё», а на виду настройка «Моя марка» и сортировка «по пути»</li>
+          <li>Проценты вероятности — вместо них слова: «есть», «скорее есть», «нет»</li>
+          <li>Списки источников и длинные пояснения — в «Подробнее»</li>
+        </ul>
+      </section>
+      <section class="on">
+        <h3>Оставляем и делаем крупнее</h3>
+        <ul>
+          <li>Светлую карту с сетью и всеми марками на метке — для планирования</li>
+          <li>Цифры марок и цвета статусов</li>
+          <li>Отметки своих с именами и 👍</li>
+          <li>Очередь, лимит и возраст отметки</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <section aria-labelledby="stepsTitle">
+    <div class="section-head">
+      <h2 id="stepsTitle">По шагам</h2>
+      <p>Сначала то, что снимает путаницу с карточками, потом удобства.</p>
+    </div>
+    <ol class="steps">
+      <li class="first">
+        <div>
+          <h3>Главное на ходу</h3>
+          <p>Экран «За рулём» с дневной и ночной темой, шторка на подъезде, «Вы на АЗС» с отметкой в одно касание и вопрос на остановке. Ближайшая заправка наверху списка и кнопки, которые не сбрасываются, <span class="done">уже работают</span></p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Телефон боком и голос</h3>
+          <p>Раскладка для горизонтального экрана и голосовая фраза на подъезде к заправке.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Возможности клуба</h3>
+          <p>«Бензовоз для своих», «Попросить своих проверить», время в очереди и вопрос после заправки.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <aside class="ask" aria-labelledby="askTitle">
+    <h3 id="askTitle">Что нужно от вас</h3>
+    <p>Три коротких ответа, можно голосом:</p>
+    <ol>
+      <li>Две темы, день и ночь, которые переключаются сами, — подходит?</li>
+      <li>Убираем «Я пассажир», кнопки появляются на остановке, — согласны?</li>
+      <li>Начинаем с первого шага?</li>
+    </ol>
+  </aside>
+
+  <section aria-labelledby="factsTitle">
+    <div class="section-head">
+      <h2 id="factsTitle">На чём основано</h2>
+      <p>Коротко из исследования конкурентов и правил работы с телефоном в машине.</p>
+    </div>
+    <dl class="facts">
+      <div><dt>ГдеБЕНЗ</dt><dd>Самый крупный: 1,8 млн человек за первые три дня, №1 в «Навигации» App Store. Есть свой навигатор, но отметки анонимные и не проверяются.</dd></div>
+      <div><dt>Яндекс</dt><dd>С июля показывает наличие и очередь прямо в карточке АЗС, в Петербурге тоже. В отзывах это называют «лотереей».</dd></div>
+      <div><dt>2ГИС</dt><dd>Цвет по каждой марке, очереди, лимиты. Но по отзывам часто пишет «нет данных».</dd></div>
+      <div><dt>За рулём</dt><dd>Взгляд на экран — не дольше 2 секунд. Телефоном в руке на ходу пользоваться нельзя, штраф 1 500 ₽. Значит, на ходу только смотреть и слушать.</dd></div>
+      <div><dt>Цвет</dt><dd>Около 8% мужчин плохо различают красный и зелёный, поэтому статус дублируется формой: ✓, ✕ и зачёркнутой цифрой.</dd></div>
+      <div><dt>iPhone</dt><dd>Нет настоящего полного экрана и нельзя запретить поворот. Режим работает, пока приложение открыто на экране.</dd></div>
+    </dl>
+    <div class="sources">
+      <h3>Источники</h3>
+      <ul>
+        <li><a href="https://www.cnews.ru/news/top/2026-06-30_rossiyanin_v_odinochku_sozdal">CNews, 30.06.2026 — аудитория ГдеБЕНЗ</a></li>
+        <li><a href="https://www.rustore.ru/catalog/app/ru.gdebenz.app.gde_benz_app/reviews">RuStore — отзывы ГдеБЕНЗ</a></li>
+        <li><a href="https://yandex.ru/company/news/17-07-2026-01">Яндекс, 17.07.2026 — наличие топлива в Картах и Навигаторе</a></li>
+        <li><a href="https://lifehacker.ru/karta-benzina-poyavilas-v-2gis/">Лайфхакер, 11.07.2026 — карта топлива в 2ГИС</a></li>
+        <li><a href="https://habr.com/ru/amp/publications/1057270/">Хабр, 09.07.2026 — ГдеЗаправка</a></li>
+        <li><a href="https://developers.google.com/cars/design/design-foundations/visual-principles">Google — правила интерфейсов для водителя</a></li>
+        <li><a href="https://ruspdd.com/general-duties-of-drivers/2.7/">ПДД, пункт 2.7</a></li>
+        <li><a href="https://caniuse.com/wake-lock">Can I use — экран без погасания (Wake Lock)</a></li>
+        <li><a href="https://webkit.org/blog/16574/webkit-features-in-safari-18-4/">WebKit — Safari 18.4</a></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const phone = document.getElementById('demoPhone');
+  const steps = ['far', 'near', 'here', 'sent'];
+  const speeds = { far: 52, near: 31, here: 0, sent: 0 };
+  const stepButtons = Array.from(document.querySelectorAll('[data-go]'));
+  const play = document.getElementById('demoPlay');
+  const speedEl = document.getElementById('demoSpeed');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let index = 0;
+  let timer = null;
+  let wanted = !reduce;
+  let shown = speeds.far;
+  let frame = 0;
+
+  function countTo(target) {
+    cancelAnimationFrame(frame);
+    if (reduce) { shown = target; speedEl.textContent = String(target); return; }
+    const from = shown;
+    const started = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - started) / 900);
+      shown = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3)));
+      speedEl.textContent = String(shown);
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+  }
+
+  function show(i) {
+    index = i;
+    const step = steps[i];
+    phone.dataset.state = step;
+    stepButtons.forEach((button) => {
+      if (button.dataset.go === step) button.setAttribute('aria-current', 'step');
+      else button.removeAttribute('aria-current');
+    });
+    countTo(speeds[step]);
+  }
+
+  function run(on) {
+    clearInterval(timer);
+    timer = on ? setInterval(() => show((index + 1) % steps.length), 3400) : null;
+    play.textContent = on ? '❚❚ Пауза' : '▶ Проиграть';
+    play.setAttribute('aria-pressed', String(on));
+  }
+
+  stepButtons.forEach((button, i) => button.addEventListener('click', () => { wanted = false; run(false); show(i); }));
+  play.addEventListener('click', () => { wanted = !timer; run(wanted); });
+  document.addEventListener('visibilitychange', () => run(!document.hidden && wanted));
+  show(reduce ? 1 : 0);
+  run(wanted);
+
+  // Sunrise and sunset in Saint Petersburg from the standard solar formulas,
+  // so «Авто» picks the theme the app itself would pick right now.
+  const rad = Math.PI / 180;
+  const dayMs = 86400000;
+  const J1970 = 2440588;
+  const J2000 = 2451545;
+  const J0 = 0.0009;
+  const obliquity = rad * 23.4397;
+  const SPB = { lat: 59.94, lon: 30.31 };
+
+  function sunTimes(date) {
+    const lw = rad * -SPB.lon;
+    const phi = rad * SPB.lat;
+    const days = date.valueOf() / dayMs - 0.5 + J1970 - J2000;
+    const n = Math.round(days - J0 - lw / (2 * Math.PI));
+    const ds = J0 + lw / (2 * Math.PI) + n;
+    const M = rad * (357.5291 + 0.98560028 * ds);
+    const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+    const L = M + C + rad * 102.9372 + Math.PI;
+    const dec = Math.asin(Math.sin(obliquity) * Math.sin(L));
+    const noon = J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    const w = Math.acos((Math.sin(rad * -0.833) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec)));
+    const set = J2000 + J0 + (w + lw) / (2 * Math.PI) + n + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    const toDate = (j) => new Date((j + 0.5 - J1970) * dayMs);
+    return { rise: toDate(noon - (set - noon)), set: toDate(set) };
+  }
+
+  const followers = Array.from(document.querySelectorAll('.phone[data-follow]'));
+  const modeButtons = Array.from(document.querySelectorAll('[data-mode]'));
+  const note = document.getElementById('modeNote');
+  const sunLine = document.getElementById('sunLine');
+  const clock = (d) => d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' });
+
+  function applyMode(mode) {
+    const now = new Date();
+    const today = sunTimes(now);
+    const light = now >= today.rise && now < today.set;
+    const day = mode === 'day' || (mode === 'auto' && light);
+    followers.forEach((p) => p.classList.toggle('is-day', day));
+    modeButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    if (mode !== 'auto') {
+      note.textContent = day ? 'Всегда светлая тема — если ездите в основном днём.' : 'Всегда тёмная тема — кому-то так спокойнее и днём.';
+    } else if (light) {
+      note.textContent = `Авто: в Петербурге сейчас светло, тема дневная. Закат сегодня в ${clock(today.set)} — после него экран сам станет тёмным.`;
+    } else {
+      const next = now < today.rise ? today.rise : sunTimes(new Date(now.valueOf() + dayMs)).rise;
+      note.textContent = `Авто: в Петербурге сейчас темно, тема ночная. Рассвет в ${clock(next)} — тогда экран сам станет светлым.`;
+    }
+  }
+
+  try {
+    const today = sunTimes(new Date());
+    sunLine.textContent = `Сегодня в Петербурге рассвет в ${clock(today.rise)}, закат в ${clock(today.set)}.`;
+  } catch (error) {
+    // The written times stay.
+  }
+  modeButtons.forEach((b) => b.addEventListener('click', () => applyMode(b.dataset.mode)));
+  applyMode('auto');
+})();
+</script>
+
+</html>

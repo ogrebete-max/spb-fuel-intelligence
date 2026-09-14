@@ -1,0 +1,2700 @@
+{
+ "source": "https://app.benzuber.ru/map",
+ "captured_at": "2026-09-14T17:29:24Z",
+ "requests": 5,
+ "bbox": {
+  "south": 58.4,
+  "west": 27.6,
+  "north": 61.4,
+  "east": 35.8
+ },
+ "total_stations_in_bbox": 418,
+ "stations_in_aoi": 297,
+ "card_example": {
+  "number": "АЗС №133",
+  "brand": "Газпромнефть",
+  "address": "г. Санкт-Петербург, ул. Савушкина, 110А",
+  "fuels": [
+   {
+    "name": "АИ-92",
+    "status": "available",
+    "status_title": "топливо есть",
+    "limit_l": 40.0,
+    "price": 65.18
+   },
+   {
+    "name": "АИ-95",
+    "status": "available",
+    "status_title": "топливо есть",
+    "limit_l": 40.0,
+    "price": 69.66
+   },
+   {
+    "name": "G-Drive 95",
+    "status": "available",
+    "status_title": "топливо есть",
+    "limit_l": 40.0,
+    "price": 71.66
+   },
+   {
+    "name": "ДТ",
+    "status": "available",
+    "status_title": "топливо есть",
+    "limit_l": 40.0,
+    "price": 80.37
+   },
+   {
+    "name": "АИ-98",
+    "status": "unavailable",
+    "status_title": "остановка продаж",
+    "limit_l": 40.0,
+    "price": null
+   }
+  ]
+ },
+ "card_example_url": "https://app.benzuber.ru/map?station_id=51732 (captured 2026-09-14T17:18Z)",
+ "note": "trimmed sample: first 256 of 418 stations in the SPb/LO bbox",
+ "stations": [
+  {
+   "id": "51732",
+   "lat": 59.984778,
+   "lon": 30.228579,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "85915",
+   "lat": 61.009207,
+   "lon": 33.01883,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "63631",
+   "lat": 60.106771,
+   "lon": 32.318547,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "54578",
+   "lat": 60.36702,
+   "lon": 29.49792,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49433",
+   "lat": 59.892903,
+   "lon": 30.656056,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49737",
+   "lat": 59.376094,
+   "lon": 28.224969,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49818",
+   "lat": 59.931719,
+   "lon": 30.476961,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51486",
+   "lat": 60.36265,
+   "lon": 29.5065,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50957",
+   "lat": 59.57236,
+   "lon": 30.17215,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "51165",
+   "lat": 59.98983,
+   "lon": 30.32574,
+   "grades": {
+    "92": "unavailable",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51211",
+   "lat": 59.901216,
+   "lon": 29.098577,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53199",
+   "lat": 59.848752,
+   "lon": 30.226205,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49740",
+   "lat": 58.564339,
+   "lon": 31.27954,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53191",
+   "lat": 59.871804,
+   "lon": 30.345648,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53281",
+   "lat": 59.217879,
+   "lon": 31.47688,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53348",
+   "lat": 59.218662,
+   "lon": 31.480227,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53421",
+   "lat": 59.410167,
+   "lon": 28.728905,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53443",
+   "lat": 58.615299,
+   "lon": 29.829088,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49353",
+   "lat": 59.826241,
+   "lon": 30.185662,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49561",
+   "lat": 60.667763,
+   "lon": 28.904574,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49564",
+   "lat": 60.180553,
+   "lon": 30.138328,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49354",
+   "lat": 59.945585,
+   "lon": 30.479963,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "55979",
+   "lat": 59.997035,
+   "lon": 30.250634,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "55982",
+   "lat": 59.824524,
+   "lon": 30.189304,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "56054",
+   "lat": 59.78366,
+   "lon": 30.32687,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50359",
+   "lat": 59.90944,
+   "lon": 29.07699,
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57322",
+   "lat": 59.883352,
+   "lon": 30.385678,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57340",
+   "lat": 59.902156,
+   "lon": 29.818338,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57341",
+   "lat": 59.967102,
+   "lon": 30.283733,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57353",
+   "lat": 59.729873,
+   "lon": 30.582499,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57355",
+   "lat": 60.080553,
+   "lon": 29.958966,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57368",
+   "lat": 60.069875,
+   "lon": 30.373093,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57394",
+   "lat": 60.256428,
+   "lon": 29.583424,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57414",
+   "lat": 58.73114,
+   "lon": 29.843164,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50556",
+   "lat": 59.82369,
+   "lon": 30.31946,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57420",
+   "lat": 59.888218,
+   "lon": 30.587863,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57423",
+   "lat": 59.939063,
+   "lon": 30.245549,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57439",
+   "lat": 59.993745,
+   "lon": 30.391746,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57444",
+   "lat": 59.946678,
+   "lon": 30.506142,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57447",
+   "lat": 59.832985,
+   "lon": 30.30975,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57448",
+   "lat": 59.860414,
+   "lon": 30.449848,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57465",
+   "lat": 59.82603,
+   "lon": 30.411674,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57467",
+   "lat": 59.835417,
+   "lon": 30.371007,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57471",
+   "lat": 60.077248,
+   "lon": 30.269464,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49346",
+   "lat": 60.057838,
+   "lon": 30.308229,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49347",
+   "lat": 59.91166,
+   "lon": 30.423291,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49351",
+   "lat": 59.986591,
+   "lon": 30.362127,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "56658",
+   "lat": 60.300159,
+   "lon": 29.803844,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49954",
+   "lat": 59.75692,
+   "lon": 30.4793,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49739",
+   "lat": 59.121739,
+   "lon": 31.635323,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57323",
+   "lat": 59.926781,
+   "lon": 30.298233,
+   "grades": {
+    "92": "probably",
+    "95": "probably"
+   }
+  },
+  {
+   "id": "57326",
+   "lat": 59.725508,
+   "lon": 30.399352,
+   "grades": {
+    "92": "probably",
+    "95": "probably"
+   }
+  },
+  {
+   "id": "57360",
+   "lat": 59.993361,
+   "lon": 30.657177,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57373",
+   "lat": 59.731076,
+   "lon": 30.423921,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57379",
+   "lat": 59.859905,
+   "lon": 30.258445,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57387",
+   "lat": 59.869816,
+   "lon": 30.433175,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57389",
+   "lat": 59.965175,
+   "lon": 30.372069,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57392",
+   "lat": 60.03402,
+   "lon": 30.319766,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57393",
+   "lat": 60.018711,
+   "lon": 30.430428,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57396",
+   "lat": 60.075953,
+   "lon": 29.968815,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57398",
+   "lat": 59.830001,
+   "lon": 30.531553,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57399",
+   "lat": 60.044414,
+   "lon": 30.417929,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57406",
+   "lat": 59.920103,
+   "lon": 30.394578,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57407",
+   "lat": 59.887677,
+   "lon": 30.490875,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57408",
+   "lat": 59.918207,
+   "lon": 30.42235,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57411",
+   "lat": 59.923872,
+   "lon": 32.355021,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57412",
+   "lat": 59.994193,
+   "lon": 30.283025,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57413",
+   "lat": 59.777817,
+   "lon": 30.324009,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57417",
+   "lat": 60.053727,
+   "lon": 30.371302,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57421",
+   "lat": 59.977301,
+   "lon": 30.321059,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57422",
+   "lat": 59.396594,
+   "lon": 30.267441,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57438",
+   "lat": 59.805059,
+   "lon": 30.472587,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57441",
+   "lat": 59.878512,
+   "lon": 30.458103,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57445",
+   "lat": 59.887645,
+   "lon": 30.488992,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57449",
+   "lat": 59.999024,
+   "lon": 30.299982,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57452",
+   "lat": 59.336297,
+   "lon": 29.955093,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57453",
+   "lat": 59.255464,
+   "lon": 31.410851,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57455",
+   "lat": 60.609463,
+   "lon": 29.086604,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57458",
+   "lat": 59.957981,
+   "lon": 30.473446,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57462",
+   "lat": 60.056161,
+   "lon": 30.383291,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57472",
+   "lat": 59.988685,
+   "lon": 30.17409,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57473",
+   "lat": 60.007121,
+   "lon": 29.712374,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57477",
+   "lat": 60.832542,
+   "lon": 30.468982,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "50928",
+   "lat": 59.104915,
+   "lon": 28.143575,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50005",
+   "lat": 60.00832,
+   "lon": 30.235235,
+   "grades": {
+    "92": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "65509",
+   "lat": 59.123643,
+   "lon": 31.637717,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50397",
+   "lat": 60.03515,
+   "lon": 30.36606,
+   "grades": {
+    "92": "unavailable",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49357",
+   "lat": 59.980198,
+   "lon": 30.384661,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51204",
+   "lat": 59.798945,
+   "lon": 30.401914,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51208",
+   "lat": 60.075896,
+   "lon": 30.272399,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51308",
+   "lat": 59.9662,
+   "lon": 30.4697,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "59072",
+   "lat": 59.716987,
+   "lon": 30.048453,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "60144",
+   "lat": 59.89105,
+   "lon": 30.2807,
+   "grades": {
+    "92": "unavailable",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "59890",
+   "lat": 60.02536,
+   "lon": 30.25058,
+   "grades": {
+    "92": "available"
+   }
+  },
+  {
+   "id": "50145",
+   "lat": 58.90743,
+   "lon": 31.50388,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50026",
+   "lat": 60.00774,
+   "lon": 30.24259,
+   "grades": {
+    "92": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49731",
+   "lat": 59.830499,
+   "lon": 30.347525,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50096",
+   "lat": 60.19257,
+   "lon": 30.08504,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50378",
+   "lat": 59.90389,
+   "lon": 31.08841,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51217",
+   "lat": 59.847799,
+   "lon": 30.292464,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49350",
+   "lat": 60.02251,
+   "lon": 30.409001,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "65303",
+   "lat": 59.931694,
+   "lon": 32.280123,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "49982",
+   "lat": 60.105295,
+   "lon": 30.2487,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53280",
+   "lat": 60.106401,
+   "lon": 30.244308,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50134",
+   "lat": 60.129525,
+   "lon": 30.121293,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "69265",
+   "lat": 58.516694,
+   "lon": 31.253067,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50224",
+   "lat": 59.79851,
+   "lon": 30.66636,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51166",
+   "lat": 60.057551,
+   "lon": 30.365307,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53377",
+   "lat": 60.023258,
+   "lon": 30.29485,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49979",
+   "lat": 60.11687,
+   "lon": 30.19082,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "69273",
+   "lat": 58.545037,
+   "lon": 31.310461,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49434",
+   "lat": 59.893904,
+   "lon": 30.653202,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49562",
+   "lat": 59.749251,
+   "lon": 30.313293,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49744",
+   "lat": 58.539694,
+   "lon": 31.322748,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49787",
+   "lat": 59.909387,
+   "lon": 30.444633,
+   "grades": {
+    "92": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50030",
+   "lat": 59.8244,
+   "lon": 30.5533,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50178",
+   "lat": 59.56991,
+   "lon": 30.82703,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57363",
+   "lat": 60.538296,
+   "lon": 28.688012,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49559",
+   "lat": 60.714144,
+   "lon": 28.748236,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50124",
+   "lat": 61.015912,
+   "lon": 30.145895,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50238",
+   "lat": 58.56196,
+   "lon": 31.27495,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57325",
+   "lat": 59.91576,
+   "lon": 30.280766,
+   "grades": {
+    "92": "available",
+    "95": "probably"
+   }
+  },
+  {
+   "id": "57345",
+   "lat": 59.973183,
+   "lon": 31.016523,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50381",
+   "lat": 59.703365,
+   "lon": 30.550896,
+   "grades": {
+    "92": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57346",
+   "lat": 59.866148,
+   "lon": 30.243736,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57347",
+   "lat": 59.378026,
+   "lon": 28.24203,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57354",
+   "lat": 59.319629,
+   "lon": 31.286616,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57359",
+   "lat": 60.009848,
+   "lon": 30.575407,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57367",
+   "lat": 59.771155,
+   "lon": 30.457342,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57377",
+   "lat": 59.890823,
+   "lon": 30.354613,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49563",
+   "lat": 58.732068,
+   "lon": 29.88117,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57397",
+   "lat": 59.986742,
+   "lon": 30.426464,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57419",
+   "lat": 60.738425,
+   "lon": 28.626943,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57426",
+   "lat": 59.934667,
+   "lon": 30.402287,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57442",
+   "lat": 59.844343,
+   "lon": 30.422103,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57443",
+   "lat": 59.962087,
+   "lon": 30.487758,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57454",
+   "lat": 60.6168,
+   "lon": 29.069669,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50388",
+   "lat": 59.7524,
+   "lon": 30.608,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53350",
+   "lat": 59.38651,
+   "lon": 28.610718,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50327",
+   "lat": 59.41691,
+   "lon": 31.10421,
+   "grades": {
+    "92": "unavailable",
+    "95": "available",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "50374",
+   "lat": 59.96977,
+   "lon": 30.45644,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50218",
+   "lat": 59.52247,
+   "lon": 29.96152,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51214",
+   "lat": 60.031559,
+   "lon": 30.626146,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51741",
+   "lat": 59.99075,
+   "lon": 30.22127,
+   "grades": {
+    "92": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53316",
+   "lat": 59.90149,
+   "lon": 29.7686,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57337",
+   "lat": 59.880924,
+   "lon": 30.34338,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53557",
+   "lat": 58.56008,
+   "lon": 32.51581,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57376",
+   "lat": 60.165495,
+   "lon": 29.900284,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57391",
+   "lat": 59.831557,
+   "lon": 30.358137,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57415",
+   "lat": 60.823704,
+   "lon": 33.312559,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "56048",
+   "lat": 59.60543,
+   "lon": 30.34313,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50386",
+   "lat": 59.868431,
+   "lon": 30.248825,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50329",
+   "lat": 59.4136,
+   "lon": 31.1124,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57351",
+   "lat": 59.854143,
+   "lon": 30.9637,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57429",
+   "lat": 59.802369,
+   "lon": 30.322362,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50158",
+   "lat": 59.58191,
+   "lon": 30.14111,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50112",
+   "lat": 60.08279,
+   "lon": 30.35995,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49355",
+   "lat": 60.021447,
+   "lon": 30.224889,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49349",
+   "lat": 59.892734,
+   "lon": 30.49248,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50362",
+   "lat": 60.20001,
+   "lon": 32.66111,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49958",
+   "lat": 59.75822,
+   "lon": 30.48113,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49348",
+   "lat": 59.851304,
+   "lon": 30.304645,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49356",
+   "lat": 59.935164,
+   "lon": 30.250176,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57386",
+   "lat": 59.968217,
+   "lon": 30.439435,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57405",
+   "lat": 59.907393,
+   "lon": 30.404776,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49910",
+   "lat": 59.98872,
+   "lon": 30.36805,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57416",
+   "lat": 59.889036,
+   "lon": 30.588979,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57349",
+   "lat": 59.877678,
+   "lon": 29.090703,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "65513",
+   "lat": 58.504269,
+   "lon": 31.228085,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "56659",
+   "lat": 59.6645,
+   "lon": 28.450958,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57401",
+   "lat": 59.851756,
+   "lon": 30.338885,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57424",
+   "lat": 59.991351,
+   "lon": 30.349324,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57372",
+   "lat": 59.86949,
+   "lon": 29.971583,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57430",
+   "lat": 59.858071,
+   "lon": 30.175468,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57440",
+   "lat": 59.962114,
+   "lon": 30.458516,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57382",
+   "lat": 59.907396,
+   "lon": 30.355756,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53201",
+   "lat": 59.387012,
+   "lon": 29.968815,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51195",
+   "lat": 60.032741,
+   "lon": 30.362779,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50048",
+   "lat": 59.711205,
+   "lon": 30.436835,
+   "grades": {
+    "92": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49358",
+   "lat": 59.799665,
+   "lon": 30.389234,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "55646",
+   "lat": 59.988843,
+   "lon": 30.466499,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49833",
+   "lat": 58.51655,
+   "lon": 31.25685,
+   "grades": {
+    "92": "available",
+    "95": "unavailable",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57388",
+   "lat": 60.026096,
+   "lon": 30.327791,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57343",
+   "lat": 60.080609,
+   "lon": 30.394492,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57369",
+   "lat": 59.98328,
+   "lon": 30.231376,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57404",
+   "lat": 59.979829,
+   "lon": 30.367139,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51198",
+   "lat": 59.881505,
+   "lon": 30.321077,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57460",
+   "lat": 60.01792,
+   "lon": 30.256804,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "56049",
+   "lat": 59.79228,
+   "lon": 30.39375,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57328",
+   "lat": 60.374386,
+   "lon": 30.276067,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53428",
+   "lat": 59.463355,
+   "lon": 28.88365,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57461",
+   "lat": 59.811949,
+   "lon": 30.394385,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51209",
+   "lat": 59.805467,
+   "lon": 30.161638,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51200",
+   "lat": 60.011244,
+   "lon": 30.276456,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57344",
+   "lat": 60.005415,
+   "lon": 30.436426,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57333",
+   "lat": 59.966015,
+   "lon": 30.448678,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57362",
+   "lat": 60.71508,
+   "lon": 28.749826,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "54087",
+   "lat": 59.790623,
+   "lon": 30.417317,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49560",
+   "lat": 60.621054,
+   "lon": 28.168708,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50343",
+   "lat": 59.41952,
+   "lon": 28.75891,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57371",
+   "lat": 59.870378,
+   "lon": 29.972093,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57395",
+   "lat": 59.995357,
+   "lon": 30.38026,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57375",
+   "lat": 59.876544,
+   "lon": 30.336717,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57339",
+   "lat": 59.940901,
+   "lon": 30.226666,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57364",
+   "lat": 59.907533,
+   "lon": 30.393956,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57378",
+   "lat": 60.203381,
+   "lon": 29.690643,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57436",
+   "lat": 59.813581,
+   "lon": 30.459423,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57330",
+   "lat": 59.969312,
+   "lon": 30.418278,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "57431",
+   "lat": 59.97179,
+   "lon": 30.413584,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53263",
+   "lat": 59.944048,
+   "lon": 30.60396,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57425",
+   "lat": 59.904585,
+   "lon": 30.455266,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "52312",
+   "lat": 59.80597,
+   "lon": 30.13832,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "55356",
+   "lat": 59.889263,
+   "lon": 30.464571,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51201",
+   "lat": 59.842865,
+   "lon": 30.176641,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "64703",
+   "lat": 59.982133,
+   "lon": 32.051653,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "50100",
+   "lat": 58.76588,
+   "lon": 29.86752,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "49991",
+   "lat": 59.81916,
+   "lon": 30.36803,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51194",
+   "lat": 59.992884,
+   "lon": 30.207883,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51210",
+   "lat": 59.851343,
+   "lon": 30.09165,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "69274",
+   "lat": 58.523019,
+   "lon": 31.246598,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57365",
+   "lat": 59.851869,
+   "lon": 30.088871,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51377",
+   "lat": 59.845573,
+   "lon": 30.430242,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51213",
+   "lat": 59.80845,
+   "lon": 30.465069,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "50181",
+   "lat": 59.64109,
+   "lon": 33.57117,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53436",
+   "lat": 59.703686,
+   "lon": 29.055245,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "83003",
+   "lat": 60.00437,
+   "lon": 30.23492,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51197",
+   "lat": 59.878925,
+   "lon": 30.397755,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51192",
+   "lat": 59.897168,
+   "lon": 30.319778,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "77343",
+   "lat": 59.93859,
+   "lon": 30.23149,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51207",
+   "lat": 59.622016,
+   "lon": 30.183891,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51215",
+   "lat": 59.554335,
+   "lon": 30.105191,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51216",
+   "lat": 59.734423,
+   "lon": 30.473817,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51171",
+   "lat": 60.10767,
+   "lon": 30.50122,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57380",
+   "lat": 59.864758,
+   "lon": 30.491808,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "81774",
+   "lat": 60.39208,
+   "lon": 32.99939,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51202",
+   "lat": 60.020069,
+   "lon": 30.601832,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53287",
+   "lat": 59.883519,
+   "lon": 30.451397,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "55354",
+   "lat": 59.935453,
+   "lon": 31.815348,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57383",
+   "lat": 59.916578,
+   "lon": 30.417001,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57428",
+   "lat": 59.852572,
+   "lon": 30.42464,
+   "grades": {
+    "92": "probably",
+    "95": "probably",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51205",
+   "lat": 59.991466,
+   "lon": 30.659347,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57433",
+   "lat": 59.988768,
+   "lon": 30.465254,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "68354",
+   "lat": 58.891383,
+   "lon": 27.913776,
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "57384",
+   "lat": 60.028915,
+   "lon": 30.259003,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53270",
+   "lat": 60.0159,
+   "lon": 30.59181,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "51212",
+   "lat": 59.781194,
+   "lon": 30.326939,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "53311",
+   "lat": 59.961629,
+   "lon": 30.470874,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57381",
+   "lat": 59.84942,
+   "lon": 30.462894,
+   "grades": {
+    "92": "probably",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57466",
+   "lat": 59.860325,
+   "lon": 30.217525,
+   "grades": {
+    "92": "available",
+    "95": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57348",
+   "lat": 59.517187,
+   "lon": 34.181895,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57385",
+   "lat": 59.814992,
+   "lon": 30.321933,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "55357",
+   "lat": 59.781743,
+   "lon": 30.324175,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "98": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57334",
+   "lat": 59.847924,
+   "lon": 30.281485,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57327",
+   "lat": 59.862143,
+   "lon": 30.414056,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "ДТ": "probably"
+   }
+  },
+  {
+   "id": "55029",
+   "lat": 58.563036,
+   "lon": 32.517362,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "available",
+    "ДТ": "available"
+   }
+  },
+  {
+   "id": "57357",
+   "lat": 59.95544,
+   "lon": 30.241477,
+   "grades": {
+    "92": "available",
+    "95": "available",
+    "100": "probably",
+    "ДТ": "available"
+   }
+  }
+ ]
+}

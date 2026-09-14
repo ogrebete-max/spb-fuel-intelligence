@@ -1,0 +1,2255 @@
+{
+ "captured_at": "2026-09-14T17:56:46Z",
+ "source": "azsmap",
+ "rows_per_file": {
+  "lenobl": 1500,
+  "spb": 1294
+ },
+ "possibly_capped": true,
+ "total_stations": 1500,
+ "stations_note": "38 freshest stations kept",
+ "stations": [
+  {
+   "id": "azsmap:osm_n6995776889",
+   "catalog": "osm",
+   "lat": 59.9621534,
+   "lon": 30.4586657,
+   "brand": "Роснефть",
+   "address": "шоссе Революции",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 41,
+     "observed_at": "2026-09-14T17:15:46Z",
+     "price": 65.25,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 41,
+     "observed_at": "2026-09-14T17:15:46Z",
+     "price": 70.25,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 2156,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": 80.75,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w149701986",
+   "catalog": "osm",
+   "lat": 59.7424512,
+   "lon": 30.5072059,
+   "brand": "Инна",
+   "address": "23",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 41,
+     "observed_at": "2026-09-14T17:15:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 41,
+     "observed_at": "2026-09-14T17:15:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100759,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100759,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:u_60.18195643311671_30.35680051902546",
+   "catalog": "u",
+   "lat": 60.18195643311671,
+   "lon": 30.35680051902546,
+   "brand": "АЗС",
+   "address": "«Сортавала», 50",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 41,
+     "observed_at": "2026-09-14T17:15:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 41,
+     "observed_at": "2026-09-14T17:15:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w339997996",
+   "catalog": "osm",
+   "lat": 59.934754,
+   "lon": 30.4868263,
+   "brand": "Роснефть",
+   "address": "проспект Наставников",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": 65.25,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": 70.25,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100545,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100545,
+     "observed_at": null,
+     "price": 80.75,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w530089668",
+   "catalog": "osm",
+   "lat": 59.9696453,
+   "lon": 30.4561336,
+   "brand": "Газпромнефть",
+   "address": "Индустриальный проспект",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100365,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100365,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w205110841",
+   "catalog": "osm",
+   "lat": 59.9400364,
+   "lon": 30.4501765,
+   "brand": "Лукойл",
+   "address": "проспект Косыгина, 2",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 101087,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 101087,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:u_59.85239802711732_30.305426716968217",
+   "catalog": "u",
+   "lat": 59.85239802711732,
+   "lon": 30.305426716968217,
+   "brand": "АЗС",
+   "address": "ул Краснопутиловская, 86",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 1135,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w82111043",
+   "catalog": "osm",
+   "lat": 59.9943969,
+   "lon": 30.2727679,
+   "brand": "Лукойл",
+   "address": "Полевая Сабировская улица, 48 к2",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100305,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100305,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w197702522",
+   "catalog": "osm",
+   "lat": 59.7609576,
+   "lon": 30.3254709,
+   "brand": "Сургутнефтегаз",
+   "address": "Пулковское шоссе, 71",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100668,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100668,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:ya_75693431128",
+   "catalog": "ya",
+   "lat": 60.22316,
+   "lon": 30.27372,
+   "brand": "topdrive",
+   "address": null,
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 104459,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 104459,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_n11865925916",
+   "catalog": "osm",
+   "lat": 59.9363564,
+   "lon": 31.812906,
+   "brand": "Сургутнефтегаз",
+   "address": "«Кола»",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 69888,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 1855,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_n13269887333",
+   "catalog": "osm",
+   "lat": 59.2080515,
+   "lon": 31.2458682,
+   "brand": "Лукойл",
+   "address": "«Нева»",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 42,
+     "observed_at": "2026-09-14T17:14:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w149994070",
+   "catalog": "osm",
+   "lat": 59.900706,
+   "lon": 30.9978718,
+   "brand": "Teboil",
+   "address": "Магистральная улица, 46",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100541,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100541,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w99394373",
+   "catalog": "osm",
+   "lat": 59.757889,
+   "lon": 30.600884,
+   "brand": "IP",
+   "address": "Межевая улица, 2",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 113046,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 113046,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:u_59.70963575987065_30.57077873766035",
+   "catalog": "u",
+   "lat": 59.70963575987065,
+   "lon": 30.57077873766035,
+   "brand": "АЗС",
+   "address": "Московское шоссе",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "none",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "none",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w497236704",
+   "catalog": "osm",
+   "lat": 60.0089902,
+   "lon": 30.4529495,
+   "brand": "Teboil",
+   "address": "Пискарёвский проспект, 167",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100707,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100707,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w857833448",
+   "catalog": "osm",
+   "lat": 59.8606157,
+   "lon": 30.468448,
+   "brand": "Лукойл",
+   "address": "улица Бабушкина",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100682,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100682,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w79519912",
+   "catalog": "osm",
+   "lat": 59.8791739,
+   "lon": 30.4574429,
+   "brand": "Teboil",
+   "address": "Октябрьская набережная, 66",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100734,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100734,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w127409583",
+   "catalog": "osm",
+   "lat": 59.9756594,
+   "lon": 30.4063724,
+   "brand": "Teboil",
+   "address": "проспект Маршала Блюхера, 39",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100853,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100853,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w94059237",
+   "catalog": "osm",
+   "lat": 59.9346711,
+   "lon": 30.4023504,
+   "brand": "Роснефть",
+   "address": "Малоохтинская набережная, 16",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 65.2,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 70.2,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100486,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100486,
+     "observed_at": null,
+     "price": 80.7,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:ya_91948587915",
+   "catalog": "ya",
+   "lat": 60.173232,
+   "lon": 30.384778,
+   "brand": "tiptop",
+   "address": "41К-066",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 104459,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 104459,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w1464361204",
+   "catalog": "osm",
+   "lat": 59.8882721,
+   "lon": 30.3767449,
+   "brand": "Роснефть",
+   "address": "улица Салова",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 64.8,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 69.5,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100702,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100702,
+     "observed_at": null,
+     "price": 80.65,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w106982887",
+   "catalog": "osm",
+   "lat": 60.0308737,
+   "lon": 30.3419233,
+   "brand": "Лукойл",
+   "address": "Северный проспект, 13",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100443,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100443,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w104707670",
+   "catalog": "osm",
+   "lat": 59.8810364,
+   "lon": 30.3434398,
+   "brand": "Роснефть",
+   "address": "Рощинская улица, 46А",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 65.35,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 70.4,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100993,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100993,
+     "observed_at": null,
+     "price": 80.85,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w79565700",
+   "catalog": "osm",
+   "lat": 59.8615184,
+   "lon": 30.2885902,
+   "brand": "Газпромнефть",
+   "address": "Краснопутиловская улица, 46 к3",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100295,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100295,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w80399815",
+   "catalog": "osm",
+   "lat": 60.0180173,
+   "lon": 30.2567374,
+   "brand": "Роснефть",
+   "address": "проспект Королёва, 40",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 65.15,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 70.4,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100347,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100347,
+     "observed_at": null,
+     "price": 80.85,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_n12776691501",
+   "catalog": "osm",
+   "lat": 60.0852987,
+   "lon": 30.2186225,
+   "brand": "Teboil",
+   "address": "КАД",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 8455,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_n286134741",
+   "catalog": "osm",
+   "lat": 59.3196351,
+   "lon": 31.2864413,
+   "brand": "Роснефть",
+   "address": "«Россия»",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 64.95,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": 69.0,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 68396,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 444,
+     "observed_at": "2026-09-14T10:32:46Z",
+     "price": 81.1,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w1235966473",
+   "catalog": "osm",
+   "lat": 59.8053508,
+   "lon": 30.0782726,
+   "brand": "Teboil",
+   "address": "Красносельское шоссе, 28А",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100291,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100291,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w98589383",
+   "catalog": "osm",
+   "lat": 60.3001196,
+   "lon": 29.803967,
+   "brand": "Татнефть",
+   "address": "с1",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 43,
+     "observed_at": "2026-09-14T17:13:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100554,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100554,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:ya_232563975350",
+   "catalog": "ya",
+   "lat": 59.720348,
+   "lon": 30.604879,
+   "brand": "azs_avtomat",
+   "address": "41К-169",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 804,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 804,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w175704403",
+   "catalog": "osm",
+   "lat": 59.9615242,
+   "lon": 30.4709496,
+   "brand": "Газпромнефть",
+   "address": "улица Потапова, 7",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100372,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100372,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_n13090506205",
+   "catalog": "osm",
+   "lat": 60.0054419,
+   "lon": 30.4367451,
+   "brand": "Роснефть",
+   "address": "улица Руставели, 29",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": 65.15,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": 70.4,
+     "price_age_min": 716,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 716,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": 80.85,
+     "price_age_min": 716,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_n4199939596",
+   "catalog": "osm",
+   "lat": 59.7478602,
+   "lon": 30.5077506,
+   "brand": "Газпромнефть",
+   "address": "Колпинское шоссе",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w86158779",
+   "catalog": "osm",
+   "lat": 60.0567267,
+   "lon": 30.3877558,
+   "brand": "Лукойл",
+   "address": "проспект Культуры, 49",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 100408,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 100408,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:ya_83563168834",
+   "catalog": "ya",
+   "lat": 59.895445,
+   "lon": 30.378806,
+   "brand": "ojlplast",
+   "address": "улица Салова, 31",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 104459,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 104459,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:u_59.915528007403964_30.34401530152436",
+   "catalog": "u",
+   "lat": 59.915528007403964,
+   "lon": 30.34401530152436,
+   "brand": "АЗС",
+   "address": "ул Боровая, 43",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "have",
+     "age_min": 144,
+     "observed_at": "2026-09-14T15:32:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  },
+  {
+   "id": "azsmap:osm_w387558411",
+   "catalog": "osm",
+   "lat": 60.0074954,
+   "lon": 30.2424192,
+   "brand": "Газпромнефть",
+   "address": "Камышовая улица",
+   "file": "lenobl",
+   "grades": {
+    "92": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "95": {
+     "status": "have",
+     "age_min": 44,
+     "observed_at": "2026-09-14T17:12:46Z",
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      false,
+      true,
+      true
+     ]
+    },
+    "100": {
+     "status": "stale",
+     "age_min": 113046,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    },
+    "dt": {
+     "status": "stale",
+     "age_min": 113046,
+     "observed_at": null,
+     "price": null,
+     "price_age_min": null,
+     "flags": [
+      null,
+      false,
+      null
+     ]
+    }
+   }
+  }
+ ]
+}

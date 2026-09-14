@@ -1,0 +1,822 @@
+{
+ "captured_at": "2026-09-14T17:46:34.320073Z",
+ "feeds": {
+  "47news": {
+   "url": "https://47news.ru/rss/",
+   "via": "proxy-env",
+   "ok": true,
+   "http_status": 200,
+   "bytes": 41487,
+   "items": 50,
+   "window_hours": 20.1,
+   "newest_item_at": "2026-09-14T17:27:00Z",
+   "newest_age_hours": 0.3,
+   "fuel_items": 5,
+   "fuel_items_spb_lo": 4,
+   "newest_fuel_at": "2026-09-14T17:27:00Z",
+   "newest_fuel_age_hours": 0.3,
+   "fuel_with": {
+    "district": 0,
+    "brand": 0,
+    "grade": 1,
+    "address_or_km": 0,
+    "highway": 0,
+    "limit": 0,
+    "queue": 0,
+    "closure": 0
+   }
+  },
+  "fontanka": {
+   "url": "https://fontanka.ru/rss-feeds/rss.xml",
+   "via": "proxy-env",
+   "ok": true,
+   "http_status": 200,
+   "bytes": 82474,
+   "items": 100,
+   "window_hours": 24.1,
+   "newest_item_at": "2026-09-14T17:40:00Z",
+   "newest_age_hours": 0.1,
+   "fuel_items": 14,
+   "fuel_items_spb_lo": 6,
+   "newest_fuel_at": "2026-09-14T16:15:00Z",
+   "newest_fuel_age_hours": 1.5,
+   "fuel_with": {
+    "district": 1,
+    "brand": 0,
+    "grade": 1,
+    "address_or_km": 0,
+    "highway": 0,
+    "limit": 0,
+    "queue": 0,
+    "closure": 0
+   }
+  },
+  "mr7": {
+   "url": "https://mr-7.ru/feed/rss",
+   "via": "proxy-env",
+   "ok": true,
+   "http_status": 200,
+   "bytes": 319166,
+   "items": 100,
+   "window_hours": 96.7,
+   "newest_item_at": "2026-09-14T16:58:00Z",
+   "newest_age_hours": 0.8,
+   "fuel_items": 8,
+   "fuel_items_spb_lo": 7,
+   "newest_fuel_at": "2026-09-14T16:58:00Z",
+   "newest_fuel_age_hours": 0.8,
+   "fuel_with": {
+    "district": 1,
+    "brand": 3,
+    "grade": 3,
+    "address_or_km": 3,
+    "highway": 2,
+    "limit": 1,
+    "queue": 3,
+    "closure": 0
+   }
+  },
+  "lenobl": {
+   "url": "https://lenobl.ru/rss/",
+   "via": "proxy-env",
+   "ok": true,
+   "http_status": 200,
+   "bytes": 38634,
+   "items": 30,
+   "window_hours": 136.2,
+   "newest_item_at": "2026-09-14T11:47:06Z",
+   "newest_age_hours": 6.0,
+   "fuel_items": 1,
+   "fuel_items_spb_lo": 1,
+   "newest_fuel_at": "2026-09-13T19:09:30Z",
+   "newest_fuel_age_hours": 22.6,
+   "fuel_with": {
+    "district": 0,
+    "brand": 0,
+    "grade": 0,
+    "address_or_km": 0,
+    "highway": 0,
+    "limit": 0,
+    "queue": 0,
+    "closure": 0
+   }
+  }
+ },
+ "items": [
+  {
+   "feed": "47news",
+   "guid": "https://47news.ru/articles/292895/",
+   "published_at": "2026-09-14T17:27:00Z",
+   "title": "Таксопарки в Петербурге под угрозой. Как таксисты уходят из-за топливного кризиса",
+   "link": "https://47news.ru/articles/292895/",
+   "summary": "Эксперт объяснил, почему в Петербурге стало меньше таксистов. Нежелание выходить на линию может обречь некоторые таксопарки на банкротство.",
+   "text_chars": 221,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "47news",
+   "guid": "https://47news.ru/articles/292893/",
+   "published_at": "2026-09-14T16:54:00Z",
+   "title": "Новак провел совещание по ситуации с топливом. Обсуждали и Ленобласть",
+   "link": "https://47news.ru/articles/292893/",
+   "summary": "Зампредседателя правительства РФ Александр Новак провёл совещание по ситуации на рынке топлива. В частности, обсудили производство и потребление нефтепродуктов, загрузку производственной инфраструктуры, а также имеющиеся запасы топлива.",
+   "text_chars": 306,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "47news",
+   "guid": "https://47news.ru/articles/292891/",
+   "published_at": "2026-09-14T16:14:00Z",
+   "title": "Стало известно, отразилась ли ситуация с топливом на работе общественного транспорта Ленобласти",
+   "link": "https://47news.ru/articles/292891/",
+   "summary": "Ситуация с топливом не повлияла на работу общественного транспорта в Ленобласти. Об этом 47news сообщили в региональном комтрансе вечером 14 сентября.",
+   "text_chars": 246,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "47news",
+   "guid": "https://47news.ru/articles/292877/",
+   "published_at": "2026-09-14T12:28:00Z",
+   "title": "Теперь точно не страна-бензоколонка. Откуда грусть Трампа по русскому дизелю",
+   "link": "https://47news.ru/articles/292877/",
+   "summary": "Украина бьет по нашим НПЗ, а кризис - на мировом рынке топлива. 47news разобрал заявление президента США с экспертом и статистикой.",
+   "text_chars": 208,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [
+     "ДТ"
+    ],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "47news",
+   "guid": "https://47news.ru/articles/292866/",
+   "published_at": "2026-09-14T09:44:00Z",
+   "title": "\"Где бензин?\" Кто и что ответил на вопросы жителей Петербурга о ситуации на заправках",
+   "link": "https://47news.ru/articles/292866/",
+   "summary": "Правительство Петербурга проинформировало поставщиков топлива в город о ситуации на заправках, сообщили Вконтакте представители комитета по энергетике и инженерному обеспечению в ответ на вопросы горожан.",
+   "text_chars": 290,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7293845",
+   "published_at": "2026-09-14T16:15:00Z",
+   "title": "Пусто в центре, густо на выезде. Где искать бензин в Петербурге",
+   "link": "https://www.fontanka.ru/2026/09/14/76641782/",
+   "summary": "Рассказываем, где наличие подтверждалось чаще всего",
+   "text_chars": 115,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7293983",
+   "published_at": "2026-09-14T16:00:00Z",
+   "title": "AI-AINA: бензин ищут по приложениям, Сестрорецкий завод идёт к банкротству, вакцины от гриппа не хватает",
+   "link": "https://www.fontanka.ru/2026/09/14/76641869/",
+   "summary": "Новости Петербурга за 14 сентября",
+   "text_chars": 138,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [
+     "Сестрорецк"
+    ],
+    "channel_place": null,
+    "districts": [
+     "СПб"
+    ],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7294204",
+   "published_at": "2026-09-14T15:22:00Z",
+   "title": "Ситуацию с топливом в Петербурге и Ленобласти обсудили на совещании с вице-премьером Новаком",
+   "link": "https://www.fontanka.ru/2026/09/14/76642063/",
+   "summary": "",
+   "text_chars": 92,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7293995",
+   "published_at": "2026-09-14T15:18:00Z",
+   "title": "Производителям бензина разрешили засчитывать поставки электростанциям в обязательные продажи на бирже",
+   "link": "https://www.fontanka.ru/2026/09/14/76641878/",
+   "summary": "В норматив теперь можно включать поставки топлива тепловым станциям и электростанциям",
+   "text_chars": 187,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7294105",
+   "published_at": "2026-09-14T14:49:00Z",
+   "title": "В Смольном обещают отнестись с пониманием к водителям, которые ждут заправки под знаком запрета остановки",
+   "link": "https://www.fontanka.ru/2026/09/14/76641982/",
+   "summary": "",
+   "text_chars": 105,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7293834",
+   "published_at": "2026-09-14T13:40:00Z",
+   "title": "Гросси: запас дизельного топлива на ЗАЭС скоро исчерпается",
+   "link": "https://www.fontanka.ru/2026/09/14/76641775/",
+   "summary": "",
+   "text_chars": 58,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [
+     "ДТ"
+    ],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292931",
+   "published_at": "2026-09-14T10:59:00Z",
+   "title": "«Уточните вопрос». Что Смольный отвечает растерянным охотникам за бензином",
+   "link": "https://www.fontanka.ru/2026/09/14/76641049/",
+   "summary": "",
+   "text_chars": 74,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292920",
+   "published_at": "2026-09-14T08:48:51Z",
+   "title": "Смольный объяснил, что происходит с бензином в Петербурге",
+   "link": "https://www.fontanka.ru/2026/09/14/76641039/",
+   "summary": "",
+   "text_chars": 57,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292330",
+   "published_at": "2026-09-13T20:07:00Z",
+   "title": "«У людей больше ажиотажа, чем было в первый раз». Как дела на петербургских АЗС",
+   "link": "https://www.fontanka.ru/2026/09/13/76640567/",
+   "summary": "Публикуем ваши рассказы о происходящем на заправках",
+   "text_chars": 131,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292375",
+   "published_at": "2026-09-13T19:35:20Z",
+   "title": "Заправка по четным и нечетным номерам и свет в конце туннеля. Что нам сказал о бензине губернатор Дрозденко",
+   "link": "https://www.fontanka.ru/2026/09/13/76640600/",
+   "summary": "",
+   "text_chars": 107,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292372",
+   "published_at": "2026-09-13T19:15:18Z",
+   "title": "Дрозденко: рассматриваем возможность введения заправки по четным и нечетным номерам через день",
+   "link": "https://www.fontanka.ru/2026/09/13/76640597/",
+   "summary": "",
+   "text_chars": 94,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292370",
+   "published_at": "2026-09-13T19:10:41Z",
+   "title": "«Мы видим свет в конце туннеля». Дрозденко ответил, когда ситуация с бензином может улучшиться",
+   "link": "https://www.fontanka.ru/2026/09/13/76640596/",
+   "summary": "",
+   "text_chars": 94,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292369",
+   "published_at": "2026-09-13T19:06:52Z",
+   "title": "«Мы все понимаем, что это последствия недавних атак». Дрозденко — о причинах проблем с бензином",
+   "link": "https://www.fontanka.ru/2026/09/13/76640595/",
+   "summary": "",
+   "text_chars": 95,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "fontanka",
+   "guid": "7292338",
+   "published_at": "2026-09-13T17:45:27Z",
+   "title": "Без комментариев. Что происходило у заправки в самом сердце Петербурга",
+   "link": "https://www.fontanka.ru/2026/09/13/76640570/",
+   "summary": "",
+   "text_chars": 70,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/14/situatsiiu-s-benzinom-v-peterburge-i-lenoblasti-obsudili-na-zasedanii-v-pravitelstve-rossii-news",
+   "published_at": "2026-09-14T16:58:00Z",
+   "title": "Ситуацию с бензином в Петербурге и Ленобласти обсудили на заседании в правительстве России",
+   "link": "https://mr-7.ru/articles/2026/09/14/situatsiiu-s-benzinom-v-peterburge-i-lenoblasti-obsudili-na-zasedanii-v-pravitelstve-rossii-news",
+   "summary": "Зампред правительства России Александр Новак 14 сентября провёл совещание по ситуации на рынке топлива, сообщает кабмин. Обсуждали ситуацию в нескольких регионах: в ручном режиме организована работа по поставкам топлива в Екатеринбург, Челябинскую, Архангельскую, Тверскую и Белгородскую области, Пермский и Краснодарский края. О Петербурге и Ленобласти оговорено, что ситуацию здесь «также обсудили»",
+   "text_chars": 2204,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [
+     "92",
+     "95"
+    ],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": "очереди на заправки выстраивались с конца мая)",
+    "closure": null,
+    "available": "есть АИ-92 и АИ-95, достигают несколь"
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/14/tramp-rossiia-i-ukrainy-soglasilis-ne-nanosit-udary-po-obektam-energetiki-news",
+   "published_at": "2026-09-14T16:23:00Z",
+   "title": "Трамп: Россия и Украина согласились не наносить удары по объектам энергетики",
+   "link": "https://mr-7.ru/articles/2026/09/14/tramp-rossiia-i-ukrainy-soglasilis-ne-nanosit-udary-po-obektam-energetiki-news",
+   "summary": "Президент США Дональд Трамп заявил 14 сентября, что Украина и Россия согласились не наносить удары по объектам энергетики. Об этом он написал в своей соцсети. Также, по словам Трампа, рост мировых цен на дизельное топливо вызван главным образом конфликтом между Россией и Украиной, а не противостоянием США с Ираном.\nПредставители официальных властей ни России, ни Украины эти заявления президента СШ",
+   "text_chars": 806,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [
+     "ДТ"
+    ],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": false,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/14/v-lenoblasti-izbiratelnoi-komissii-vydali-toplivo-dlia-provedeniia-golosovaniia-na-domu-news",
+   "published_at": "2026-09-14T14:09:00Z",
+   "title": "В Ленобласти избирательной комиссии выдали топливо для проведения голосования на дому",
+   "link": "https://mr-7.ru/articles/2026/09/14/v-lenoblasti-izbiratelnoi-komissii-vydali-toplivo-dlia-provedeniia-golosovaniia-na-domu-news",
+   "summary": "Избирательные комиссии Ленобласти обеспечены топливом для выездов к голосующим на дому, сообщил 14 сентября на пресс-конференции в ТАСС председатель областного избиркома Михаил Лебединский.\nПо словам Лебединского, заявки на дистанционное голосование подали 20 тысяч жителей 47-го региона. В дни голосования 18-20 сентября до каждого из них должны дойти и доехать сотрудники избирательных комиссий.\nНа",
+   "text_chars": 699,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": "очередей на заправках губернатор Александр Дрозд",
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/14/smolnyi-obiasnil-defitsit-benzina-povyshennym-sprosom-news",
+   "published_at": "2026-09-14T09:52:00Z",
+   "title": "Смольный объяснил дефицит бензина повышенным спросом",
+   "link": "https://mr-7.ru/articles/2026/09/14/smolnyi-obiasnil-defitsit-benzina-povyshennym-sprosom-news",
+   "summary": "На странице комитета по энергетике в соцсети «ВКонтакте» стали появляться вопросы от рассерженных петербуржцев, интересующихся тяжёлой ситуацией с бензином и путями её преодоления. Интересно, что комментарии оставляют под постом на постороннюю тему . Видимо, дело в том, что про топливный кризис в последнее время комитет постов не публикует. Скриншот: страница комитета по энергетике в соцсети «ВКон",
+   "text_chars": 1447,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/14/zhenshchina-popala-pod-mashinu-na-murmanskom-shosse-i-pogibla-news",
+   "published_at": "2026-09-14T09:16:00Z",
+   "title": "Женщина попала под машину на Мурманском шоссе и погибла",
+   "link": "https://mr-7.ru/articles/2026/09/14/zhenshchina-popala-pod-mashinu-na-murmanskom-shosse-i-pogibla-news",
+   "summary": "На 26-м километре Мурманского шоссе, рядом с транспортной развязкой и заправкой «Лукойла», рано утром 14 сентября женщина попала под машину. Фотографией полиции и скорой помощи, сделанной на месте ДТП, поделились очевидцы в telegram-канале «Мегаполис».\nНачавшее проверку ГУ МВД по региону уточнило, что наезд случился ровно в семь часов утра. 47-летняя женщина переходила трассу на зелёный свет. Доро",
+   "text_chars": 563,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [
+     "Лукойл"
+    ],
+    "grades": [],
+    "addresses": [
+     "Мурманском шоссе",
+     "26-м километре Мурманского шоссе"
+    ],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [
+     "Р-21"
+    ],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/14/naberites-terpeniia-drozdenko-rasschityvaet-na-uluchshenie-situatsii-s-benzinom-k-nachalu-oktiabria-news",
+   "published_at": "2026-09-14T04:20:00Z",
+   "title": "«Наберитесь терпения»: Дрозденко рассчитывает на улучшение ситуации с бензином к началу октября",
+   "link": "https://mr-7.ru/articles/2026/09/14/naberites-terpeniia-drozdenko-rasschityvaet-na-uluchshenie-situatsii-s-benzinom-k-nachalu-oktiabria-news",
+   "summary": "Губернатор Ленобласти Александр Дрозденко накануне вечером выпустил заявление, в котором признал малую доступность бензина сортов АИ-92 и АИ-95. Он подчеркнул, что «ситуация временная», и призвал земляков набраться терпения. Скриншот видео: Александр Дрозденко.\n«Что я прошу? Спокойствия и солидарности, понимания. Особенно понимания у тех, кто пытается создать запасы впрок. Заправляйтесь, исходя из",
+   "text_chars": 1955,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [
+     "92",
+     "95"
+    ],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": 30,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/12/rospotrebnadzor-vstal-na-storonu-voditelia-kotoromu-otkazali-zalit-benzin-v-kanistru-news",
+   "published_at": "2026-09-12T13:55:00Z",
+   "title": "Роспотребнадзор встал на сторону водителя, которому отказались залить бензин в канистру",
+   "link": "https://mr-7.ru/articles/2026/09/12/rospotrebnadzor-vstal-na-storonu-voditelia-kotoromu-otkazali-zalit-benzin-v-kanistru-news",
+   "summary": "Представители Роспотребнадзора высказались по поводу практики российских АЗС по запрету выдачи бензина в канистры. Ответ в виртуальном кабинете ведомства на похожие обращения появился летом, обратила внимание «Фонтанка».\nВыяснилось, что в управление Роспотребнадзора в конце мая обратился автомобилист, которому на заправке «Роснефти» на Московском шоссе отказались залить бензин в канистру. Он обращ",
+   "text_chars": 1625,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [
+     "Роснефть"
+    ],
+    "grades": [],
+    "addresses": [
+     "Московском шоссе"
+    ],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "mr7",
+   "guid": "https://mr-7.ru/articles/2026/09/11/peterburzhtsy-zhadno-ishchut-benzin-i-sozdaiut-verenitsy-iz-mashin-na-azs-news",
+   "published_at": "2026-09-11T15:31:00Z",
+   "title": "Петербуржцы жадно ищут бензин и создают вереницы из машин на АЗС",
+   "link": "https://mr-7.ru/articles/2026/09/11/peterburzhtsy-zhadno-ishchut-benzin-i-sozdaiut-verenitsy-iz-mashin-na-azs-news",
+   "summary": "Так называемая вторая волна топливного кризиса в конце рабочей недели даёт о себе знать тем, кто передвигается из Ленобласти в Петербург и обратно. Так, на Киевском шоссе, по пути из Луги, 11 сентября заметили полукилометровую очередь на АЗС.\nПеред Рождествено ритмичное мелькание страждущих, возможно, заслуживает кинематографической ленты.\nВ городской черте — не факт, что выбор топлива богаче. Так",
+   "text_chars": 1938,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [
+     "Роснефть"
+    ],
+    "grades": [],
+    "addresses": [
+     "Киевском шоссе",
+     "Плесецкая улица",
+     "Привокзальной улице"
+    ],
+    "places": [
+     "Красное Село",
+     "Кудрово",
+     "Луга"
+    ],
+    "channel_place": null,
+    "districts": [
+     "Всеволожский",
+     "Лужский",
+     "СПб"
+    ],
+    "highways": [
+     "Р-23/М-20"
+    ],
+    "region": true,
+    "limit_liters": null,
+    "queue": "очередь на АЗС",
+    "closure": null,
+    "available": null
+   }
+  },
+  {
+   "feed": "lenobl",
+   "guid": "https://lenobl.ru/ru/dlya-smi/news/98248/",
+   "published_at": "2026-09-13T19:09:30Z",
+   "title": "Губернатор Ленинградской области Александр Дрозденко обратился к жителям в связи с ситуацией на заправках",
+   "link": "https://lenobl.ru/ru/dlya-smi/news/98248/",
+   "summary": "Глава региона сообщил, что несколько крупных нефтяных компаний уже приняли решение увеличить поставки бензина на свои АЗС в Ленинградской области.",
+   "text_chars": 252,
+   "fuel_related": true,
+   "mentions": {
+    "brands": [],
+    "grades": [],
+    "addresses": [],
+    "places": [],
+    "channel_place": null,
+    "districts": [],
+    "highways": [],
+    "region": true,
+    "limit_liters": null,
+    "queue": null,
+    "closure": null,
+    "available": null
+   }
+  }
+ ]
+}

@@ -1,0 +1,2395 @@
+{
+ "source": "https://locator.transitcard.ru/web/v2/point/transpose-list",
+ "captured_at": "2026-09-14T17:29:14Z",
+ "requests": 5,
+ "bbox": {
+  "south": 58.4,
+  "west": 27.6,
+  "north": 61.4,
+  "east": 35.8
+ },
+ "total_stations_in_bbox": 752,
+ "stations_in_aoi": 539,
+ "detail_example": {
+  "id": "3667CCD14C044701E053034A14AC6B2D",
+  "name": "\"ЛУКОЙЛ-Интер-Кард\" ООО, ИНН 3444197347",
+  "brand": "ЛУКОЙЛ",
+  "address": "52, Ленинградское шоссе, Токсово, Ленинградская область, Россия, 188664",
+  "closed": false,
+  "fuels": [
+   {
+    "name": "АИ-95",
+    "grade": "95",
+    "status": "unavailable",
+    "card_status": "unavailable",
+    "card_limit_l": 40.0,
+    "app_status": null,
+    "app_limit_l": null,
+    "price": 72.26,
+    "price_at": "2026-09-12T21:00:00Z"
+   },
+   {
+    "name": "АИ-92",
+    "grade": "92",
+    "status": "unavailable",
+    "card_status": "unavailable",
+    "card_limit_l": 40.0,
+    "app_status": null,
+    "app_limit_l": null,
+    "price": 66.26,
+    "price_at": "2026-08-31T15:00:00Z"
+   },
+   {
+    "name": "ДТ",
+    "grade": "ДТ",
+    "status": "has_limit",
+    "card_status": "has_limit",
+    "card_limit_l": 50.0,
+    "app_status": null,
+    "app_limit_l": null,
+    "price": 82.49,
+    "price_at": "2026-09-14T15:00:00Z"
+   },
+   {
+    "name": "ДТ Фирменное",
+    "grade": "ДТ",
+    "status": "has_limit",
+    "card_status": "has_limit",
+    "card_limit_l": 50.0,
+    "app_status": null,
+    "app_limit_l": null,
+    "price": 82.49,
+    "price_at": "2026-09-14T12:00:00Z"
+   },
+   {
+    "name": "АИ-92 Фирменный",
+    "grade": "92",
+    "status": "unavailable",
+    "card_status": "unavailable",
+    "card_limit_l": 40.0,
+    "app_status": null,
+    "app_limit_l": null,
+    "price": 66.26,
+    "price_at": "2026-09-12T21:00:00Z"
+   },
+   {
+    "name": "АИ-100",
+    "grade": "100",
+    "status": "unavailable",
+    "card_status": "unavailable",
+    "card_limit_l": 40.0,
+    "app_status": null,
+    "app_limit_l": null,
+    "price": 99.4,
+    "price_at": "2026-09-12T21:00:00Z"
+   }
+  ]
+ },
+ "detail_example_url": "https://locator.transitcard.ru/web/v2/point?id=3667CCD14C044701E053034A14AC6B2D (captured 2026-09-14T17:18Z)",
+ "note": "trimmed sample: first 130 of 752 stations in the SPb/LO bbox",
+ "stations": [
+  {
+   "id": "3667CCD168384701E053034A14AC6B2D",
+   "lat": 58.548091,
+   "lon": 31.297967,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 81.15,
+    "Аи-95": 71.89,
+    "Аи-92": 66.04
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C044701E053034A14AC6B2D",
+   "lat": 60.136024,
+   "lon": 30.527164,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C804701E053034A14AC6B2D",
+   "lat": 59.862552,
+   "lon": 30.258836,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14BBC4701E053034A14AC6B2D",
+   "lat": 60.461708,
+   "lon": 29.340217,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167784701E053034A14AC6B2D",
+   "lat": 59.903337,
+   "lon": 30.337253,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CC84701E053034A14AC6B2D",
+   "lat": 60.086802,
+   "lon": 30.262302,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166944701E053034A14AC6B2D",
+   "lat": 58.810913,
+   "lon": 29.900479,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167B04701E053034A14AC6B2D",
+   "lat": 60.000842,
+   "lon": 30.262125,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167544701E053034A14AC6B2D",
+   "lat": 59.929669,
+   "lon": 30.485172,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C984701E053034A14AC6B2D",
+   "lat": 59.926509,
+   "lon": 30.240764,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "6C56E4E90AC14286E053044A14ACFDAF",
+   "lat": 60.533422,
+   "lon": 30.187339,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1677C4701E053034A14AC6B2D",
+   "lat": 59.791717,
+   "lon": 30.323596,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CCC4701E053034A14AC6B2D",
+   "lat": 59.827995,
+   "lon": 30.42479,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166A04701E053034A14AC6B2D",
+   "lat": 59.10362,
+   "lon": 28.11588,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CF44701E053034A14AC6B2D",
+   "lat": 60.039169,
+   "lon": 30.425595,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD167F84701E053034A14AC6B2D",
+   "lat": 59.994294,
+   "lon": 30.272845,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "possibly_available",
+    "95": "possibly_available",
+    "ДТ": "possibly_available"
+   }
+  },
+  {
+   "id": "3667CCD14C784701E053034A14AC6B2D",
+   "lat": 59.952867,
+   "lon": 30.26187,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "possibly_available",
+    "95": "has_limit",
+    "100": "possibly_available",
+    "ДТ": "possibly_available"
+   }
+  },
+  {
+   "id": "3667CCD14C104701E053034A14AC6B2D",
+   "lat": 59.488095,
+   "lon": 34.459185,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "possibly_available",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167C84701E053034A14AC6B2D",
+   "lat": 59.928854,
+   "lon": 30.385797,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C484701E053034A14AC6B2D",
+   "lat": 59.90898,
+   "lon": 30.239739,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD168144701E053034A14AC6B2D",
+   "lat": 59.977456,
+   "lon": 30.433244,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "6F234DFF1E8909ECE053044A14AC6E36",
+   "lat": 59.112282,
+   "lon": 35.214804,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 84.93,
+    "Аи-95": 71.02,
+    "Аи-92": 66.5
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166BC4701E053034A14AC6B2D",
+   "lat": 59.371547,
+   "lon": 28.618043,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167984701E053034A14AC6B2D",
+   "lat": 59.839727,
+   "lon": 30.040026,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "possibly_available",
+    "95": "possibly_available",
+    "100": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CB04701E053034A14AC6B2D",
+   "lat": 59.767262,
+   "lon": 30.59675,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C244701E053034A14AC6B2D",
+   "lat": 58.41741,
+   "lon": 31.839975,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 81.15,
+    "Аи-95": 70.73,
+    "Аи-92": 66.04
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "0CE8B9D83037657CE063024A14ACB01B",
+   "lat": 59.201437,
+   "lon": 31.255227,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14D0C4701E053034A14AC6B2D",
+   "lat": 59.998488,
+   "lon": 30.098645,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167D44701E053034A14AC6B2D",
+   "lat": 59.825039,
+   "lon": 30.149112,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "EE2DA9213694050DE053024A14AC0AD5",
+   "lat": 60.084939,
+   "lon": 30.374482,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "possibly_available",
+    "95": "possibly_available",
+    "100": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167F44701E053034A14AC6B2D",
+   "lat": 60.010509,
+   "lon": 29.716665,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167A84701E053034A14AC6B2D",
+   "lat": 59.902325,
+   "lon": 30.398826,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C544701E053034A14AC6B2D",
+   "lat": 59.988469,
+   "lon": 30.429039,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167404701E053034A14AC6B2D",
+   "lat": 59.802304,
+   "lon": 30.398664,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD167EC4701E053034A14AC6B2D",
+   "lat": 59.718924,
+   "lon": 30.052006,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167D04701E053034A14AC6B2D",
+   "lat": 60.03171,
+   "lon": 30.345613,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1669C4701E053034A14AC6B2D",
+   "lat": 60.696709,
+   "lon": 28.789994,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167B44701E053034A14AC6B2D",
+   "lat": 59.882681,
+   "lon": 30.366856,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CE04701E053034A14AC6B2D",
+   "lat": 59.831294,
+   "lon": 30.381553,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1675C4701E053034A14AC6B2D",
+   "lat": 60.030761,
+   "lon": 30.34192,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD166984701E053034A14AC6B2D",
+   "lat": 59.87929,
+   "lon": 30.52607,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167E84701E053034A14AC6B2D",
+   "lat": 59.949707,
+   "lon": 30.288501,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1680C4701E053034A14AC6B2D",
+   "lat": 59.736169,
+   "lon": 30.559537,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166A44701E053034A14AC6B2D",
+   "lat": 59.87369,
+   "lon": 29.087524,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167644701E053034A14AC6B2D",
+   "lat": 59.879409,
+   "lon": 30.348525,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CA84701E053034A14AC6B2D",
+   "lat": 59.92478,
+   "lon": 30.445834,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CAC4701E053034A14AC6B2D",
+   "lat": 59.934691,
+   "lon": 30.489009,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CEC4701E053034A14AC6B2D",
+   "lat": 59.822678,
+   "lon": 30.557458,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD168084701E053034A14AC6B2D",
+   "lat": 59.9875,
+   "lon": 30.457137,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14BFC4701E053034A14AC6B2D",
+   "lat": 60.746505,
+   "lon": 28.800938,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C004701E053034A14AC6B2D",
+   "lat": 59.656582,
+   "lon": 30.115783,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14D044701E053034A14AC6B2D",
+   "lat": 59.893623,
+   "lon": 30.460961,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167804701E053034A14AC6B2D",
+   "lat": 59.8149,
+   "lon": 30.324987,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1682C4701E053034A14AC6B2D",
+   "lat": 59.878464,
+   "lon": 29.853407,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14D004701E053034A14AC6B2D",
+   "lat": 59.982761,
+   "lon": 30.425519,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD168284701E053034A14AC6B2D",
+   "lat": 59.908056,
+   "lon": 29.786475,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14D084701E053034A14AC6B2D",
+   "lat": 59.974478,
+   "lon": 30.413686,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167CC4701E053034A14AC6B2D",
+   "lat": 59.84764,
+   "lon": 30.21386,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167604701E053034A14AC6B2D",
+   "lat": 60.059127,
+   "lon": 30.307046,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14BC04701E053034A14AC6B2D",
+   "lat": 60.220089,
+   "lon": 30.287976,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C9C4701E053034A14AC6B2D",
+   "lat": 59.954967,
+   "lon": 30.407602,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C5C4701E053034A14AC6B2D",
+   "lat": 59.991405,
+   "lon": 30.196566,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166A84701E053034A14AC6B2D",
+   "lat": 59.709507,
+   "lon": 30.57062,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "256D9DF70CD4A601E063024A14ACDE9C",
+   "lat": 59.892238,
+   "lon": 30.448325,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 79.89,
+    "Аи-95": 70.22,
+    "Аи-92": 65.15,
+    "Премиум 95": 73.14
+   },
+   "grades": {
+    "92": "possibly_available",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "D4592CB6625ADF75E053024A14AC2281",
+   "lat": 59.801899,
+   "lon": 29.918681,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167B84701E053034A14AC6B2D",
+   "lat": 59.719726,
+   "lon": 30.064664,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD168044701E053034A14AC6B2D",
+   "lat": 60.056658,
+   "lon": 30.387818,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166AC4701E053034A14AC6B2D",
+   "lat": 59.708365,
+   "lon": 30.569277,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C3C4701E053034A14AC6B2D",
+   "lat": 59.861243,
+   "lon": 29.953789,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166844701E053034A14AC6B2D",
+   "lat": 59.559973,
+   "lon": 30.164434,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "C00673B49DDB0C31E053024A14ACF422",
+   "lat": 60.022616,
+   "lon": 30.266551,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167704701E053034A14AC6B2D",
+   "lat": 59.913297,
+   "lon": 30.358893,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CC04701E053034A14AC6B2D",
+   "lat": 59.990546,
+   "lon": 30.372857,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167444701E053034A14AC6B2D",
+   "lat": 60.052856,
+   "lon": 30.377229,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167F04701E053034A14AC6B2D",
+   "lat": 60.027116,
+   "lon": 30.238183,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C884701E053034A14AC6B2D",
+   "lat": 59.843305,
+   "lon": 30.354795,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167A04701E053034A14AC6B2D",
+   "lat": 59.89145,
+   "lon": 30.448726,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CDC4701E053034A14AC6B2D",
+   "lat": 59.871651,
+   "lon": 30.352576,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 81.92,
+    "Аи-95": 71.69,
+    "Аи-92": 65.7
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167944701E053034A14AC6B2D",
+   "lat": 59.966063,
+   "lon": 30.48309,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167C44701E053034A14AC6B2D",
+   "lat": 59.960026,
+   "lon": 30.461096,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14BF84701E053034A14AC6B2D",
+   "lat": 60.746036,
+   "lon": 28.795385,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD168104701E053034A14AC6B2D",
+   "lat": 60.066655,
+   "lon": 30.343789,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C904701E053034A14AC6B2D",
+   "lat": 60.203428,
+   "lon": 29.704724,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.52,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C404701E053034A14AC6B2D",
+   "lat": 59.991431,
+   "lon": 30.333037,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CA04701E053034A14AC6B2D",
+   "lat": 59.977429,
+   "lon": 30.347151,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14BC84701E053034A14AC6B2D",
+   "lat": 60.670495,
+   "lon": 30.018902,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1676C4701E053034A14AC6B2D",
+   "lat": 59.83398,
+   "lon": 30.310356,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C144701E053034A14AC6B2D",
+   "lat": 60.688403,
+   "lon": 28.748281,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD14C704701E053034A14AC6B2D",
+   "lat": 60.00417,
+   "lon": 30.435036,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C584701E053034A14AC6B2D",
+   "lat": 59.95956,
+   "lon": 30.386446,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 81.92,
+    "Аи-95": 72.6,
+    "Аи-92": 65.7
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167E44701E053034A14AC6B2D",
+   "lat": 59.994718,
+   "lon": 30.143481,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C184701E053034A14AC6B2D",
+   "lat": 61.019176,
+   "lon": 30.136093,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167D84701E053034A14AC6B2D",
+   "lat": 59.919075,
+   "lon": 29.736256,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C944701E053034A14AC6B2D",
+   "lat": 59.894727,
+   "lon": 30.462598,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD168304701E053034A14AC6B2D",
+   "lat": 59.764586,
+   "lon": 30.634093,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166904701E053034A14AC6B2D",
+   "lat": 60.135649,
+   "lon": 32.51996,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD14C084701E053034A14AC6B2D",
+   "lat": 60.466018,
+   "lon": 33.082481,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166804701E053034A14AC6B2D",
+   "lat": 59.511684,
+   "lon": 30.168665,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14D104701E053034A14AC6B2D",
+   "lat": 59.995759,
+   "lon": 30.298565,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167744701E053034A14AC6B2D",
+   "lat": 59.854794,
+   "lon": 30.362734,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "18C6C4244A088ABFE063024A14ACB082",
+   "lat": 59.90041,
+   "lon": 30.71604,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 80.35,
+    "Аи-95": 70.0,
+    "Аи-92": 65.43,
+    "Премиум 95": 72.91
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CFC4701E053034A14AC6B2D",
+   "lat": 60.064283,
+   "lon": 30.319347,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C844701E053034A14AC6B2D",
+   "lat": 59.876156,
+   "lon": 30.306794,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1681C4701E053034A14AC6B2D",
+   "lat": 59.940586,
+   "lon": 30.432724,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C504701E053034A14AC6B2D",
+   "lat": 59.699413,
+   "lon": 30.394138,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD14C0C4701E053034A14AC6B2D",
+   "lat": 59.642063,
+   "lon": 33.584367,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C684701E053034A14AC6B2D",
+   "lat": 59.8384,
+   "lon": 30.488219,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "possibly_available",
+    "95": "possibly_available",
+    "100": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167904701E053034A14AC6B2D",
+   "lat": 59.863089,
+   "lon": 30.416636,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1674C4701E053034A14AC6B2D",
+   "lat": 59.824295,
+   "lon": 30.355224,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166B04701E053034A14AC6B2D",
+   "lat": 59.901239,
+   "lon": 30.732772,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD168184701E053034A14AC6B2D",
+   "lat": 59.84767,
+   "lon": 30.215832,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CF04701E053034A14AC6B2D",
+   "lat": 59.934294,
+   "lon": 30.442013,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167584701E053034A14AC6B2D",
+   "lat": 59.860572,
+   "lon": 30.46895,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD1668C4701E053034A14AC6B2D",
+   "lat": 59.45585,
+   "lon": 29.547257,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166884701E053034A14AC6B2D",
+   "lat": 59.944006,
+   "lon": 30.59545,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167C04701E053034A14AC6B2D",
+   "lat": 59.899595,
+   "lon": 30.339147,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14CB44701E053034A14AC6B2D",
+   "lat": 59.9902,
+   "lon": 30.45232,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD14CD44701E053034A14AC6B2D",
+   "lat": 59.888032,
+   "lon": 30.380544,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "58BA3D0E7D56291FE053044A14ACA225",
+   "lat": 59.111757,
+   "lon": 35.224576,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 84.93,
+    "Аи-95": 71.71,
+    "Аи-92": 66.5
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "63EA1DC6C67F0635E053044A14ACA5AE",
+   "lat": 58.934172,
+   "lon": 29.969575,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD166B84701E053034A14AC6B2D",
+   "lat": 59.55408,
+   "lon": 30.854759,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "4061C1600A808213E063024A14AC3901",
+   "lat": 59.207567,
+   "lon": 31.245669,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167504701E053034A14AC6B2D",
+   "lat": 59.889649,
+   "lon": 30.362337,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD166B44701E053034A14AC6B2D",
+   "lat": 59.900055,
+   "lon": 30.731645,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "18C6C4244AEC8ABFE063024A14ACB082",
+   "lat": 59.806439,
+   "lon": 30.469685,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 80.33,
+    "Аи-95": 70.44,
+    "Аи-92": 65.47,
+    "Премиум 95": 73.36,
+    "Аи-100": 99.39
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "possibly_available",
+    "100": "possibly_available",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14C4C4701E053034A14AC6B2D",
+   "lat": 59.97713,
+   "lon": 30.327765,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 81.92,
+    "Аи-95": 72.6,
+    "Аи-92": 65.7
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "unavailable",
+    "ДТ": "unavailable"
+   }
+  },
+  {
+   "id": "3667CCD167DC4701E053034A14AC6B2D",
+   "lat": 60.08345,
+   "lon": 29.95624,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 73.16,
+    "Аи-92": 66.26,
+    "Аи-100": 99.4
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "100": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD14D144701E053034A14AC6B2D",
+   "lat": 59.990538,
+   "lon": 30.376596,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "unavailable",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "62FE1A006F3532D7E053044A14AC7C91",
+   "lat": 58.543464,
+   "lon": 31.2608,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 80.59,
+    "Аи-95": 71.33,
+    "Аи-92": 65.48
+   },
+   "grades": {
+    "92": "has_limit",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  },
+  {
+   "id": "3667CCD167FC4701E053034A14AC6B2D",
+   "lat": 59.988963,
+   "lon": 30.354269,
+   "brand": "ЛУКОЙЛ",
+   "enabled": true,
+   "prices": {
+    "ДТ": 82.49,
+    "Аи-95": 72.26,
+    "Аи-92": 66.26
+   },
+   "grades": {
+    "92": "unavailable",
+    "95": "has_limit",
+    "ДТ": "has_limit"
+   }
+  }
+ ]
+}

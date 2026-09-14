@@ -1,0 +1,1791 @@
+{
+ "captured_at": "2026-09-14T18:04:24Z",
+ "source": "ranvik",
+ "bbox": [
+  59.6,
+  29.5,
+  60.35,
+  31.1
+ ],
+ "pages": 3,
+ "has_more": true,
+ "total_stations": 150,
+ "stations_note": "20 most recently reported stations kept",
+ "stations": [
+  {
+   "id": "ranvik:20899",
+   "osm": "osm-relation-2812794",
+   "lat": 60.0008628,
+   "lon": 30.2618381,
+   "brand": "Лукойл",
+   "name": "Лукойл",
+   "address": "Санкт-Петербург, Богатырский проспект, 17",
+   "place": "Санкт-Петербург",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T16:54:08Z",
+   "grades": {
+    "92": {
+     "status": "likely_available",
+     "confidence": 0.6782,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:54:08Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 2,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "likely_available",
+     "confidence": 0.7148,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:54:08Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 2,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "98": {
+     "status": "mixed_positive",
+     "confidence": 0.6443,
+     "source": "user",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:54:08Z",
+     "last_observed_at": null,
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "likely_available",
+     "confidence": 0.7215,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:54:08Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 4,
+      "userNo": 0,
+      "userYes": 1
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.819,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T16:54:08Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 10,
+     "last_observed_at": "2026-09-14T17:50:10Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:25241",
+   "osm": "osm-relation-8031998",
+   "lat": 59.7646346,
+   "lon": 30.6340378,
+   "brand": "Лукойл",
+   "name": "Лукойл",
+   "address": "Лагерное шоссе, 2 к4",
+   "place": "Понтонный",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T16:45:18Z",
+   "grades": {
+    "92": {
+     "status": "limited",
+     "confidence": 0.5382,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:45:18Z",
+     "last_observed_at": "2026-09-14T16:55:55Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 5,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "limited",
+     "confidence": 0.5168,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:45:18Z",
+     "last_observed_at": "2026-09-14T16:55:55Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "98": {
+     "status": "mixed_positive",
+     "confidence": 0.6394,
+     "source": "user",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:45:18Z",
+     "last_observed_at": null,
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "likely_available",
+     "confidence": 0.6688,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:45:18Z",
+     "last_observed_at": "2026-09-14T16:55:55Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 6,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.3694,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T16:55:55Z",
+     "counts": {
+      "sourceNo": 6,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.7043,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T16:45:18Z"
+    },
+    "external": {
+     "status": "mixed_positive",
+     "total": 13,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:17811",
+   "osm": "osm-way-91616893",
+   "lat": 59.7111986,
+   "lon": 30.4367685,
+   "brand": "Газпромнефть",
+   "name": "Газпромнефть",
+   "address": "Фильтровское шоссе, 1",
+   "place": "Тярлево",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T16:36:15Z",
+   "grades": {
+    "92": {
+     "status": "likely_available",
+     "confidence": 0.7067,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:36:15Z",
+     "last_observed_at": "2026-09-14T15:16:33Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 8,
+      "userNo": 0,
+      "userYes": 2
+     }
+    },
+    "95": {
+     "status": "likely_available",
+     "confidence": 0.6848,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:36:15Z",
+     "last_observed_at": "2026-09-13T23:04:07Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 8,
+      "userNo": 0,
+      "userYes": 2
+     }
+    },
+    "dt": {
+     "status": "likely_available",
+     "confidence": 0.7291,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:36:15Z",
+     "last_observed_at": "2026-09-14T15:16:33Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 10,
+      "userNo": 0,
+      "userYes": 2
+     }
+    },
+    "98": {
+     "status": "limited",
+     "confidence": 0.5035,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-13T19:16:15Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 2,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "100": {
+     "status": "limited",
+     "confidence": 0.4833,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-13T23:04:07Z",
+     "counts": {
+      "sourceNo": 4,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.7815,
+    "user": {
+     "status": "likely_available",
+     "total": 2,
+     "last_reported_at": "2026-09-14T16:36:15Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 21,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:17726",
+   "osm": "osm-way-86415902",
+   "lat": 59.8603304,
+   "lon": 30.2173691,
+   "brand": "Роснефть",
+   "name": "Роснефть",
+   "address": "улица Маршала Казакова, 25",
+   "place": "Новогорелово",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "unknown",
+   "last_reported_at": "2026-09-14T16:20:54Z",
+   "grades": {
+    "95": {
+     "status": "mixed_positive",
+     "confidence": 0.6052,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:20:54Z",
+     "last_observed_at": "2026-09-14T11:58:01Z",
+     "counts": {
+      "sourceNo": 2,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "92": {
+     "status": "limited",
+     "confidence": 0.5253,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T11:58:01Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 3,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "dt": {
+     "status": "limited",
+     "confidence": 0.5114,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T14:03:13Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 3,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.4508,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T11:58:01Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.7181,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T16:20:54Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 10,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:17731",
+   "osm": "osm-way-86492305",
+   "lat": 59.9038684,
+   "lon": 31.0877944,
+   "brand": "Газпромнефть",
+   "name": "Газпромнефть",
+   "address": "Мурманское ш., 46-й км, Синявино, Ленинградская обл., Россия, 187322",
+   "place": "Синявино",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T16:12:35Z",
+   "grades": {
+    "92": {
+     "status": "likely_available",
+     "confidence": 0.7396,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:12:35Z",
+     "last_observed_at": "2026-09-14T17:47:32Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 8,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "available",
+     "confidence": 0.9643,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:12:35Z",
+     "last_observed_at": "2026-09-14T17:47:32Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 13,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "98": {
+     "status": "mixed_positive",
+     "confidence": 0.6231,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:12:35Z",
+     "last_observed_at": "2026-09-13T19:16:40Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.6496,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T16:12:35Z",
+     "last_observed_at": "2026-09-14T17:47:32Z",
+     "counts": {
+      "sourceNo": 6,
+      "sourceYes": 8,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.355,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T15:05:33Z",
+     "counts": {
+      "sourceNo": 6,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "available",
+    "confidence": 0.9251,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T16:12:35Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 22,
+     "last_observed_at": "2026-09-14T17:47:32Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:24662",
+   "osm": "osm-way-790007150",
+   "lat": 59.6759056,
+   "lon": 29.8621947,
+   "brand": "Татнефть",
+   "name": "Татнефть",
+   "address": "д.Кипень, 42 км. Нарвского шоссе",
+   "place": "Кипень",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T15:07:51Z",
+   "grades": {
+    "92": {
+     "status": "mixed_positive",
+     "confidence": 0.5811,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T15:07:51Z",
+     "last_observed_at": "2026-09-14T13:46:42Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 5,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "mixed_positive",
+     "confidence": 0.5732,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T15:07:51Z",
+     "last_observed_at": "2026-09-14T13:46:42Z",
+     "counts": {
+      "sourceNo": 4,
+      "sourceYes": 8,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "likely_available",
+     "confidence": 0.7607,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T15:07:51Z",
+     "last_observed_at": "2026-09-14T13:52:48Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 10,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.4009,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T13:46:42Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.7862,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T15:07:51Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 19,
+     "last_observed_at": "2026-09-14T17:47:10Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:18235",
+   "osm": "osm-way-104141399",
+   "lat": 59.7299441,
+   "lon": 30.5794451,
+   "brand": "Газпром Нефть",
+   "name": "Газпромнефть",
+   "address": "Колпино, Заводской проспект, 17",
+   "place": "Тельмана",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T14:54:14Z",
+   "grades": {
+    "92": {
+     "status": "likely_available",
+     "confidence": 0.6664,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T01:09:01Z",
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 9,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "likely_available",
+     "confidence": 0.7905,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T14:54:14Z",
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 14,
+      "userNo": 0,
+      "userYes": 2
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.6124,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T01:09:01Z",
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 13,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.4254,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:08:52Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 2,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "available",
+    "confidence": 0.9083,
+    "user": {
+     "status": "mixed_positive",
+     "total": 2,
+     "last_reported_at": "2026-09-14T14:54:14Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 25,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:19526",
+   "osm": "osm-way-175704403",
+   "lat": 59.9615102,
+   "lon": 30.470947,
+   "brand": "Газпромнефть",
+   "name": "Газпромнефть",
+   "address": "улица Потапова, 7",
+   "place": "Заневка",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T12:44:44Z",
+   "grades": {
+    "92": {
+     "status": "likely_available",
+     "confidence": 0.7355,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T12:44:44Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 13,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "likely_available",
+     "confidence": 0.7779,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T12:44:44Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 6,
+      "sourceYes": 11,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "98": {
+     "status": "mixed_positive",
+     "confidence": 0.5934,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T12:44:44Z",
+     "last_observed_at": "2026-09-14T16:30:20Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "likely_available",
+     "confidence": 0.7778,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T12:44:44Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 13,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.3616,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:42:25Z",
+     "counts": {
+      "sourceNo": 7,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "available",
+    "confidence": 0.9262,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T12:44:44Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 25,
+     "last_observed_at": "2026-09-14T17:47:31Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:25869",
+   "osm": "osm-way-1323027478",
+   "lat": 59.8348071,
+   "lon": 30.120842,
+   "brand": "Teboil",
+   "name": "Teboil",
+   "address": "Санкт-Петербург, проспект Ветеранов, 188/1",
+   "place": "Новоселье",
+   "status": "closed",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "none",
+   "last_reported_at": "2026-09-14T12:35:05Z",
+   "grades": {
+    "92": {
+     "status": "mixed_positive",
+     "confidence": 0.636,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T15:59:50Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 6,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "95": {
+     "status": "limited",
+     "confidence": 0.4826,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T15:59:50Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 5,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "98": {
+     "status": "unknown",
+     "confidence": 0.5,
+     "source": "unknown",
+     "freshness": "none",
+     "last_reported_at": null,
+     "last_observed_at": null,
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.5475,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T15:59:50Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 6,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.3659,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T15:59:50Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.6603,
+    "user": {
+     "status": "unknown",
+     "total": 0,
+     "last_reported_at": null
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 9,
+     "last_observed_at": "2026-09-14T15:59:50Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:18089",
+   "osm": "osm-way-100063599",
+   "lat": 59.8281038,
+   "lon": 30.4245044,
+   "brand": "Лукойл",
+   "name": "Лукойл",
+   "address": "Малая Балканская улица, 55 к1",
+   "place": "Шушары",
+   "status": "closed",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T12:34:30Z",
+   "grades": {
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.5589,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 3,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "92": {
+     "status": "limited",
+     "confidence": 0.5321,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "mixed_positive",
+    "confidence": 0.6042,
+    "user": {
+     "status": "mixed_negative",
+     "total": 1,
+     "last_reported_at": "2026-09-14T12:34:30Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 7,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:22211",
+   "osm": "osm-way-387558411",
+   "lat": 60.0074425,
+   "lon": 30.2423421,
+   "brand": "Газпромнефть",
+   "name": "Газпромнефть",
+   "address": "Камышовая ул., 21, Санкт-Петербург, Россия, 197372",
+   "place": "Санкт-Петербург",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T12:00:35Z",
+   "grades": {
+    "92": {
+     "status": "likely_available",
+     "confidence": 0.6732,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T12:00:35Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 10,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "mixed_positive",
+     "confidence": 0.5686,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 2,
+      "sourceYes": 10,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "98": {
+     "status": "limited",
+     "confidence": 0.4866,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 3,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "dt": {
+     "status": "likely_available",
+     "confidence": 0.6673,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 9,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "100": {
+     "status": "mixed_positive",
+     "confidence": 0.547,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 3,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "available",
+    "confidence": 0.9142,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T12:00:35Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 16,
+     "last_observed_at": "2026-09-14T17:47:31Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:12909",
+   "osm": "osm-node-5656295728",
+   "lat": 59.668183,
+   "lon": 30.6480247,
+   "brand": "Газпромнефть",
+   "name": "Газпромнефть",
+   "address": "Красноборский, М10 667 км + 600 справа",
+   "place": "Красный Бор",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T11:13:05Z",
+   "grades": {
+    "92": {
+     "status": "mixed_positive",
+     "confidence": 0.5803,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T11:13:05Z",
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 3,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "mixed_positive",
+     "confidence": 0.5725,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T11:13:05Z",
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 4,
+      "sourceYes": 2,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.4144,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T15:01:19Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "dt": {
+     "status": "likely_available",
+     "confidence": 0.74,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:11Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 9,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "available",
+    "confidence": 0.8684,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T11:13:05Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 14,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:25327",
+   "osm": "osm-relation-13415102",
+   "lat": 60.0224737,
+   "lon": 30.4090741,
+   "brand": "Татнефть",
+   "name": "Татнефть",
+   "address": "Гражданский проспект, 93",
+   "place": "Мурино",
+   "status": "closed",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T10:13:49Z",
+   "grades": {
+    "92": {
+     "status": "mixed_positive",
+     "confidence": 0.5544,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T06:53:00Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 7,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "98": {
+     "status": "limited",
+     "confidence": 0.5216,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-13T21:18:57Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 7,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.6381,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 10,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "95": {
+     "status": "limited",
+     "confidence": 0.53,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T06:53:00Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 4,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.6854,
+    "user": {
+     "status": "mixed_negative",
+     "total": 1,
+     "last_reported_at": "2026-09-14T10:13:49Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 19,
+     "last_observed_at": "2026-09-14T17:47:31Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:18633",
+   "osm": "osm-way-126612798",
+   "lat": 59.856598,
+   "lon": 30.4011014,
+   "brand": "Роснефть",
+   "name": "Роснефть",
+   "address": "Южное шоссе, 61",
+   "place": "Шушары",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T09:34:38Z",
+   "grades": {
+    "92": {
+     "status": "mixed_positive",
+     "confidence": 0.6186,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T09:34:38Z",
+     "last_observed_at": "2026-09-14T13:14:05Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 6,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "mixed_positive",
+     "confidence": 0.5809,
+     "source": "mixed",
+     "freshness": "stale",
+     "last_reported_at": "2026-09-14T09:34:38Z",
+     "last_observed_at": "2026-09-14T09:27:09Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 5,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.5922,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T09:34:38Z",
+     "last_observed_at": "2026-09-14T13:14:05Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 5,
+      "userNo": 0,
+      "userYes": 1
+     }
+    }
+   },
+   "presence": {
+    "status": "mixed_positive",
+    "confidence": 0.6524,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T09:34:38Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 11,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:17843",
+   "osm": "osm-way-93207467",
+   "lat": 60.0806881,
+   "lon": 30.3948651,
+   "brand": "Роснефть",
+   "name": "Роснефть",
+   "address": "Бугры, Шоссейная улица, 56",
+   "place": "Бугры",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T09:18:03Z",
+   "grades": {
+    "92": {
+     "status": "limited",
+     "confidence": 0.5207,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T09:18:03Z",
+     "last_observed_at": "2026-09-14T14:32:39Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 8,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "limited",
+     "confidence": 0.4906,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T09:18:03Z",
+     "last_observed_at": "2026-09-14T14:32:39Z",
+     "counts": {
+      "sourceNo": 5,
+      "sourceYes": 7,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.6423,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T09:18:03Z",
+     "last_observed_at": "2026-09-14T16:32:38Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 10,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.3738,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T14:32:39Z",
+     "counts": {
+      "sourceNo": 7,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.6757,
+    "user": {
+     "status": "mixed_positive",
+     "total": 1,
+     "last_reported_at": "2026-09-14T09:18:03Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 19,
+     "last_observed_at": "2026-09-14T17:47:31Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:21642",
+   "osm": "osm-way-339979996",
+   "lat": 59.9938444,
+   "lon": 30.3915042,
+   "brand": "Роснефть",
+   "name": "Роснефть",
+   "address": "проспект Непокорённых, 53",
+   "place": "Мурино",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T08:42:44Z",
+   "grades": {
+    "92": {
+     "status": "mixed_positive",
+     "confidence": 0.5783,
+     "source": "mixed",
+     "freshness": "stale",
+     "last_reported_at": "2026-09-14T08:42:44Z",
+     "last_observed_at": "2026-09-14T08:33:21Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 5,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "mixed_positive",
+     "confidence": 0.5948,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T08:42:44Z",
+     "last_observed_at": "2026-09-14T13:11:38Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 6,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.6347,
+     "source": "mixed",
+     "freshness": "fresh",
+     "last_reported_at": "2026-09-14T08:42:44Z",
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 6,
+      "userNo": 0,
+      "userYes": 1
+     }
+    }
+   },
+   "presence": {
+    "status": "likely_available",
+    "confidence": 0.6967,
+    "user": {
+     "status": "limited",
+     "total": 2,
+     "last_reported_at": "2026-09-14T08:42:44Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 11,
+     "last_observed_at": "2026-09-14T17:47:31Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:17374",
+   "osm": "osm-way-51790910",
+   "lat": 59.7296969,
+   "lon": 30.5833318,
+   "brand": "Роснефть",
+   "name": "Роснефть",
+   "address": "Российская Федерация, г. Санкт-Петербург, г. Колпино, Заводской пр-кт, д. 19, литера А",
+   "place": "Тельмана",
+   "status": "open",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "98",
+    "dt"
+   ],
+   "queue_level": "unknown",
+   "last_reported_at": "2026-09-14T08:26:03Z",
+   "grades": {
+    "92": {
+     "status": "limited",
+     "confidence": 0.5318,
+     "source": "mixed",
+     "freshness": "stale",
+     "last_reported_at": "2026-09-14T08:26:03Z",
+     "last_observed_at": "2026-09-13T18:25:56Z",
+     "counts": {
+      "sourceNo": 2,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "95": {
+     "status": "limited",
+     "confidence": 0.5318,
+     "source": "mixed",
+     "freshness": "stale",
+     "last_reported_at": "2026-09-14T08:26:03Z",
+     "last_observed_at": "2026-09-13T18:25:56Z",
+     "counts": {
+      "sourceNo": 2,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "98": {
+     "status": "limited",
+     "confidence": 0.5381,
+     "source": "user",
+     "freshness": "stale",
+     "last_reported_at": "2026-09-14T08:26:03Z",
+     "last_observed_at": null,
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.582,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T08:26:03Z",
+     "last_observed_at": "2026-09-14T15:38:33Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 3,
+      "userNo": 0,
+      "userYes": 1
+     }
+    },
+    "100": {
+     "status": "limited",
+     "confidence": 0.4937,
+     "source": "external",
+     "freshness": "stale",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-13T18:25:56Z",
+     "counts": {
+      "sourceNo": 2,
+      "sourceYes": 0,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "mixed_positive",
+    "confidence": 0.6311,
+    "user": {
+     "status": "limited",
+     "total": 1,
+     "last_reported_at": "2026-09-14T08:26:03Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 8,
+     "last_observed_at": "2026-09-14T17:47:11Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:17961",
+   "osm": "osm-way-96236531",
+   "lat": 59.7214143,
+   "lon": 30.4330701,
+   "brand": "Ленгаз-Эксплуатация",
+   "name": "Газонаполнительный пункт",
+   "address": "Пушкин, Новодеревенская улица, 5",
+   "place": "Пушкин",
+   "status": "open",
+   "catalog_fuels": [],
+   "queue_level": "unknown",
+   "last_reported_at": "2026-09-14T07:24:09Z",
+   "grades": {},
+   "presence": {
+    "status": "limited",
+    "confidence": 0.5324,
+    "user": {
+     "status": "limited",
+     "total": 1,
+     "last_reported_at": "2026-09-14T07:24:09Z"
+    },
+    "external": {
+     "status": "unknown",
+     "total": 0,
+     "last_observed_at": null
+    }
+   }
+  },
+  {
+   "id": "ranvik:18751",
+   "osm": "osm-way-132064646",
+   "lat": 59.9953533,
+   "lon": 30.4066874,
+   "brand": "Татнефть",
+   "name": "Татнефть",
+   "address": "проспект Непокорённых, 62",
+   "place": "Мурино",
+   "status": "closed",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "unknown",
+   "last_reported_at": "2026-09-14T07:23:21Z",
+   "grades": {
+    "92": {
+     "status": "limited",
+     "confidence": 0.4825,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T07:23:21Z",
+     "last_observed_at": "2026-09-14T12:28:27Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 2,
+      "userNo": 1,
+      "userYes": 0
+     }
+    },
+    "95": {
+     "status": "limited",
+     "confidence": 0.4702,
+     "source": "mixed",
+     "freshness": "stale",
+     "last_reported_at": "2026-09-14T07:23:21Z",
+     "last_observed_at": "2026-09-13T21:18:57Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 1,
+      "userNo": 1,
+      "userYes": 0
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.5936,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 0,
+      "sourceYes": 4,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "mixed_positive",
+    "confidence": 0.6254,
+    "user": {
+     "status": "limited",
+     "total": 1,
+     "last_reported_at": "2026-09-14T07:23:21Z"
+    },
+    "external": {
+     "status": "likely_available",
+     "total": 8,
+     "last_observed_at": "2026-09-14T17:47:31Z"
+    }
+   }
+  },
+  {
+   "id": "ranvik:18580",
+   "osm": "osm-way-123338845",
+   "lat": 59.9953248,
+   "lon": 30.3805485,
+   "brand": "Роснефть",
+   "name": "Роснефть",
+   "address": "проспект Непокорённых, 15",
+   "place": "Мурино",
+   "status": "closed",
+   "catalog_fuels": [
+    "92",
+    "95",
+    "dt"
+   ],
+   "queue_level": "medium",
+   "last_reported_at": "2026-09-14T07:22:24Z",
+   "grades": {
+    "92": {
+     "status": "limited",
+     "confidence": 0.4867,
+     "source": "mixed",
+     "freshness": "recent",
+     "last_reported_at": "2026-09-14T07:22:24Z",
+     "last_observed_at": "2026-09-14T12:37:11Z",
+     "counts": {
+      "sourceNo": 1,
+      "sourceYes": 6,
+      "userNo": 1,
+      "userYes": 0
+     }
+    },
+    "95": {
+     "status": "limited",
+     "confidence": 0.4965,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T12:37:11Z",
+     "counts": {
+      "sourceNo": 2,
+      "sourceYes": 7,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "100": {
+     "status": "mixed_negative",
+     "confidence": 0.4593,
+     "source": "external",
+     "freshness": "recent",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T12:37:11Z",
+     "counts": {
+      "sourceNo": 4,
+      "sourceYes": 1,
+      "userNo": 0,
+      "userYes": 0
+     }
+    },
+    "dt": {
+     "status": "mixed_positive",
+     "confidence": 0.5443,
+     "source": "external",
+     "freshness": "fresh",
+     "last_reported_at": null,
+     "last_observed_at": "2026-09-14T17:47:31Z",
+     "counts": {
+      "sourceNo": 3,
+      "sourceYes": 6,
+      "userNo": 0,
+      "userYes": 0
+     }
+    }
+   },
+   "presence": {
+    "status": "mixed_positive",
+    "confidence": 0.6599,
+    "user": {
+     "status": "limited",
+     "total": 1,
+     "last_reported_at": "2026-09-14T07:22:24Z"
+    },
+    "external": {
+     "status": "available",
+     "total": 15,
+     "last_observed_at": "2026-09-14T17:47:31Z"
+    }
+   }
+  }
+ ]
+}
