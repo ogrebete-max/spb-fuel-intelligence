@@ -368,7 +368,11 @@ function bindControls() {
   let lastTap = 0;
   document.addEventListener('touchend', (event) => {
     const now = Date.now();
-    if (now - lastTap < 320 && outsideMap(event)) event.preventDefault();
+    // A composer is tapped in quick runs: a grade twice for «нет», then the
+    // queue. Cancelling the second touchend cancelled its click too, so a
+    // double tap on 95 went out as «95 есть». Its buttons cannot zoom (see
+    // .mark-composer button in the stylesheet) and keep every tap.
+    if (now - lastTap < 320 && outsideMap(event) && !event.target.closest?.('.mark-composer')) event.preventDefault();
     lastTap = now;
   }, { passive: false });
   window.addEventListener('beforeinstallprompt', (event) => {
@@ -3809,49 +3813,145 @@ function quickComposer(stationId) {
   </div>`;
 }
 
+// What a person has pressed in a composer lives here, not in its buttons. The
+// «Вы у АЗС» panel is drawn again on every fix and the list on every poll, and
+// each redraw wiped the chips pressed so far: from the road the buttons
+// «sometimes work, sometimes don't, then reset» (14 Sep 2026). One draft per
+// station, shared by the panel, the card and the station's drawer, until it is
+// sent. A draft nobody touched for ten minutes no longer says what is on the
+// pumps and is dropped.
+const composeDrafts = new Map();
+const DRAFT_KEEP_MS = 10 * 60 * 1000;
+
+function composeDraft(stationId, { touch = false } = {}) {
+  const now = Date.now();
+  composeDrafts.forEach((draft, id) => {
+    if (now - draft.touched > DRAFT_KEEP_MS) composeDrafts.delete(id);
+  });
+  let draft = composeDrafts.get(stationId) || null;
+  if (touch) {
+    draft = draft || { chosen: {}, queue: null, touched: now };
+    draft.touched = now;
+    composeDrafts.set(stationId, draft);
+  }
+  return draft;
+}
+
+// Every composer of the station on screen shows the same draft, so the panel,
+// the card beneath it and an open drawer never disagree about what is pressed.
+function paintComposers(stationId) {
+  document.querySelectorAll('.mark-composer').forEach((box) => {
+    if (box.dataset.composeStation === stationId) paintComposer(box);
+  });
+}
+
+function paintComposer(box) {
+  const draft = composeDraft(box.dataset.composeStation);
+  const chosen = draft?.chosen || {};
+  box.querySelectorAll('[data-quick-grade]').forEach((button) => {
+    const value = chosen[button.dataset.quickGrade];
+    const label = GRADE_LABELS[button.dataset.quickGrade].replace('АИ-', '');
+    button.classList.toggle('yes', value === true);
+    button.classList.toggle('no', value === false);
+    button.textContent = value === true ? `${label} ✓` : value === false ? `${label} ✕` : label;
+    button.setAttribute('aria-pressed', String(value !== undefined));
+  });
+  box.querySelectorAll('[data-compose-grade]').forEach((button) => {
+    const pressed = chosen[button.dataset.composeGrade] === (button.dataset.composeSeen === '1');
+    button.classList.toggle('selected', pressed);
+    button.setAttribute('aria-pressed', String(pressed));
+  });
+  box.querySelectorAll('[data-compose-queue]').forEach((button) => {
+    const pressed = draft?.queue != null && draft.queue === Number(button.dataset.composeQueue);
+    button.classList.toggle('selected', pressed);
+    button.setAttribute('aria-pressed', String(pressed));
+  });
+  const send = box.querySelector('.compose-send');
+  if (send) send.disabled = !Object.keys(chosen).length;
+}
+
+// A finger on a composer holds off whatever would draw it again. A redraw
+// between pointerdown and click lost the tap, and a panel or a card redrawn
+// above it moved the next chip away from the thumb. For fifteen seconds after
+// the last touch the panel and the list stay as they are and then draw once;
+// the draft brings the chips back either way. The drawer lies over the page,
+// so what happens beneath it moves nothing and is not held.
+const COMPOSER_HOLD_MS = 15000;
+let composerTouch = { box: null, at: 0 };
+const heldRedraws = new Set();
+let heldTimer = null;
+
+function holdComposer(box) {
+  composerTouch = { box, at: Date.now() };
+}
+
+function releaseComposer(box) {
+  if (composerTouch.box === box) composerTouch = { box: null, at: 0 };
+}
+
+/** True when `redraw` would rebuild or move a composer under a finger; it then runs by itself once the pause is over. */
+function holdRedraw(redraw) {
+  const { box, at } = composerTouch;
+  const held = !!box?.isConnected && !!box.closest('#contentGrid') && Date.now() - at < COMPOSER_HOLD_MS;
+  if (!held) {
+    heldRedraws.delete(redraw);
+    return false;
+  }
+  heldRedraws.add(redraw);
+  if (!heldTimer) {
+    heldTimer = setTimeout(() => {
+      heldTimer = null;
+      const due = [...heldRedraws];
+      heldRedraws.clear();
+      due.forEach((run) => run());
+    }, at + COMPOSER_HOLD_MS - Date.now() + 50);
+  }
+  return true;
+}
+
 function bindComposer(root) {
   const box = root.querySelector('.mark-composer');
   if (!box) return;
-  const chosen = {};
-  let queue = null;
+  const stationId = box.dataset.composeStation;
   const send = box.querySelector('.compose-send');
+  // Held from the moment the finger lands, not from the click that follows.
+  box.addEventListener('pointerdown', () => holdComposer(box));
+  const choose = (event, change) => {
+    event.stopPropagation();
+    holdComposer(box);
+    change(composeDraft(stationId, { touch: true }));
+    paintComposers(stationId);
+  };
   box.querySelectorAll('[data-quick-grade]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
+    button.addEventListener('click', (event) => choose(event, ({ chosen }) => {
       const grade = button.dataset.quickGrade;
-      const label = GRADE_LABELS[grade].replace('АИ-', '');
       if (!(grade in chosen)) chosen[grade] = true;
       else if (chosen[grade] === true) chosen[grade] = false;
       else delete chosen[grade];
-      const value = chosen[grade];
-      button.classList.toggle('yes', value === true);
-      button.classList.toggle('no', value === false);
-      button.textContent = value === true ? `${label} ✓` : value === false ? `${label} ✕` : label;
-      button.setAttribute('aria-pressed', value === undefined ? 'false' : 'true');
-      send.disabled = !Object.keys(chosen).length;
-    });
+    }));
   });
   box.querySelectorAll('[data-compose-grade]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      const grade = button.dataset.composeGrade;
-      const seen = button.dataset.composeSeen === '1';
-      chosen[grade] = seen;
-      button.parentElement.querySelectorAll('[data-compose-grade]').forEach((item) => item.classList.toggle('selected', item === button));
-      send.disabled = !Object.keys(chosen).length;
-    });
+    button.addEventListener('click', (event) => choose(event, ({ chosen }) => {
+      chosen[button.dataset.composeGrade] = button.dataset.composeSeen === '1';
+    }));
   });
   box.querySelectorAll('[data-compose-queue]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-      event.stopPropagation();
-      queue = Number(button.dataset.composeQueue);
-      box.querySelectorAll('[data-compose-queue]').forEach((item) => item.classList.toggle('selected', item === button));
-    });
+    button.addEventListener('click', (event) => choose(event, (draft) => {
+      draft.queue = Number(button.dataset.composeQueue);
+    }));
   });
   send.addEventListener('click', (event) => {
     event.stopPropagation();
-    const stationId = box.dataset.composeStation;
-    const grades = Object.keys(chosen);
+    const draft = composeDraft(stationId);
+    const chosen = draft?.chosen || {};
+    const queue = draft?.queue ?? null;
+    const grades = Object.keys(GRADE_LABELS).filter((grade) => grade in chosen);
+    // A draft dropped while the page stood untouched sends nothing.
+    if (!grades.length) {
+      paintComposers(stationId);
+      return;
+    }
+    composeDrafts.delete(stationId);
     const summary = grades.map((grade) => `${GRADE_LABELS[grade].replace('АИ-', '')} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
     const queueText = queue != null ? `, очередь: ${queueWords(queue)}` : '';
     // A look at a station the app knew nothing fresh about is worth a bonus.
@@ -3859,11 +3959,21 @@ function bindComposer(root) {
     const blindSpot = grades.some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(details?.grades?.[grade]?.status || state.gradesBrief?.[stationId]?.[grade]?.s));
     grades.forEach((grade) => saveMark(stationId, grade, chosen[grade], queue, { render: false, share: false }));
     box.innerHTML = `<span class="mark-sent">⏳ Отправляю своим: ${escapeHtml(summary)}${escapeHtml(queueText)}…</span>`;
+    // Another composer of this station, on the card under the panel, empties too.
+    paintComposers(stationId);
     shareLook(stationId, grades.map((grade) => ({ grade, seen: chosen[grade] })), queue, { summary: summary + queueText, blindSpot })
       .then((outcome) => showSendOutcome(box.querySelector('.mark-sent'), outcome, `${summary}${queueText}`, 'У всех это уже наверху, в «Свои сообщают».'));
     renderGroupFeed();
-    setTimeout(() => { renderStations(); renderHerePanel(); }, 4000);
+    // The hold still stands, so a fix does not wipe the line saying where the
+    // mark went before it can be read; after these seconds the card says
+    // «Вы отметили» and the panel moves on.
+    setTimeout(() => {
+      releaseComposer(box);
+      renderStations();
+      renderHerePanel();
+    }, 4000);
   });
+  paintComposer(box);
 }
 
 // The line under the buttons tells the truth about where the mark went.
@@ -3917,6 +4027,8 @@ function markedRecently(stationId, minutes = 15) {
 function renderHerePanel() {
   const panel = $('#herePanel');
   if (!panel) return;
+  // Every fix lands here while the phone stands at the pump.
+  if (holdRedraw(renderHerePanel)) return;
   if (!state.location || !state.stations.length || effectiveAccuracy() > ROUGH_METRES) {
     panel.hidden = true;
     return;
@@ -4083,6 +4195,10 @@ function refreshNearby() {
 }
 
 function renderStations({ append = false } = {}) {
+  // The cards carry composers and lie under the panel, so a finger on either
+  // keeps the list as it is until the pause is over. «Показать ещё» is that
+  // finger's own request and only adds below.
+  if (!append && holdRedraw(renderStations)) return;
   const list = $('#stationList');
   renderHerePanel();
   if (state.ownOnly) {
@@ -4506,7 +4622,9 @@ async function pollForNewSnapshot() {
       staticCache.clear();
       state.meta = meta;
       renderMeta();
-      await loadStations();
+      // Quietly: nobody asked for this reload, and blanking the list to
+      // «Собираем доказательства…» took the chips from under a finger at the pump.
+      await loadStations({ silent: true });
     } else {
       state.meta = meta;
       renderMeta();
