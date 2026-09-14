@@ -1413,6 +1413,7 @@ const STORAGE_ERRORS = {
   storage_limit: 'У клуба на сегодня кончился бесплатный лимит записей. В 03:00 по Москве он обнулится.',
   storage_busy: 'Сервер клуба перегружен. Попробуйте ещё раз через минуту.',
   worker_error: 'На сервере клуба сбой. Попробуйте ещё раз через минуту.',
+  moving: 'Сервер клуба переезжает. Через несколько минут всё заработает.',
 };
 
 // A mark that could not go out — no signal at the pump, the server down for a
@@ -1507,6 +1508,12 @@ async function postReport(endpoint, body) {
   if (data.error === 'storage_limit') {
     showToast('Отметка не ушла к своим', `${STORAGE_ERRORS.storage_limit} На этом телефоне отметка сохранена.`);
     return 'refused';
+  }
+  if (data.error === 'moving' && !outboxWarned) {
+    // Writes stop for a few minutes while the club's server moves; the mark
+    // waits here and goes to the new address once the app has it.
+    outboxWarned = true;
+    showToast('Сервер клуба переезжает', 'Отметка сохранена на телефоне и уйдёт сама через несколько минут.');
   }
   // Too many at once, or the server busy or down: worth another go shortly.
   return response.status === 429 || response.status >= 500 ? 'retry' : 'refused';
