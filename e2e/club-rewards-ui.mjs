@@ -3,11 +3,14 @@
 // it, sees litres, a level, badges and the weekly board.
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { webkit, chromium, devices } from 'playwright';
 import worker from '../worker/spbfi-reports.js';
 import { FakeD1 } from '../worker/fake-d1.mjs';
+import { createHandler } from '../server/http.mjs';
+import { SqliteD1 } from '../server/sqlite-d1.mjs';
 
 const SITE = fileURLToPath(new URL('../site', import.meta.url));
 const SITE_PORT = 8821;
@@ -22,7 +25,16 @@ class MemoryKV {
 }
 // `--d1` runs the same flow against D1, the way the worker is meant to be deployed.
 const useD1 = process.argv.includes('--d1');
-const storage = () => ({ REPORTS: new MemoryKV(), ...(useD1 ? { DB: new FakeD1() } : {}) });
+// `--server` runs it the way the club server does: through server/http.mjs, on
+// a SQLite file and with no KV at all.
+const useServer = process.argv.includes('--server');
+const scratch = useServer ? fs.mkdtempSync(path.join(os.tmpdir(), 'spbfi-e2e-')) : null;
+const databases = [];
+const serverDatabase = () => {
+  databases.push(new SqliteD1(path.join(scratch, `club-${databases.length + 1}.sqlite`)));
+  return databases.at(-1);
+};
+const storage = () => (useServer ? { DB: serverDatabase() } : { REPORTS: new MemoryKV(), ...(useD1 ? { DB: new FakeD1() } : {}) });
 const OWNER_KEY = 'owner-key-used-only-in-this-test';
 let env;
 
@@ -41,7 +53,7 @@ const siteServer = http.createServer((req, res) => {
     res.end(data);
   });
 });
-const workerServer = http.createServer(async (req, res) => {
+const workerServer = http.createServer(useServer ? createHandler({ worker, env: () => env, settle: true }).handle : async (req, res) => {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const request = new Request(`http://localhost:${WORKER_PORT}${req.url}`, {
@@ -183,6 +195,12 @@ try {
 } finally {
   siteServer.close();
   workerServer.close();
+  for (const db of databases) db.close();
+  try {
+    if (scratch) fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch {
+    // A leftover temporary folder is not a failed check.
+  }
 }
-console.log(failures.length ? `\n${failures.length} FAILED` : '\nALL REWARDS UI CHECKS PASSED');
+console.log(failures.length ? `\n${failures.length} FAILED` : `\nALL REWARDS UI CHECKS PASSED${useServer ? ' (server)' : ''}`);
 process.exit(failures.length ? 1 : 0);
