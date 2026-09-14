@@ -767,3 +767,179 @@ body.club-locked { overflow: hidden; }
 .own-bar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 14px; background: rgba(31, 122, 77, .08); color: #1f5c3e; font-weight: 700; }
 .own-back { border: 1px solid #1f7a4d; background: #fff; color: #1f7a4d; border-radius: 99px; padding: 7px 14px; font: inherit; font-weight: 800; cursor: pointer; }
 .own-back:hover { background: #1f7a4d; color: #fff; }
+
+/* ---- «За рулём» ----
+   Night by default and day as a class, as in the approved concept: the tokens
+   live on .drive and are redefined on .drive.is-day. Day pins wear the app's
+   own status colours; night pins brighter ones that still read in the dark. */
+.drive {
+  --scr: #101915; --sheet: #0a110e; --ink: #eef4ef; --sub: #a9bab2; --faint: #8fa29a; --rule: #1d2b25; --said: #131f1a;
+  --chipbg: #1a2822; --chipink: #a9bab2; --okbg: rgba(62, 207, 122, .16); --okink: #6fe7a6;
+  --badbg: rgba(242, 102, 91, .17); --badink: #ff948a; --limbg: rgba(240, 165, 58, .17); --limink: #ffc46b;
+  --yes: #5fe39a; --no: #ff8a80; --mine: #c9f169; --glow: rgba(201, 241, 105, .5); --glow2: rgba(201, 241, 105, .9);
+  --ring: rgba(5, 8, 7, .55); --btn-yes: #3ecf7a; --btn-no: #f2665b; --btn-ink: #06130d;
+  --plate: #c9f169; --plateink: #0d3328; --glass: rgba(5, 8, 7, .62); --glassink: #fff;
+  --car: #c9f169; --carline: #0a110e; --grab: #33433c; --shade: rgba(0, 0, 0, .45);
+  --pin-ink: #06130d;
+  --pin-CAN_REFUEL: #3ecf7a; --pin-LIKELY_AVAILABLE: #a6d65a; --pin-LIMITED: #f0a53a; --pin-CONFLICT: #b39cf5;
+  --pin-LIKELY_NOT: #f38e62; --pin-CONFIRMED_NO: #f2665b; --pin-NO_FRESH_DATA: #7f8f88;
+  position: fixed; inset: 0; z-index: 1100; overflow: hidden; overscroll-behavior: none;
+  background: var(--scr); color: var(--ink);
+  -webkit-user-select: none; user-select: none; touch-action: none;
+}
+.drive.is-day {
+  --scr: #e9eee4; --sheet: #fbfcf7; --ink: #10231d; --sub: #4f5e58; --faint: #66756f; --rule: #e1e7da; --said: #eef3e8;
+  --chipbg: #e4eade; --chipink: #56655f; --okbg: #d3eedb; --okink: #106b3c; --badbg: #fadcd8; --badink: #a92e26; --limbg: #fbe7c6; --limink: #8a5405;
+  --yes: #13804a; --no: #c23b31; --mine: #0d3328; --glow: rgba(13, 90, 67, .28); --glow2: rgba(13, 90, 67, .55);
+  --ring: #fff; --btn-yes: #158257; --btn-no: #b8333a; --btn-ink: #fff;
+  --plate: #0d3328; --plateink: #c9f169; --glass: rgba(251, 252, 247, .82); --glassink: #10231d;
+  --car: #0d3328; --carline: #fff; --grab: #cfd8c9; --shade: rgba(16, 35, 29, .16);
+  --pin-ink: #fff;
+  --pin-CAN_REFUEL: var(--CAN_REFUEL); --pin-LIKELY_AVAILABLE: var(--LIKELY_AVAILABLE); --pin-LIMITED: var(--LIMITED); --pin-CONFLICT: var(--CONFLICT);
+  --pin-LIKELY_NOT: var(--LIKELY_NOT); --pin-CONFIRMED_NO: var(--CONFIRMED_NO); --pin-NO_FRESH_DATA: var(--NO_FRESH_DATA);
+}
+body.driving { overflow: hidden; }
+/* A station opened from a banner lies over the drive screen, not under it. */
+body.driving .scrim { z-index: 1101; }
+body.driving .drawer { z-index: 1102; }
+/* No banners over the drive screen: «+1 🤝» and new badges lay over «Отменить»
+   right after a mark, and a driver has no glance to spare for them. They are
+   there to read once the screen is closed; what matters on the road the
+   drive screen says itself. */
+body.driving .toast-stack { display: none; }
+.drive-flash { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--badbg); color: var(--badink); font-size: 15px; font-weight: 700; line-height: 1.35; }
+/* Only the family is inherited: `font: inherit` here outranked the weight and
+   size of every one-class button below. */
+.drive button { font-family: inherit; line-height: 1.2; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.drive :focus-visible { outline: 3px solid var(--mine); outline-offset: 2px; }
+
+/* The map, the car and the edge marker live in a layer of their own that
+   clips the turned map (`clip` cannot even be scrolled by a script). Plates
+   and panels are fixed to the viewport above it. */
+.drive-stage { position: fixed; inset: 0; overflow: hidden; overflow: clip; }
+.drive-map { position: absolute; left: 0; top: 0; width: 200vmax; height: 200vmax; transform-origin: 50% 50%; background: var(--scr); }
+.drive .leaflet-container { background: var(--scr); }
+/* Night: the same OpenStreetMap tiles, turned dark. */
+.drive:not(.is-day) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.88) saturate(.5); }
+
+.drive-car { position: absolute; z-index: 3; left: 50%; top: 70%; width: 38px; height: 38px; translate: -50% -50%; pointer-events: none; }
+.drive-car svg { display: block; width: 100%; height: 100%; }
+.drive-car path { fill: var(--car); stroke: var(--carline); stroke-width: 2; stroke-linejoin: round; }
+/* No heading yet: a dot, not an arrow pointing a way the car may not be going. */
+.drive-car.unknown svg { display: none; }
+.drive-car.unknown::after { content: ""; position: absolute; inset: 10px; border-radius: 50%; background: var(--car); box-shadow: 0 0 0 3px var(--carline), 0 0 0 10px color-mix(in srgb, var(--car) 25%, transparent); }
+
+.drive-top { position: fixed; z-index: 6; top: calc(env(safe-area-inset-top, 0px) + 10px); left: calc(env(safe-area-inset-left, 0px) + 12px); right: calc(env(safe-area-inset-right, 0px) + 12px); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.drive-top-side { display: flex; gap: 8px; }
+.drive-plate { min-height: 46px; border: 0; border-radius: 14px; padding: 6px 14px; background: var(--plate); color: var(--plateink); font-size: 15px; font-weight: 700; box-shadow: 0 2px 10px var(--shade); }
+.drive-plate b { margin-left: 4px; font-size: 22px; font-weight: 900; }
+/* A thin edge keeps the round buttons findable over a dark map at night. */
+.drive-glass { background: var(--glass); color: var(--glassink); box-shadow: 0 0 0 1px rgba(255, 255, 255, .2), 0 2px 10px var(--shade); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.drive.is-day .drive-glass { box-shadow: 0 0 0 1px rgba(16, 35, 29, .12), 0 2px 10px var(--shade); }
+.drive-round { width: 46px; height: 46px; border: 0; border-radius: 50%; display: grid; place-items: center; font-size: 20px; line-height: 1; }
+.drive-speed { position: fixed; z-index: 5; top: calc(env(safe-area-inset-top, 0px) + 66px); left: calc(env(safe-area-inset-left, 0px) + 12px); border-radius: 12px; padding: 5px 10px; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.drive-speed small { margin-left: 3px; font-size: 11px; font-weight: 600; color: var(--sub); }
+.drive-credit { position: fixed; z-index: 2; right: 6px; bottom: 4px; font-size: 9px; color: var(--faint); pointer-events: none; }
+
+/* Pins: Leaflet places the icon, and what is inside turns back against the
+   map, so the numbers stay upright while the map turns with the road. */
+.dpin { width: 0; height: 0; }
+.dpin-turn { position: absolute; left: 0; top: 0; transform: rotate(var(--drive-turn, 0deg)); transform-origin: 0 0; }
+.dpin-body { position: absolute; left: 0; top: 0; display: block; width: 12px; height: 12px; translate: -50% -50%; border-radius: 50%; background: #7b8a84; box-shadow: 0 0 0 2px var(--scr); }
+.dpin-body b, .dpin-body i { display: none; }
+.dpin.big .dpin-body { --c: var(--pin-NO_FRESH_DATA); width: auto; height: auto; min-width: 46px; translate: -50% calc(-100% - 9px); padding: 5px 9px; border-radius: 11px; background: var(--c); color: var(--pin-ink); text-align: center; box-shadow: 0 0 0 3px var(--ring), 0 0 22px color-mix(in srgb, var(--c) 50%, transparent); }
+.dpin.big .dpin-body::after { content: ""; position: absolute; left: 50%; top: 100%; translate: -50% 0; border: 7px solid transparent; border-top: 9px solid var(--c); border-bottom: 0; }
+.drive.is-day .dpin.big .dpin-body { box-shadow: 0 0 0 3px var(--ring), 0 4px 12px rgba(16, 35, 29, .3); }
+.dpin.big .dpin-body b { display: block; font-size: 19px; font-weight: 900; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.dpin.big.no .dpin-body b { text-decoration: line-through; text-decoration-thickness: 2px; }
+.dpin.big .dpin-body i { position: absolute; top: -10px; right: -10px; width: 21px; height: 21px; border-radius: 50%; display: grid; place-items: center; background: #fbfcf7; color: #0d3328; font-size: 11px; font-weight: 800; font-style: normal; box-shadow: 0 0 0 2px var(--scr); }
+.dpin[data-status="CAN_REFUEL"] .dpin-body { --c: var(--pin-CAN_REFUEL); }
+.dpin[data-status="LIKELY_AVAILABLE"] .dpin-body { --c: var(--pin-LIKELY_AVAILABLE); }
+.dpin[data-status="LIMITED"] .dpin-body { --c: var(--pin-LIMITED); }
+.dpin[data-status="CONFLICT"] .dpin-body { --c: var(--pin-CONFLICT); }
+.dpin[data-status="LIKELY_NOT"] .dpin-body { --c: var(--pin-LIKELY_NOT); }
+.dpin[data-status="CONFIRMED_NO"] .dpin-body { --c: var(--pin-CONFIRMED_NO); }
+.dpin[data-status="NO_FRESH_DATA"] .dpin-body { --c: var(--pin-NO_FRESH_DATA); }
+/* Dark numbers on the lighter day colours, white on the darker ones. */
+.drive.is-day .dpin.big:is([data-status="LIKELY_AVAILABLE"], [data-status="LIMITED"], [data-status="LIKELY_NOT"], [data-status="NO_FRESH_DATA"]) .dpin-body { color: #10231d; }
+.dpin.big.focus .dpin-body { box-shadow: 0 0 0 3px var(--mine), 0 0 26px var(--glow); }
+
+.drive-edge { position: absolute; z-index: 4; display: flex; align-items: center; gap: 5px; translate: -50% -50%; padding: 7px 12px; border-radius: 14px; background: var(--pin-CAN_REFUEL); color: var(--pin-ink); font-size: 17px; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 14px var(--shade); pointer-events: none; }
+.drive-edge small { font-size: 12px; font-weight: 700; }
+.drive-edge-arrow { display: inline-block; }
+
+.drive-sheet, .drive-full, .drive-pick { position: fixed; z-index: 7; left: 0; right: 0; bottom: 0; display: grid; gap: 10px; align-content: start; max-height: calc(100% - 120px); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 10px calc(18px + env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) calc(18px + env(safe-area-inset-left, 0px)); border-radius: 24px 24px 0 0; background: var(--sheet); color: var(--ink); box-shadow: 0 -10px 30px var(--shade); }
+.drive-sheet::before, .drive-pick::before { content: ""; justify-self: center; width: 42px; height: 4px; border-radius: 2px; background: var(--grab); }
+.drive-full { top: calc(env(safe-area-inset-top, 0px) + 66px); max-height: none; padding-top: 18px; gap: 14px; }
+.drive-where { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.drive-line { margin: 0; font-size: 21px; font-weight: 800; line-height: 1.22; }
+.drive-title { margin: 0; font-size: 24px; font-weight: 900; line-height: 1.15; }
+/* A station's name and street in two lines at most. */
+.drive-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.drive-meta { margin: 0; font-size: 14px; line-height: 1.35; color: var(--sub); }
+.drive-yes { color: var(--yes); }
+.drive-no { color: var(--no); }
+.drive-lim { color: var(--limink); }
+.drive-unk { color: var(--sub); }
+.drive-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.drive-chip { border-radius: 10px; padding: 6px 10px; background: var(--chipbg); color: var(--chipink); font-size: 15px; font-weight: 800; white-space: nowrap; }
+.drive-chip.ok { background: var(--okbg); color: var(--okink); }
+.drive-chip.bad { background: var(--badbg); color: var(--badink); }
+.drive-chip.lim { background: var(--limbg); color: var(--limink); }
+.drive-chip.mine { box-shadow: 0 0 0 2px var(--mine); }
+.drive-witness { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.35; }
+.drive-witness.yes { color: var(--yes); }
+.drive-witness.no { color: var(--no); }
+.drive-lock, .drive-done { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--chipbg); color: var(--sub); font-size: 15px; font-weight: 700; }
+.drive-done { color: var(--yes); }
+.drive-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.drive-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.drive-row.huge { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.drive-btn { min-height: 58px; border: 0; border-radius: 16px; color: var(--btn-ink); font-size: 17px; font-weight: 800; }
+.drive-btn.huge { min-height: 76px; border-radius: 20px; font-size: 24px; font-weight: 900; }
+.drive-btn.yes { background: var(--btn-yes); }
+.drive-btn.no { background: var(--btn-no); }
+.drive-btn.skip { background: var(--chipbg); color: var(--ink); }
+.drive-btn:disabled, .drive-undo:disabled { opacity: .5; }
+.drive-not { justify-self: start; border: 0; padding: 4px 0; background: none; color: var(--yes); font-size: 16px; font-weight: 700; text-align: left; }
+.drive-said { display: grid; gap: 4px; padding: 12px 14px; border-radius: 16px; background: var(--said); }
+.drive-seg { display: flex; gap: 6px; }
+.drive-seg-button { flex: 1; min-height: 48px; border: 2px solid transparent; border-radius: 12px; background: var(--chipbg); color: var(--ink); font-size: 16px; font-weight: 700; }
+.drive-seg-button.on { border-color: var(--mine); background: var(--said); }
+.drive-check { width: 64px; height: 64px; }
+.drive-check circle { fill: var(--btn-yes); }
+.drive-check.refused circle { fill: var(--btn-no); }
+.drive-check path { fill: none; stroke: var(--btn-ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.drive-undo { justify-self: start; min-height: 52px; border: 0; border-radius: 14px; padding: 10px 18px; background: var(--chipbg); color: var(--ink); font-size: 17px; font-weight: 800; }
+.drive-undo b { font-weight: 600; color: var(--sub); }
+.drive-hint { margin: 0; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--faint); }
+.drive-grades { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.drive-grade { min-height: 64px; border: 0; border-radius: 16px; background: var(--chipbg); color: var(--ink); font-size: 22px; font-weight: 900; }
+.drive-grade.on { background: var(--plate); color: var(--plateink); }
+.drive-switch { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--chipbg); }
+.drive-switch button { flex: 1; min-height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 700; }
+.drive-switch button[aria-pressed="true"] { background: var(--sheet); box-shadow: 0 1px 4px var(--shade); }
+.drive-pick-close { min-height: 50px; border: 0; border-radius: 14px; background: var(--plate); color: var(--plateink); font-size: 17px; font-weight: 800; }
+/* Motion only where it means something: the sheet sliding in when it starts
+   saying something else, and the station it is about glowing. */
+@media (prefers-reduced-motion: no-preference) {
+  .drive-sheet.rise, .drive-full.rise, .drive-pick.rise { animation: drive-rise .45s cubic-bezier(.2, .8, .2, 1); }
+  .dpin.big.focus .dpin-body { animation: drive-glow 2.6s ease-in-out infinite; }
+}
+@keyframes drive-rise { from { transform: translateY(40px); opacity: 0; } }
+@keyframes drive-glow { 50% { box-shadow: 0 0 0 3px var(--mine), 0 0 40px var(--glow2); } }
+/* Sideways the panels move to the right and the map keeps the left; the full
+   layout for a phone on its side comes with the next step. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .drive-sheet, .drive-full, .drive-pick { left: auto; top: calc(env(safe-area-inset-top, 0px) + 66px); width: min(46%, 440px); max-height: none; border-radius: 24px 0 0 0; }
+  .drive-sheet::before, .drive-pick::before { display: none; }
+  .drive-btn.huge { min-height: 72px; font-size: 21px; }
+}
+
+.drive-button { position: absolute; z-index: 500; right: 12px; bottom: 96px; border: 0; border-radius: 18px; padding: 12px 16px; background: #0d3328; color: #c9f169; font: inherit; font-size: 15px; font-weight: 800; box-shadow: 0 0 0 4px rgba(201, 241, 105, .45), 0 10px 24px rgba(13, 51, 40, .35); cursor: pointer; touch-action: manipulation; }
+.drive-offer { position: fixed; z-index: 950; left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 460px; margin: 0 auto; display: grid; gap: 10px; padding: 14px; border-radius: 20px; background: #fbfcf7; color: #10231d; box-shadow: 0 12px 30px rgba(16, 35, 29, .25); }
+.drive-offer p { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.35; }
+.drive-offer-row { display: flex; gap: 8px; }
+.drive-offer-row button { flex: 1; min-height: 48px; border: 0; border-radius: 12px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.drive-offer-on { background: #0d3328; color: #c9f169; }
+.drive-offer-off { background: #e1e9d9; color: #10231d; }

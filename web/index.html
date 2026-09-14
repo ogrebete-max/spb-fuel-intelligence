@@ -116,6 +116,7 @@
         <div class="map-wrap" id="mapWrap">
           <div id="map" aria-label="Карта АЗС"></div>
           <button id="mapAreaButton" class="map-area-button">Искать в этой области</button>
+          <button id="driveButton" class="drive-button" type="button">🚗 За рулём</button>
           <div class="map-fallback" id="mapFallback" hidden>Карта не загрузилась. Список АЗС продолжает работать.</div>
         </div>
       </section>
@@ -128,6 +129,37 @@
       <button id="sourcesButton">Источники и методика</button>
       <small class="build-stamp" id="buildStamp"></small>
     </footer>
+  </div>
+
+  <!-- «За рулём»: a screen of its own over the app for the minutes of looking
+       for fuel on the road. The ordinary page stays as it was underneath. -->
+  <div class="drive" id="drive" hidden>
+    <!-- The map is far larger than the screen so that it can turn. This layer
+         clips it, so the drive screen has nothing to scroll out of place. -->
+    <div class="drive-stage" id="driveStage">
+      <div class="drive-map" id="driveMap" aria-hidden="true"></div>
+      <div class="drive-car unknown" id="driveCar" aria-hidden="true"><svg viewBox="0 0 34 34"><path d="M17 3 L29 29 L17 23 L5 29 Z"/></svg></div>
+      <div class="drive-edge" id="driveEdge" hidden><span class="drive-edge-arrow" aria-hidden="true">➜</span><b></b><small></small></div>
+    </div>
+    <div class="drive-top">
+      <button type="button" class="drive-plate" data-drive="grades" aria-haspopup="dialog">Моя марка <b id="drivePlateGrade">95</b></button>
+      <span class="drive-top-side">
+        <button type="button" class="drive-glass drive-round" data-drive="theme" aria-haspopup="dialog" aria-label="Тема экрана">◐</button>
+        <button type="button" class="drive-glass drive-round" data-drive="close" aria-label="Выйти из режима «За рулём»">✕</button>
+      </span>
+    </div>
+    <div class="drive-glass drive-speed"><span id="driveSpeed">—</span><small>км/ч</small></div>
+    <small class="drive-credit">© OpenStreetMap</small>
+    <section class="drive-sheet" id="driveSheet" hidden></section>
+    <section class="drive-full" id="driveFull" hidden></section>
+    <section class="drive-pick" id="drivePick" role="dialog" hidden></section>
+  </div>
+  <div class="drive-offer" id="driveOffer" role="dialog" aria-labelledby="driveOfferText" hidden>
+    <p id="driveOfferText">Похоже, вы за рулём. Включить крупный режим?</p>
+    <div class="drive-offer-row">
+      <button type="button" class="drive-offer-on" id="driveOfferYes">Включить</button>
+      <button type="button" class="drive-offer-off" id="driveOfferNo">Не сейчас</button>
+    </div>
   </div>
 
   <div class="scrim" id="scrim" hidden></div>
