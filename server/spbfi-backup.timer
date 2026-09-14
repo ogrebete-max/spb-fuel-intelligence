@@ -1,0 +1,12 @@
+# Every night at 03:40 Moscow time, give or take ten minutes, when the club is
+# asleep. A night the server was off is made up at the next boot.
+[Unit]
+Description=Nightly copy of the SPB Fuel club database
+
+[Timer]
+OnCalendar=*-*-* 00:40:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

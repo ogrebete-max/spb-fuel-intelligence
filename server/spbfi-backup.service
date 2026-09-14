@@ -1,0 +1,39 @@
+# A checked copy of the club database into /var/lib/spbfi/backups, started
+# every night by spbfi-backup.timer. `systemctl start spbfi-backup` makes one now.
+[Unit]
+Description=SPB Fuel club database copy
+# Before the first deploy and the first request there is nothing to copy.
+ConditionPathExists=/opt/spbfi-club/current/server/backup.mjs
+ConditionPathExists=/var/lib/spbfi/club.sqlite
+
+[Service]
+Type=oneshot
+User=spbfi
+Group=spbfi
+Environment=SPBFI_DB=/var/lib/spbfi/club.sqlite SPBFI_BACKUPS=/var/lib/spbfi/backups
+WorkingDirectory=/opt/spbfi-club/current
+ExecStart=/usr/local/bin/node --disable-warning=ExperimentalWarning server/backup.mjs
+UMask=0077
+
+# The same confinement as the club server.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/spbfi
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=400M
+# No MemoryDenyWriteExecute: V8 needs writable, executable memory.
