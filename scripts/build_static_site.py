@@ -65,6 +65,11 @@ def main() -> int:
     # left open on a phone otherwise keeps yesterday's code for days).
     stamp = f'<script>window.SPBFI_BUILD = "{build}";</script>'
     index_html = index_html.replace('<script src="config.js">', stamp + '\n  <script src="config.js">', 1)
+    # config.js holds the club server's address. GitHub Pages lets a browser
+    # keep it for ten minutes, and on 14 Sep 2026, when the club moved to its
+    # own server, phones that reloaded onto the new build kept calling the old
+    # one in that time. With the build in its URL the new address comes at once.
+    index_html = index_html.replace('src="config.js"', f'src="config.js?v={build}"', 1)
     index_path.write_text(index_html, encoding="utf-8")
 
     analytics_path = output / "analytics.html"

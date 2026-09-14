@@ -82,7 +82,7 @@ function serveSite(sitePort, workerPort, host) {
       if (error) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
       if (path.extname(file) === '.html') {
-        res.end(data.toString('utf8').replace('<script src="config.js"></script>', `${GEO_MOCK}<script src="config.js"></script>`));
+        res.end(data.toString('utf8').replace(/<script src="config\.js[^"]*"><\/script>/, (tag) => `${GEO_MOCK}${tag}`));
       } else {
         res.end(data);
       }
