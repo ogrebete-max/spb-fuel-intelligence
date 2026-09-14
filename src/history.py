@@ -168,7 +168,7 @@ def update_history_data(history: dict[str, Any] | None, snapshot: dict[str, Any]
 
 def timeline_for(
     history: dict[str, Any], station: dict[str, Any], grade: str, *, now: datetime,
-    current_status: str | None = None,
+    current_status: str | None = None, stalled: bool = False,
 ) -> dict[str, Any]:
     entry = (history.get("entries") or {}).get(f"{station_history_id(station)}|{grade}")
     if not entry:
@@ -180,7 +180,10 @@ def timeline_for(
     # The stored entry is only as new as the last successful refresh.  When the
     # live answer already disagrees with it, continuity claims like "нет
     # непрерывно 13 ч" would contradict the card the user is looking at.
-    contradicts = (
+    # A grade whose feed failed is not observed at all (a snapshot with no
+    # evidence for it adds nothing), so its entry stops at that feed's last
+    # answer and must not read as still going on.
+    contradicts = stalled or (
         (live_group in {"positive", "restricted"} and stored_group == "negative")
         or (live_group == "negative" and stored_group == "positive")
     )

@@ -1294,7 +1294,7 @@ function metaFor(station) {
   if (votes) parts.push(`${votes} ${plural(votes, 'источник', 'источника', 'источников')} проголосовали`);
   // A source that never says when it saw anything cannot be presented as
   // minutes old just because we polled it a minute ago.
-  parts.push(grade.undated_only ? 'источник не сообщает времени' : formatAge(grade.age_seconds));
+  parts.push(grade.source_note || (grade.undated_only ? 'источник не сообщает времени' : formatAge(grade.age_seconds)));
   if (grade.price_rub != null) {
     const sources = grade.price_sources ?? 0;
     const value = `${grade.price_rub.toFixed(2).replace('.', ',')} ₽/л`;

@@ -64,13 +64,21 @@ jobs:
 
       # Temporal history is state, not source.  Keeping it on a single-commit
       # orphan branch avoids rewriting a multi-megabyte blob into main's
-      # history every ten minutes.
+      # history every ten minutes.  The catalogue of recently seen stations
+      # is state too: a clean checkout has no raw file from a collector that
+      # failed, and without the catalogue the stations only it listed vanish.
       - name: Restore temporal history
         run: |
           mkdir -p data
           if git fetch --depth=1 origin state 2>/dev/null; then
             git show FETCH_HEAD:history.json > data/history.json
             echo "restored $(wc -c < data/history.json) bytes"
+            # State stored before the catalogue existed has no such file.
+            if git show FETCH_HEAD:last-seen.json > data/last-seen.json 2>/dev/null; then
+              echo "restored $(wc -c < data/last-seen.json) bytes of recently seen stations"
+            else
+              rm -f data/last-seen.json
+            fi
           else
             echo "no stored history yet; starting from an empty timeline"
           fi
@@ -107,12 +115,13 @@ jobs:
         run: |
           work="$(mktemp -d)"
           cp data/history.json "$work/history.json"
+          if [ -f data/last-seen.json ]; then cp data/last-seen.json "$work/last-seen.json"; fi
           cd "$work"
           git init -q
           git checkout -q -b state
           git config user.name "spb-fuel-bot"
           git config user.email "spb-fuel-bot@users.noreply.github.com"
-          git add history.json
+          git add -A
           git commit -q -m "Fuel status history $(date -u +%FT%TZ)"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" state
 

@@ -10,6 +10,7 @@ from typing import Any
 
 from .evidence_engine import evaluate_grade, evaluate_station, parse_time, travel_advice
 from .history import load_history, timeline_for
+from .last_seen import silence_note
 from .station_matcher import haversine_km
 
 
@@ -170,7 +171,7 @@ class StationRepository:
             if radius_km is not None and distance is not None and distance > radius_km:
                 continue
             evaluated = evaluate_grade(station.get("evidence", []), grade, now=now)
-            temporal = timeline_for(self.history, station, grade, now=now, current_status=evaluated["status"])
+            temporal = self._explain(station, grade, evaluated, now)
             evaluated["timeline"] = temporal
             evaluated["advice"] = travel_advice(evaluated, temporal)
             all_statuses[evaluated["status"]] += 1
@@ -282,5 +283,23 @@ class StationRepository:
         now = self._as_of(as_of)
         result = evaluate_station(station, now=now)
         for grade, evaluated in result["grades"].items():
-            evaluated["timeline"] = timeline_for(self.history, station, grade, now=now, current_status=evaluated["status"])
+            evaluated["timeline"] = self._explain(station, grade, evaluated, now)
         return result
+
+    def _explain(self, station: dict[str, Any], grade: str, evaluated: dict[str, Any], now: datetime) -> dict[str, Any]:
+        """The grade's history, and why nothing is fresh when a feed has failed.
+
+        "Никто не сообщал" is not the whole truth when the feed that covered
+        this station is down, so the card says which one.
+        """
+        failing = station.get("failing_sources")
+        if failing and evaluated["status"] == "NO_FRESH_DATA":
+            note = silence_note(failing)
+            evaluated["source_note"] = note
+            evaluated["reason"] = f"{note[0].upper()}{note[1:]}. {evaluated['reason']}"
+        return timeline_for(
+            self.history, station, grade, now=now, current_status=evaluated["status"],
+            # Nothing at all is known about this grade now, so its stored
+            # history stopped when the feed did.
+            stalled=bool(failing) and not evaluated["evidence_count"],
+        )

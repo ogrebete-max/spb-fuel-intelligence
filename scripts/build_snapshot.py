@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.evidence_engine import parse_time  # noqa: E402
+from src.last_seen import carry_forward, load_catalogue, save_catalogue  # noqa: E402
 from src.normalizers import (  # noqa: E402
     canonical_grade,
     grade_tokens,
@@ -108,6 +109,59 @@ def capture_times(raw_dir: Path, fallback: str) -> dict[str, str]:
         if item.get("captured_at"):
             result[item["name"]] = item["captured_at"]
     return Counter(result) and result or {"fallback": fallback}
+
+
+# Which station sources each capture feeds, so a collector that failed can be
+# tied to the stations it used to list. A capture that makes no stations of its
+# own is mapped to nothing: grade titles for Tatneft, and the club's marks,
+# which never make a station by themselves.
+CAPTURE_SOURCES: dict[str, tuple[str, ...]] = {
+    "sber-full-aoi": ("sber",),
+    "gdebenz-full-aoi": ("gdebenz",),
+    "benzas-full-aoi": ("benzas",),
+    "benzas-comments-full-aoi": ("benzas",),
+    "benzinest-full-aoi": ("benzinest",),
+    "tutbenz-full-aoi": ("tutbenz",),
+    "gdebenzin-full-aoi": ("gdebenzin",),
+    "benzonavt-full-aoi": ("benzonavt",),
+    "toplivo-data": ("toplivo-ryadom",),
+    "toplivo-predict": ("toplivo-ryadom",),
+    "benzinradar-full-aoi": ("benzinradar-analogue",),
+    "tatneft-azs": ("tatneft",),
+    "tatneft-fuel-types": (),
+    "rosneft-stations": ("rosneft-ptk",),
+    "lukoil-search": ("lukoil",),
+    "gdezapravka-full-aoi": ("gdezapravka",),
+    "tofuel-full-aoi": ("tofuel",),
+    "teboil-official": ("teboil",),
+    "kirishi-official": ("kirishiavtoservis",),
+    "telegram-benzinspb78": ("telegram-benzinspb78",),
+    "yandex-maps": ("yandex-maps",),
+    "gdebenzin24": ("gdebenzin24",),
+    "gde-benzin": ("gde-benzin",),
+    "gdebenzin-net": ("gdebenzin-net",),
+    "gdebenzfuel": ("gdebenzfuel",),
+    "tbank-fuel": ("tbank-fuel",),
+    "gdebenzi": ("gdebenzi",),
+    "own-reports": (),
+    "gpn-official": ("gazpromneft",),
+}
+
+
+def failed_sources(raw_dir: Path) -> set[str]:
+    """Sources whose collector failed on this refresh.
+
+    The raw file cannot tell: a failed collector leaves no file on the clean
+    checkout of a scheduled run and its last good file on a local disk. The
+    probe results say what happened this time. A collector switched off was
+    never expected to answer, and a skipped one is only resting on a capture
+    younger than its interval.
+    """
+    failed: set[str] = set()
+    for row in read_json(raw_dir / "full-aoi-probe-results.json", []) or []:
+        if isinstance(row, dict) and row.get("ok") is False and not row.get("disabled"):
+            failed.update(CAPTURE_SOURCES.get(str(row.get("name")), ()))
+    return failed
 
 
 def add_rows(
@@ -230,7 +284,13 @@ def prediction_row(station: dict[str, Any]) -> dict[str, Any]:
     return row
 
 
-def build(raw_dir: Path) -> dict[str, Any]:
+def build(raw_dir: Path, last_seen_path: Path | None = None) -> dict[str, Any]:
+    """Build a snapshot from the captures in ``raw_dir``.
+
+    With ``last_seen_path`` the build reads the catalogue of recently seen
+    stations there, brings back the stations a failed collector used to list,
+    and writes the catalogue for the next build.
+    """
     analysis = read_json(raw_dir / "phase0-analysis.json", {}) or {}
     snapshot_at = analysis.get("generated_at") or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     captured = capture_times(raw_dir, snapshot_at)
@@ -419,6 +479,15 @@ def build(raw_dir: Path) -> dict[str, Any]:
     ]
     # Gas pumps are not where anyone here is going to refuel.
     canonical = drop_gas_only(canonical)
+    kept = 0
+    if last_seen_path is not None:
+        # After both filters: the catalogue holds only stations that were
+        # published, and a station brought back has no evidence to judge it by.
+        canonical, catalogue, kept = carry_forward(
+            canonical, load_catalogue(last_seen_path), silent=failed_sources(raw_dir),
+            at=parse_time(snapshot_at) or datetime.now(timezone.utc),
+        )
+        save_catalogue(last_seen_path, catalogue)
     evidence_count = sum(len(station.get("evidence", [])) for station in canonical)
     mode = "live_http_snapshot" if raw_dir.name.lower() == "live" else "phase0_snapshot"
     return {
@@ -431,6 +500,10 @@ def build(raw_dir: Path) -> dict[str, Any]:
         "stats": {
             "raw_station_rows": len(rows),
             "canonical_stations": len(canonical),
+            # Of those, the stations no answering source lists: they stay on the
+            # map because a source that listed them failed on this refresh. A
+            # normal refresh has none and leaves the key out.
+            **({"stations_kept_while_sources_fail": kept} if kept else {}),
             "evidence_records": evidence_count,
             "source_rows": dict(sorted(counts.items())),
         },
@@ -442,8 +515,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw-dir", type=Path, default=ROOT / "data" / "live")
     parser.add_argument("--output", type=Path, default=ROOT / "data" / "stations.json")
+    # Stations published lately, kept between refreshes like the history.
+    parser.add_argument("--last-seen", type=Path, default=ROOT / "data" / "last-seen.json")
     args = parser.parse_args()
-    result = build(args.raw_dir.resolve())
+    result = build(args.raw_dir.resolve(), last_seen_path=args.last_seen.resolve())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result["stats"], ensure_ascii=False, indent=2))

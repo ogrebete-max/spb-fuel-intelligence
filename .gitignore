@@ -5,6 +5,7 @@ __pycache__/
 site/
 data/live/
 data/stations.json
+data/last-seen.json
 snapshot-manifest.json
 
 # Stray captures from ad-hoc research must never land in the repository.
