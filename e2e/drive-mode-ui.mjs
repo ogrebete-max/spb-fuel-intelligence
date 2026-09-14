@@ -471,8 +471,10 @@ async function run(label, browserType, device) {
   check('«Отправлено своим» lies on screen', await framed(page));
   const mine = async () => (await reports()).filter((item) => item.station === station.id && item.who === sasha.member.id);
   check('the club got «95 есть» with the queue', await eventually(async () => (await mine()).some((item) => item.grade === 'AI95' && item.seen === true && item.queue === 3), 3000));
-  await page.clock.resume();
+  // «Отменить» is pressed while the clock still stands; then time goes on. In
+  // the full chain WebKit took the rest of the five seconds to click.
   check('«Отменить» can be pressed', await tap(page, '#driveFull [data-drive="undo"]'));
+  await page.clock.resume();
   check('the club no longer has the mark', await eventually(async () => (await mine()).length === 0));
   check('nor the phone, and «Вы на АЗС» is back', await becomes(page, (id) => !Object.keys(state.marks[id] || {}).length && document.querySelector('#drive').dataset.kind === 'at' && !!document.querySelector('#driveFull [data-drive="mark"]'), station.id, 8000));
 
@@ -535,9 +537,12 @@ async function run(label, browserType, device) {
   await shot(page, { path: path.join(OUT, `drive-${label}-8-none.png`) });
 
   // 10. «Авто» by the sun: day at noon, night at half past eleven.
-  await tap(page, '#drive [data-drive="theme"]');
-  await tap(page, '#drive [data-drive="theme-mode"][data-mode="auto"]');
-  await tap(page, '#drive [data-drive="pick-close"]');
+  if (!(await page.evaluate(() => drive.pick === 'theme'))) await tap(page, '#drive [data-drive="theme"]');
+  const auto = await becomes(page, () => drive.pick === 'theme', null, 3000)
+    && await tap(page, '#drivePick [data-drive="theme-mode"][data-mode="auto"]')
+    && await becomes(page, () => drive.theme === 'auto', null, 3000);
+  if (await page.evaluate(() => drive.pick !== null)) await tap(page, '#drivePick [data-drive="pick-close"]');
+  check('«Авто» chosen in the theme sheet, and the sheet closed', auto && await becomes(page, () => drive.pick === null, null, 3000));
   const tiles = () => page.evaluate(() => getComputedStyle(document.querySelector('#driveMap .leaflet-tile-pane')).filter);
   await page.clock.setSystemTime(tomorrowAt('12:00'));
   await page.evaluate(() => applyDriveTheme());
