@@ -275,6 +275,11 @@ async function bootstrap() {
   if (touchDevice && navigator.geolocation) startFollowing({ manual: false });
   try {
     state.meta = await api('/api/meta');
+    // GitHub Pages lets a phone keep the page for ten minutes. Opened in that
+    // window after a new build, the app started on the old page and ran it until
+    // the two-minute poll noticed. meta.json is fetched fresh, so the build is
+    // compared as soon as it is in, and the page reloads onto the new one.
+    if (state.meta?.build && window.SPBFI_BUILD && state.meta.build !== window.SPBFI_BUILD && !document.hidden && reloadOnce()) return;
     renderMeta();
     // One small file with every grade for every station; the card shows all six
     // marks without downloading six full bundles.
