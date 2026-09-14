@@ -4194,6 +4194,27 @@ function refreshNearby() {
   }, Math.max(0, nearbyPaintedAt + NEARBY_REFRESH_MS - Date.now()));
 }
 
+// Drivers look for the card of the pump they stand at, and «Ближайшие
+// доступные» sank it below farther stations with fuel whenever it had no fresh
+// data or none. Where the phone is, the station it is at comes first and the
+// others within reach of a mark follow by distance; the rest keep the order
+// chosen. Worked out when the list is drawn and never as the phone moves in
+// between, so a card does not jump while a finger is on its way to it.
+function stationOrder() {
+  const phone = phonePlace();
+  if (!phone) return { stations: state.stations, pinned: 0 };
+  const hereId = stationHereId(phone, nearbyPlaces());
+  const close = state.stations
+    .filter((station) => station.location)
+    .map((station) => ({ station, metres: haversineKm(phone, station.location) * 1000 }))
+    .filter(({ station, metres }) => station.id === hereId || metres <= NEARBY_REPORT_METRES)
+    .sort((a, b) => Number(b.station.id === hereId) - Number(a.station.id === hereId) || a.metres - b.metres)
+    .map(({ station }) => station);
+  if (!close.length) return { stations: state.stations, pinned: 0 };
+  const pinned = new Set(close);
+  return { stations: [...close, ...state.stations.filter((station) => !pinned.has(station))], pinned: close.length };
+}
+
 function renderStations({ append = false } = {}) {
   // The cards carry composers and lie under the panel, so a finger on either
   // keeps the list as it is until the pause is over. «Показать ещё» is that
@@ -4221,12 +4242,18 @@ function renderStations({ append = false } = {}) {
     $('#resetFilters').addEventListener('click', resetFilters);
     return;
   }
-  if (!append) state.visible = 0;
+  // «Показать ещё» continues the order the list was drawn in.
+  if (!append) {
+    state.visible = 0;
+    state.listOrder = stationOrder();
+  }
+  const { stations, pinned } = state.listOrder || { stations: state.stations, pinned: 0 };
   const from = state.visible;
-  const to = Math.min(state.stations.length, from + PAGE_SIZE);
+  // Pinned cards are all on the first page, however many there are.
+  const to = Math.min(stations.length, from + (from ? PAGE_SIZE : Math.max(PAGE_SIZE, pinned)));
   state.visible = to;
   const fragment = document.createDocumentFragment();
-  state.stations.slice(from, to).forEach((station) => {
+  stations.slice(from, to).forEach((station) => {
     const node = $('#stationTemplate').content.cloneNode(true);
     const grade = station.grade;
     const advice = grade.advice || {};
@@ -4305,11 +4332,11 @@ function renderStations({ append = false } = {}) {
     list.replaceChildren(fragment);
   }
   paintNearby();
-  if (state.visible < state.stations.length) {
+  if (state.visible < stations.length) {
     const more = document.createElement('button');
     more.type = 'button';
     more.className = 'list-more';
-    more.textContent = `Показать ещё ${Math.min(PAGE_SIZE, state.stations.length - state.visible)} из ${(state.stations.length - state.visible).toLocaleString('ru-RU')}`;
+    more.textContent = `Показать ещё ${Math.min(PAGE_SIZE, stations.length - state.visible)} из ${(stations.length - state.visible).toLocaleString('ru-RU')}`;
     more.addEventListener('click', () => renderStations({ append: true }));
     list.appendChild(more);
   }
