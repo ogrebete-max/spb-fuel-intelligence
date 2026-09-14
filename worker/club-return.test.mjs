@@ -195,6 +195,12 @@ const challenge = async () => (await call(env, '/club/passkey/challenge')).data.
   const lapsed = await later(8 * DAY, () => join({ code, device: 'diesel-computer', returning: true }));
   assert.equal(lapsed.data.error, 'invite_used', 'a week on, the code brings nobody back');
   assert.equal(lapsed.data.returning, undefined);
+
+  // A phone the club knows gets its membership back whatever it types, and
+  // long after joining that is a return, not a first welcome.
+  const known = await later(6 * MINUTE, () => join({ code: 'ZZZZ-ZZZZ', device: 'diesel-icon' }));
+  assert.equal(known.data.member?.id, diesel.member.id);
+  assert.equal(known.data.returned, true, 'a known phone coming back is told so');
 }
 
 // ------------------------------------------------------------ a device inside shows a code for a computer: once, for ten minutes
@@ -322,6 +328,13 @@ const challenge = async () => (await call(env, '/club/passkey/challenge')).data.
   const shown = (await call(env, '/club/code', { method: 'POST', token: twin.token })).data.code;
   const owners = (await call(env, '/club/code', { method: 'POST', token: boss.token, body: { id: twin.member.id } })).data.code;
   await call(env, '/club/remove', { method: 'POST', token: boss.token, body: { id: twin.member.id } });
+  // The pass was issued seconds ago. KV may not show a brand-new member yet
+  // and keeps a fresh pass for five minutes; D1 shows every write at once, so
+  // there a pass without a member is a pass revoked — removal takes effect on
+  // the next request, not five minutes later.
+  const gone = await call(env, '/club/me', { token: twin.token });
+  if (useD1) assert.equal(gone.status, 401, 'with D1 a removed member is out at once');
+  else assert.equal(gone.status, 200, 'on KV a pass issued seconds ago is still honoured');
   assert.equal((await join({ code, device: 'twin-icon', returning: true })).data.error, 'invite_used', 'the old invitation brings nobody back');
   assert.equal((await join({ code: shown, device: 'twin-computer' })).data.error, 'invite_unknown');
   assert.equal((await join({ code: owners, device: 'twin-computer' })).data.error, 'invite_unknown');

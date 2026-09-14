@@ -131,6 +131,7 @@ await vote(masha, { vote: 'down' });
 const out = await call(env, '/club/me', { token: sasha.token });
 assert.equal(out.status, 403, 'five people: out of the club');
 assert.equal(out.data.error, 'banned');
+assert.equal(out.data.by, 'votes', 'and the phone is told it was the votes, not the owner');
 assert.match(out.data.reason, /опровергли 5 участников/);
 const excluded = await row(sasha);
 assert.deepEqual([excluded.banned, excluded.banned_by, excluded.refuted_by], [true, 'votes', 5]);
@@ -151,6 +152,7 @@ assert.equal((await row(sasha)).refuted_by, 1, 'counting starts over');
 // ------------------------------------------------------------ an owner's ban is labelled as such
 await call(env, '/club/ban', { method: 'POST', token: boss.token, body: { id: masha.member.id, banned: true, reason: 'тест' } });
 assert.equal((await row(masha)).banned_by, 'owner');
+assert.equal((await call(env, '/club/me', { token: masha.token })).data.by, undefined, 'an owner\'s ban carries no «by»');
 await call(env, '/club/ban', { method: 'POST', token: boss.token, body: { id: masha.member.id, banned: false } });
 
 // ------------------------------------------------------------ the owner is never voted out

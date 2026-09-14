@@ -1726,11 +1726,11 @@ async function renderGroupFeed() {
   box.innerHTML = `<div class="feed-head">👁 Свои сообщают <small>за последние 45 минут · это самые точные данные в приложении</small>${pushButton()}</div>${clubJoinLine()}${outboxNote()}<div class="feed-list">${cards}</div>${ownLink()}${scoutHint()}`;
   box.querySelectorAll('[data-feed-station]').forEach((item) => {
     item.addEventListener('click', (event) => {
-      if (event.target.closest('.thanks-button, .verdicts')) return;
+      if (event.target.closest('.thanks-button, .look-votes')) return;
       openStation(item.dataset.feedStation);
     });
     item.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.target.closest('.thanks-button, .verdicts')) openStation(item.dataset.feedStation);
+      if (event.key === 'Enter' && !event.target.closest('.thanks-button, .look-votes')) openStation(item.dataset.feedStation);
     });
   });
   bindThanks(box);
@@ -2238,7 +2238,8 @@ function thankTargets(stationId) {
   const me = myId();
   const byAuthor = new Map();
   for (const [grade, mark] of Object.entries(grades)) {
-    if (!mark.who || mark.who === me || !GRADE_LABELS[grade] || Date.now() - mark.at > OWN_WINDOW_MS) continue;
+    // A mark without a name came from outside the club: nobody to thank.
+    if (!mark.who || !mark.authorName || mark.who === me || !GRADE_LABELS[grade] || Date.now() - mark.at > OWN_WINDOW_MS) continue;
     const known = byAuthor.get(mark.who);
     if (!known || mark.at > known.at) {
       byAuthor.set(mark.who, { station: stationId, grade, at: mark.at, author: mark.who, name: mark.authorName, thanks: mark.thanks || 0, thanked: !!mark.thanked });
@@ -2353,28 +2354,28 @@ function verdictInner(stationId) {
   if (!state.club.enabled || !state.club.member || !state.club.features?.votes) return '';
   const here = atPumpForVote(stationId);
   return voteTargets(stationId).map((look) => {
-    if (look.mine) return look.up || look.down ? `<p class="verdict-own">Вашу отметку оценили на месте: 👍 ${look.up} · 👎 ${look.down}</p>` : '';
-    const button = (vote, icon, count, title) => `<button type="button" class="verdict-button ${vote}${look.myVote === vote ? ' mine' : ''}${here ? '' : ' away'}" data-verdict="${vote}" aria-pressed="${look.myVote === vote}" title="${title}">${icon} <b>${count}</b></button>`;
-    return `<div class="verdict" data-verdict-author="${escapeHtml(look.author)}" data-verdict-at="${look.at}">
-      <span class="verdict-label">На месте так? ${look.name ? `<b>${escapeHtml(look.name)}</b>: ` : ''}${escapeHtml(look.grades.join(', '))}</span>
+    if (look.mine) return look.up || look.down ? `<p class="look-vote-own">Вашу отметку оценили на месте: 👍 ${look.up} · 👎 ${look.down}</p>` : '';
+    const button = (vote, icon, count, title) => `<button type="button" class="look-vote-button ${vote}${look.myVote === vote ? ' mine' : ''}${here ? '' : ' away'}" data-verdict="${vote}" aria-pressed="${look.myVote === vote}" title="${title}">${icon} <b>${count}</b></button>`;
+    return `<div class="look-vote" data-verdict-author="${escapeHtml(look.author)}" data-verdict-at="${look.at}">
+      <span class="look-vote-label">На месте так? ${look.name ? `<b>${escapeHtml(look.name)}</b>: ` : ''}${escapeHtml(look.grades.join(', '))}</span>
       ${button('up', '👍', look.up, 'Подтверждаю: вижу то же самое')}
       ${button('down', '👎', look.down, 'Опровергаю: на колонках другое')}
-      <small class="verdict-hint${here ? ' here' : ''}">${here ? 'Вы на этой заправке: всё так — 👍, неправда — 👎' : '👍 👎 — только на этой заправке, в первый час после отметки'}</small>
+      <small class="look-vote-hint${here ? ' here' : ''}">${here ? 'Вы на этой заправке: всё так — 👍, неправда — 👎' : '👍 👎 — только на этой заправке, в первый час после отметки'}</small>
     </div>`;
   }).join('');
 }
 
 function verdictButtons(stationId) {
   const inner = verdictInner(stationId);
-  return inner ? `<div class="verdicts" data-verdicts-station="${escapeHtml(stationId)}" data-here="${atPumpForVote(stationId)}">${inner}</div>` : '';
+  return inner ? `<div class="look-votes" data-verdicts-station="${escapeHtml(stationId)}" data-here="${atPumpForVote(stationId)}">${inner}</div>` : '';
 }
 
 function bindVerdicts(root) {
-  root.querySelectorAll('.verdicts [data-verdict]').forEach((button) => {
+  root.querySelectorAll('.look-votes [data-verdict]').forEach((button) => {
     button.addEventListener('click', (event) => {
       event.stopPropagation();
-      const look = button.closest('.verdict');
-      const station = button.closest('.verdicts').dataset.verdictsStation;
+      const look = button.closest('.look-vote');
+      const station = button.closest('.look-votes').dataset.verdictsStation;
       sendVerdict({ station, author: look.dataset.verdictAuthor, at: Number(look.dataset.verdictAt) }, button.dataset.verdict, button);
     });
   });
@@ -2384,7 +2385,7 @@ function bindVerdicts(root) {
 // vote or the phone arriving at the pump. Redrawn only when something changed,
 // so a finger on the way to a button does not lose it.
 function refreshVerdicts(stationId = null, { force = false } = {}) {
-  document.querySelectorAll('.verdicts').forEach((holder) => {
+  document.querySelectorAll('.look-votes').forEach((holder) => {
     const id = holder.dataset.verdictsStation;
     if (stationId && id !== stationId) return;
     const here = String(atPumpForVote(id));
@@ -2411,7 +2412,7 @@ function placeForVote() {
 async function sendVerdict(target, vote, button) {
   const look = voteTargets(target.station).find((item) => item.author === target.author && item.at === target.at);
   if (!look || look.myVote === vote) return;
-  const buttons = [...(button.closest('.verdict')?.querySelectorAll('[data-verdict]') || [button])];
+  const buttons = [...(button.closest('.look-vote')?.querySelectorAll('[data-verdict]') || [button])];
   const release = () => buttons.forEach((item) => { item.disabled = false; });
   buttons.forEach((item) => { item.disabled = true; });
   const place = await placeForVote();
@@ -2458,14 +2459,6 @@ function profileCard(profile) {
   const { level, counts = {} } = profile;
   const span = level.next ? level.next.min - level.min : 1;
   const progress = level.next ? Math.round(100 * (profile.liters - level.min) / span) : 100;
-  const earned = profile.badges.filter((badge) => badge.earned).length;
-  const badges = profile.badges.map((badge) => `<div class="badge${badge.earned ? ' earned' : ''}">
-      <span class="badge-icon">${badge.icon}</span><b>${escapeHtml(badge.title)}</b>
-      <small>${badge.earned ? `получен ${formatDay(badge.earned)}` : escapeHtml(badge.hint)}</small>
-    </div>`).join('');
-  const awards = (profile.awards || []).length
-    ? `<h3 class="section-title">Благодарности клуба</h3><div class="source-list">${profile.awards.map((award) => `<div class="source-row"><strong>🏅 ${escapeHtml(award.text)}</strong><small>${formatDay(award.at)}</small></div>`).join('')}</div>`
-    : '';
   return `<section class="tank-card">
       <div class="tank-head">
         <span class="tank-icon">${level.icon}</span>
@@ -2480,10 +2473,24 @@ function profileCard(profile) {
         <span><b>${counts.thanks || 0}</b>спасибо</span>
         <span><b>${counts.saved || 0}</b>сберёг поездок</span>
       </div>
-    </section>
-    <h3 class="section-title">Значки · ${earned} из ${profile.badges.length}</h3>
+    </section>`;
+}
+
+// Folded: fourteen badge tiles pushed «Пригласить» and «Участники» a screen
+// and a half down on a phone, and the owner opens the club for those.
+function badgesSection(profile) {
+  if (!profile?.badges) return '';
+  const earned = profile.badges.filter((badge) => badge.earned).length;
+  const badges = profile.badges.map((badge) => `<div class="badge${badge.earned ? ' earned' : ''}">
+      <span class="badge-icon">${badge.icon}</span><b>${escapeHtml(badge.title)}</b>
+      <small>${badge.earned ? `получен ${formatDay(badge.earned)}` : escapeHtml(badge.hint)}</small>
+    </div>`).join('');
+  const awards = (profile.awards || []).length
+    ? `<h3 class="section-title">Благодарности клуба</h3><div class="source-list">${profile.awards.map((award) => `<div class="source-row"><strong>🏅 ${escapeHtml(award.text)}</strong><small>${formatDay(award.at)}</small></div>`).join('')}</div>`
+    : '';
+  return `<details class="badges-fold"><summary>Значки · ${earned} из ${profile.badges.length}</summary>
     <div class="badge-grid">${badges}</div>
-    ${awards}
+    ${awards}</details>
     <details class="earn-help">
       <summary>Как заработать рукопожатия 🤝</summary>
       <ul>
@@ -2835,24 +2842,31 @@ function inviteFromUrl() {
 
 // Any club call answered with "not a member" or "banned" lands here, so the
 // phone never keeps pretending to be inside.
+// What a phone whose pass stopped working can do about it.
+function wayBackIn() {
+  if (!state.club.features?.returning) return 'Попросите у своих новое приглашение.';
+  return 'Если вы в клубе — войдите снова: «🔑 Я уже в клубе», тот же код приглашения или код с другого своего устройства. Не получается — попросите у своих новое приглашение.';
+}
+
 function handleClubRejection(result) {
   if (!state.club.enabled) return false;
   const banned = result.status === 403 && result.data?.error === 'banned';
   if (result.status !== 401 && !banned) return false;
   forgetClub();
+  const byVotes = banned && result.data?.by === 'votes';
   if (state.club.mode !== 'closed') {
     // Until the door is closed a phone that is no longer inside simply goes
     // back to the ordinary app.
     state.club.enabled = false;
     renderGroupFeed();
     showToast(
-      banned ? 'Владелец клуба закрыл вам доступ' : 'Вход в клуб на этом телефоне больше не действует',
-      banned ? `${result.data.reason ? `Причина: ${result.data.reason}. ` : ''}Приложение работает как раньше.` : 'Попросите у своих новое приглашение.',
+      byVotes ? 'Вы выбыли из клуба' : banned ? 'Владелец клуба закрыл вам доступ' : 'Вход в клуб на этом телефоне больше не действует',
+      banned ? `${result.data.reason ? `${byVotes ? '' : 'Причина: '}${result.data.reason}. ` : ''}Приложение работает как раньше.` : wayBackIn(),
     );
     return true;
   }
-  if (banned) showClubGate({ banned: result.data.reason || '' });
-  else showClubGate({ notice: 'Вход на этом телефоне больше не действует. Попросите у своих новое приглашение.' });
+  if (banned) showClubGate({ banned: result.data.reason || '', bannedBy: result.data.by || 'owner' });
+  else showClubGate({ notice: `Вход на этом телефоне больше не действует. ${wayBackIn()}` });
   return true;
 }
 
@@ -2969,7 +2983,13 @@ async function openClubEntry() {
 }
 
 function clubJoinLine() {
-  if (state.club.mode !== 'invite' || state.club.enabled) return '';
+  if (state.club.enabled) return '';
+  // While the club is a test the line is offered only where the invitation
+  // cannot follow on its own: an iPhone's home-screen app keeps its storage
+  // apart from Safari, so a person who opened the link there and installed the
+  // app has only the icon and a code — and needs a door to put it in.
+  const offered = state.club.mode === 'invite' || (state.club.mode === 'test' && platformInfo().iOS && standalone());
+  if (!offered) return '';
   return '<div class="feed-club-join">👥 Есть приглашение в клуб своих? <button type="button" data-club-join>Вступить</button></div>';
 }
 
@@ -3042,7 +3062,7 @@ function hideClubGate() {
   document.body.classList.remove('club-locked');
 }
 
-function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
+function showClubGate({ notice = '', banned = null, bannedBy = 'owner', mode = 'join' } = {}) {
   const gate = $('#clubGate');
   if (!gate) return;
   closeDrawer();
@@ -3053,12 +3073,16 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
   const installFirst = iOS && !standalone() && mode === 'join';
   const rules = `<div class="gate-rules"><strong>Правила клуба</strong><ol>${clubRules().map((rule) => `<li>${escapeHtml(rule)}</li>`).join('')}</ol></div>`;
   const alertBox = banned != null
-    ? `<div class="gate-alert"><strong>Владелец клуба закрыл вам доступ.</strong>${banned ? ` Причина: ${escapeHtml(banned)}.` : ''}</div>`
+    ? (bannedBy === 'votes'
+      ? `<div class="gate-alert"><strong>Вы выбыли из клуба.</strong> ${escapeHtml(banned ? `${banned.charAt(0).toUpperCase()}${banned.slice(1)}` : 'Ваши отметки опровергли пять участников')}. Вернуть в клуб может владелец.</div>`
+      : `<div class="gate-alert"><strong>Владелец клуба закрыл вам доступ.</strong>${banned ? ` Причина: ${escapeHtml(banned)}.` : ''}</div>`)
     : notice ? `<div class="gate-alert">${escapeHtml(notice)}</div>` : '';
+  // Once installed, the app opens the door itself: the gate when the club is
+  // closed, the «Есть приглашение?» line before that.
   const install = installFirst ? `<div class="gate-install">
       <strong>Сначала установите приложение</strong>
       <p>Вход в ${inAppBrowser ? 'этом браузере' : 'Safari'} не переносится в приложение на экране «Домой», поэтому код вводится уже в нём.</p>
-      <ol>${inAppBrowser ? '<li>Откройте эту ссылку в <b>Safari</b>.</li>' : ''}<li>Нажмите «Поделиться» — квадрат со стрелкой вверх.</li><li>Выберите <b>«На экран „Домой“»</b> и нажмите «Добавить».</li><li>Откройте приложение с иконки и введите код там.</li></ol>
+      <ol>${inAppBrowser ? '<li>Откройте эту ссылку в <b>Safari</b>.</li>' : ''}<li>Нажмите «Поделиться» — квадрат со стрелкой вверх.</li><li>Выберите <b>«На экран „Домой“»</b> и нажмите «Добавить».</li><li>Откройте приложение с иконки: оно ${state.club.mode === 'closed' ? 'сразу попросит код' : 'предложит вступить — строчка «Есть приглашение?» вверху'}. Введите код там.</li></ol>
       ${code ? `<p class="gate-code-line">Ваш код: <b>${escapeHtml(code)}</b><button type="button" id="gateCopyCode">Скопировать</button></p>` : ''}
     </div>` : '';
   const form = mode === 'owner'
@@ -3118,8 +3142,8 @@ function showClubGate({ notice = '', banned = null, mode = 'join' } = {}) {
   });
   // The owner's way in is not on the card, where invited people took it for
   // theirs: five quick taps on its title.
-  onFiveTaps($('#gateTitle'), () => showClubGate({ notice, banned, mode: 'owner' }));
-  $('#gateBack')?.addEventListener('click', () => showClubGate({ notice, banned, mode: 'join' }));
+  onFiveTaps($('#gateTitle'), () => showClubGate({ notice, banned, bannedBy, mode: 'owner' }));
+  $('#gateBack')?.addEventListener('click', () => showClubGate({ notice, banned, bannedBy, mode: 'join' }));
   // An invitation copied from a messenger arrives as one long message; the code
   // inside it is picked out, so nobody has to copy it letter by letter.
   $('#gateCode')?.addEventListener('input', (event) => {
@@ -3162,7 +3186,10 @@ async function enterClub(path, body, button, { busy = '', passkey = false } = {}
         else if (error) error.textContent = CLUB_ERRORS.not_your_code;
         return;
       }
-      if (error) error.textContent = clubMessage(result);
+      // The code was accepted and only the name is missing: say that, not
+      // «введите код и имя» over a code that is plainly there.
+      const nameless = result.data?.error === 'expected_code_and_name' && path === '/club/join' && String(body.code || '').trim() && !String(body.name || '').trim();
+      if (error) error.textContent = nameless ? 'Код принят. Напишите, как вас называть.' : clubMessage(result);
       return;
     }
     try {
@@ -3317,8 +3344,7 @@ async function showClub() {
     <p class="drawer-address">Вы в клубе как <b>${escapeHtml(member.name)}</b>${owner ? ' · владелец' : ''}.</p>
     ${me.data.chat_url ? `<a class="list-more club-chat" href="${escapeHtml(me.data.chat_url)}" target="_blank" rel="noopener noreferrer">💬 Чат клуба в Telegram</a>` : ''}
     ${profileCard(profile)}
-    ${me.data.refuted_by ? `<div class="drawer-status" style="--status-color:#b8333a"><strong>👎 Ваши отметки опровергли: ${me.data.refuted_by} ${plural(me.data.refuted_by, 'человек', 'человека', 'человек')} из 5</strong><p>Так решили участники, которые сами были на тех заправках. Отмечайте только то, что видите на колонках: после пяти разных людей — выбывание из клуба.</p></div>` : ''}
-    <div id="clubBoard"></div>
+    ${me.data.refuted_by ? `<div class="drawer-status" style="--status-color:#b8333a"><strong>👎 Ваши отметки опровергли: ${me.data.refuted_by} ${plural(me.data.refuted_by, 'человек', 'человека', 'человек')}${owner ? '' : ' из 5'}</strong><p>Так решили участники, которые сами были на тех заправках. ${owner ? 'Владельца из клуба не выводят, но это повод перепроверить.' : 'Отмечайте только то, что видите на колонках: после пяти разных людей — выбывание из клуба.'}</p></div>` : ''}
     <div class="drawer-status" style="--status-color:#0d5a43">
       <strong>Пригласить человека</strong>
       <p>Только того, за кого ручаетесь: за ложные отметки исключают, а пригласивший отвечает за приглашённого. Код пускает одного человека и действует 7 дней.${owner ? '' : ` Осталось приглашений: <b>${Number(left) || 0}</b>.`}</p>
@@ -3330,6 +3356,8 @@ async function showClub() {
     <h3 class="section-title">Мои приглашения</h3>
     <div class="source-list">${inviteRows}</div>
     ${owner ? '<h3 class="section-title">Участники</h3><div id="clubMembers" class="source-list"><div class="loading-state">Загружаем участников…</div></div>' : ''}
+    <div id="clubBoard"></div>
+    ${badgesSection(profile)}
     ${loginSection(me.data.passkeys || 0)}
     <details class="club-howto">
       <summary>Как пользоваться клубом</summary>
@@ -3381,7 +3409,7 @@ async function showClub() {
     // It used to say a new invitation would be needed, which scared people
     // into staying signed in on shared devices; the way back is spelled out.
     const way = owner
-      ? 'Вернуться можно ключом владельца: пять быстрых касаний по заголовку.'
+      ? 'Вернуться можно ключом владельца: пять быстрых касаний по заголовку «Топливо СПб — для своих» на экране входа.'
       : me.data.passkeys
         ? `Вернуться можно по ${unlockWords()}: на экране входа — «🔑 Я уже в клубе».`
         : state.club.features?.returning

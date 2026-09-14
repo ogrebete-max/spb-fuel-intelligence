@@ -1051,7 +1051,15 @@ async function clubMember(request, env, members = null) {
   if (!constantEqual(signature, await clubSign(env, `${id}.${issued}`))) return null;
   const list = members || await readDoc(env, 'club:members', {});
   if (list[id]) return list[id];
-  return Date.now() - parseInt(issued, 36) < FRESH_TOKEN_GRACE_MS ? { id, name: '', role: 'member', pending: true } : null;
+  // Only KV can still be missing a member who joined a moment ago; D1 shows
+  // every write at once, so there a pass without a member is a pass revoked —
+  // on 14 Sep 2026 a removed member kept reading the club for five minutes.
+  return !env.DB && Date.now() - parseInt(issued, 36) < FRESH_TOKEN_GRACE_MS ? { id, name: '', role: 'member', pending: true } : null;
+}
+
+// Refused as banned, saying who did it: the owner, or five people at the pumps.
+function bannedBody(member) {
+  return { error: 'banned', reason: member.banned_reason || '', ...(member.banned_by === 'votes' ? { by: 'votes' } : {}) };
 }
 
 function inviteCode() {
@@ -1324,15 +1332,17 @@ async function clubRoutes(request, env, url, ctx) {
       // owner trying again with a second code — gets that membership back
       // instead of a twin. On 13 Sep 2026 one person became two members so.
       const again = device ? Object.values(members).find((item) => item.role !== 'owner' && knowsDevice(item, device)) : null;
-      if (again?.banned) return { error: 'banned', status: 403, reason: again.banned_reason || '' };
-      if (again) return { member: again };
+      if (again?.banned) return { ...bannedBody(again), status: 403 };
+      // A phone that joined minutes ago lost the answer on the way; one that
+      // joined long ago is coming back.
+      if (again) return { member: again, returned: now - (again.joined || 0) > 5 * 60 * 1000 };
       if (!invite || invite.revoked) return { error: 'invite_unknown', status: 404 };
       if (invite.for) {
         // A code for getting back in, shown by the member's own device or made
         // by the owner: it works once and only while it runs.
         const target = members[invite.for];
         if (!target) return { error: 'invite_unknown', status: 404 };
-        if (target.banned) return { error: 'banned', status: 403, reason: target.banned_reason || '' };
+        if (target.banned) return { ...bannedBody(target), status: 403 };
         if (invite.used_by) return { error: 'login_code_used', status: 409 };
         if (invite.expires < now) return { error: 'login_code_expired', status: 410 };
         invite.used_by = target.id;
@@ -1366,7 +1376,11 @@ async function clubRoutes(request, env, url, ctx) {
       return { member: members[id] };
     });
     if (joined.error) {
-      const extra = { ...(joined.reason != null ? { reason: joined.reason } : {}), ...(joined.returning != null ? { returning: joined.returning } : {}) };
+      const extra = {
+        ...(joined.reason != null ? { reason: joined.reason } : {}),
+        ...(joined.by ? { by: joined.by } : {}),
+        ...(joined.returning != null ? { returning: joined.returning } : {}),
+      };
       return json({ error: joined.error, ...extra }, request, env, joined.status);
     }
     return json({ token: await issueToken(env, joined.member.id), member: publicMember(joined.member), ...(joined.returned ? { returned: true } : {}) }, request, env);
@@ -1407,14 +1421,14 @@ async function clubRoutes(request, env, url, ctx) {
       });
       return json({ error: 'passkey_unknown' }, request, env, 404);
     }
-    if (who.banned) return json({ error: 'banned', reason: who.banned_reason || '' }, request, env, 403);
+    if (who.banned) return json(bannedBody(who), request, env, 403);
     return json({ token: await issueToken(env, who.id), member: publicMember(who), returned: true }, request, env);
   }
 
   const members = await readDoc(env, 'club:members', {});
   const member = await clubMember(request, env, members);
   if (!member) return json({ error: 'club_required' }, request, env, 401);
-  if (member.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
+  if (member.banned) return json(bannedBody(member), request, env, 403);
 
   if (request.method === 'GET' && path === '/club/me') {
     const { 'club:invites': invites, 'club:stats': all, 'club:passkeys': keys, 'club:settings': settings } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {}, 'club:passkeys': {}, 'club:settings': {} });
@@ -2007,7 +2021,7 @@ async function route(request, env, ctx) {
     let clubWho = null;
     if (clubEnabled(env)) {
       const member = await clubMember(request, env);
-      if (member?.banned) return json({ error: 'banned', reason: member.banned_reason || '' }, request, env, 403);
+      if (member?.banned) return json(bannedBody(member), request, env, 403);
       if (member) clubWho = member.id;
       else if (clubClosed(env)) return json({ error: 'club_required' }, request, env, 401);
     }
@@ -2060,7 +2074,7 @@ async function route(request, env, ctx) {
     let clubMemberRecord = null;
     if (clubEnabled(env)) {
       clubMemberRecord = await clubMember(request, env);
-      if (clubMemberRecord?.banned) return json({ error: 'banned', reason: clubMemberRecord.banned_reason || '' }, request, env, 403);
+      if (clubMemberRecord?.banned) return json(bannedBody(clubMemberRecord), request, env, 403);
       // Until the door is closed a phone outside the club marks as it always did.
       if (!clubMemberRecord && clubClosed(env)) return json({ error: 'club_required' }, request, env, 401);
     }

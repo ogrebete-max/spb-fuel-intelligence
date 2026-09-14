@@ -130,13 +130,13 @@ async function run(label, browserType, phoneDevice) {
   check('Sasha marked the pump', marked.status === 200);
   const litersBefore = (await api('/club/me', { token: sasha.token })).data.profile.liters;
   await voter.evaluate(() => pollGroupMarks());
-  check('the feed offers 👍 and 👎 on Sasha\'s mark', await becomes(voter, () => !!document.querySelector('#groupFeed .verdicts [data-verdict="up"]')));
-  check('and says where they work', (await voter.textContent('#groupFeed .verdict-hint')).includes('только на этой заправке'));
-  check('the buttons look asleep away from the pump', await voter.evaluate(() => document.querySelector('#groupFeed .verdict-button.up').classList.contains('away')));
+  check('the feed offers 👍 and 👎 on Sasha\'s mark', await becomes(voter, () => !!document.querySelector('#groupFeed .look-votes [data-verdict="up"]')));
+  check('and says where they work', (await voter.textContent('#groupFeed .look-vote-hint')).includes('только на этой заправке'));
+  check('the buttons look asleep away from the pump', await voter.evaluate(() => document.querySelector('#groupFeed .look-vote-button.up').classList.contains('away')));
   await voter.evaluate(() => document.querySelector('#groupFeed').scrollIntoView());
   await voter.screenshot({ path: path.join(OUT, `votes-${label}-1-away.png`) });
 
-  await voter.click('#groupFeed .verdict-button.up');
+  await voter.click('#groupFeed .look-vote-button.up');
   check('a tap away from the pump explains instead of voting', await becomes(voter, () => document.querySelector('#toastStack')?.textContent.includes('только на этой заправке')));
   const reportsNow = async () => (await api('/club/reports', { token: boss.token })).data.reports.filter((report) => report.station === pump.id);
   check('nothing was counted', (await reportsNow()).every((report) => report.up === 0 && report.down === 0));
@@ -145,25 +145,25 @@ async function run(label, browserType, phoneDevice) {
   // At the pump.
   await voterContext.setGeolocation({ latitude: pump.lat + 0.0005, longitude: pump.lon, accuracy: 15 });
   await voter.evaluate(() => refreshLocation({ manual: true }));
-  check('at the pump the buttons wake up', await becomes(voter, () => !!document.querySelector('#groupFeed .verdict-hint.here') && !document.querySelector('#groupFeed .verdict-button.up.away')));
+  check('at the pump the buttons wake up', await becomes(voter, () => !!document.querySelector('#groupFeed .look-vote-hint.here') && !document.querySelector('#groupFeed .look-vote-button.up.away')));
   await voter.screenshot({ path: path.join(OUT, `votes-${label}-2-here.png`) });
-  await voter.click('#groupFeed .verdict-button.up');
-  check('👍 is counted on the spot', await becomes(voter, () => document.querySelector('#groupFeed .verdict-button.up.mine b')?.textContent === '1'));
+  await voter.click('#groupFeed .look-vote-button.up');
+  check('👍 is counted on the spot', await becomes(voter, () => document.querySelector('#groupFeed .look-vote-button.up.mine b')?.textContent === '1'));
   check('the worker has it on both grades', (await reportsNow()).every((report) => report.up === 1));
   check('Sasha is paid +3 🤝', (await api('/club/me', { token: sasha.token })).data.profile.liters === litersBefore + 3);
 
   let asked = '';
   voter.once('dialog', (dialog) => { asked = dialog.message(); return dialog.accept(); });
-  await voter.click('#groupFeed .verdict-button.down');
-  check('👎 asks first and names the stakes', await becomes(voter, () => document.querySelector('#groupFeed .verdict-button.down.mine b')?.textContent === '1') && asked.includes('Пять 👎'));
-  check('the 👍 moved to 👎', (await voter.textContent('#groupFeed .verdict-button.up b')) === '0');
+  await voter.click('#groupFeed .look-vote-button.down');
+  check('👎 asks first and names the stakes', await becomes(voter, () => document.querySelector('#groupFeed .look-vote-button.down.mine b')?.textContent === '1') && asked.includes('Пять 👎'));
+  check('the 👍 moved to 👎', (await voter.textContent('#groupFeed .look-vote-button.up b')) === '0');
   await voter.screenshot({ path: path.join(OUT, `votes-${label}-3-refuted.png`) });
 
   // Sasha sees the tally, not buttons, on his own mark.
   const { page: author } = await open(devices['Desktop Chrome'], sasha, 'author');
   await author.evaluate(() => pollGroupMarks());
-  check('the author sees how the mark was judged', await becomes(author, () => document.querySelector('#groupFeed .verdict-own')?.textContent.includes('👎 1')));
-  check('and cannot vote on it', await author.evaluate(() => !document.querySelector('#groupFeed .verdict-button')));
+  check('the author sees how the mark was judged', await becomes(author, () => document.querySelector('#groupFeed .look-vote-own')?.textContent.includes('👎 1')));
+  check('and cannot vote on it', await author.evaluate(() => !document.querySelector('#groupFeed .look-vote-button')));
 
   // Two more people at the pump: a warning.
   const at = (await reportsNow())[0].at;

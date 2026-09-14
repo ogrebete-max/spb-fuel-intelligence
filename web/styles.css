@@ -565,6 +565,10 @@ body.club-locked { overflow: hidden; }
 .gate-remember .remember-note { color: #ffd9a8; }
 .club-login .list-more { margin-top: 8px; }
 .club-login .remember-note { color: #a52a2a; }
+.badges-fold { margin: 14px 0 6px; }
+.badges-fold > summary { padding: 10px 0; font-weight: 800; font-size: 15px; cursor: pointer; list-style: none; }
+.badges-fold > summary::before { content: '▸ '; }
+.badges-fold[open] > summary::before { content: '▾ '; }
 .club-howto { margin: 16px 0 4px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
 .club-howto summary { font-weight: 800; cursor: pointer; }
 .club-howto ol { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
@@ -583,7 +587,13 @@ body.club-locked { overflow: hidden; }
 .feed-club-join { margin: 0 0 8px; padding: 10px 14px; border-radius: 12px; background: rgba(13, 51, 40, .07); color: var(--brand-dark, #0d3328); font-size: 14px; font-weight: 600; }
 .feed-club-join button { margin-left: 6px; padding: 6px 12px; border-radius: 999px; border: 0; background: var(--brand-dark, #0d3328); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 #heroTitle { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-.club-button { min-height: 38px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 800; font-size: 13px; cursor: pointer; }
+/* Next to «Установить» on a 375 px phone the pill broke into three lines
+   (🔰 / 0 / 🤝); it stays one line and the brand name gives way instead. */
+.club-button { min-height: 38px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 800; font-size: 13px; white-space: nowrap; flex: 0 0 auto; cursor: pointer; }
+.topbar .brand { min-width: 0; }
+.topbar .brand > span:last-child { min-width: 0; overflow: hidden; }
+.topbar .brand strong { white-space: nowrap; }
+.topbar .brand small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .club-code { display: grid; gap: 4px; margin-top: 12px; padding: 16px; border-radius: 14px; background: #0d3328; color: #fff; text-align: center; }
 .club-code span, .club-code small { color: rgba(255, 255, 255, .72); font-size: 12px; }
 .club-code b { font-size: 30px; letter-spacing: .12em; color: #c9f06b; }
@@ -598,7 +608,10 @@ body.club-locked { overflow: hidden; }
 .club-leave { margin-top: 18px; }
 @media (max-width: 480px) {
   /* Three buttons and the brand do not fit a phone's top bar side by side. */
+  .topbar { padding-left: calc(14px + env(safe-area-inset-left, 0px)); padding-right: calc(14px + env(safe-area-inset-right, 0px)); }
+  .topbar .brand { gap: 8px; }
   .club-button { padding: 0 9px; font-size: 13px; }
+  .install-button { padding: 8px 9px; font-size: 11px; }
   .topbar-actions { gap: 6px; }
 }
 
@@ -607,18 +620,19 @@ body.club-locked { overflow: hidden; }
 .thanks-button { justify-self: start; margin-top: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid #1f7a4d; background: #fff; color: #1f7a4d; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .thanks-button.done { border-color: transparent; background: rgba(31, 122, 77, .1); color: #3b6b53; cursor: default; }
 .drawer-mark .thanks-button { margin-top: 10px; }
-.verdicts { display: grid; gap: 8px; margin-top: 8px; }
-.verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border-radius: 12px; background: rgba(13, 51, 40, .05); }
-.verdict-label { flex: 1 1 100%; font-size: 13px; color: var(--ink); }
-.verdict-button { min-height: 40px; padding: 4px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-size: 16px; cursor: pointer; }
-.verdict-button b { margin-left: 2px; font-weight: 800; }
-.verdict-button.up.mine { background: #e3f4ea; border-color: #158257; }
-.verdict-button.down.mine { background: #fbe7e8; border-color: #b8333a; }
-.verdict-button.away { opacity: .5; }
-.verdict-button:disabled { opacity: .35; }
-.verdict-hint { flex: 1 1 100%; font-size: 12px; color: var(--muted); }
-.verdict-hint.here { color: #0d5a43; font-weight: 700; }
-.verdict-own { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.look-votes { display: grid; gap: 8px; margin-top: 8px; }
+/* 👍/👎 on a look; not the card's own «verdict» line above. */
+.look-vote { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border-radius: 12px; background: rgba(13, 51, 40, .05); }
+.look-vote-label { flex: 1 1 100%; font-size: 13px; color: var(--ink); }
+.look-vote-button { min-height: 40px; padding: 4px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-size: 16px; cursor: pointer; }
+.look-vote-button b { margin-left: 2px; font-weight: 800; }
+.look-vote-button.up.mine { background: #e3f4ea; border-color: #158257; }
+.look-vote-button.down.mine { background: #fbe7e8; border-color: #b8333a; }
+.look-vote-button.away { opacity: .5; }
+.look-vote-button:disabled { opacity: .35; }
+.look-vote-hint { flex: 1 1 100%; font-size: 12px; color: var(--muted); }
+.look-vote-hint.here { color: #0d5a43; font-weight: 700; }
+.look-vote-own { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 .tank-card { margin: 14px 0 6px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #0d3328, #1f5c45); color: #fff; }
 .tank-head { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
 .tank-icon { font-size: 40px; line-height: 1; }

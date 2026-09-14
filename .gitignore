@@ -13,3 +13,6 @@ snapshot-manifest.json
 # Browser checks: dependencies and screenshots stay local.
 e2e/node_modules/
 e2e/shots/
+
+# Claude Code worktrees and the local dev-server config for its browser pane.
+.claude/

@@ -87,8 +87,12 @@ async function run(label, browserType, device) {
   pages.push(stranger);
   check('the app learns the club is a test', await settled(stranger, 'test'));
   await stranger.waitForSelector('.station-card', { timeout: 30000 });
-  check('a phone outside it sees no gate, no club button and no invite line',
-    await stranger.isHidden('#clubGate') && await stranger.isHidden('#clubButton') && (await stranger.locator('[data-club-join]').count()) === 0);
+  // An iPhone's home-screen app cannot inherit the invitation link opened in
+  // Safari, so there the line «Есть приглашение?» is the only door during the
+  // test; on Android the link itself opens the door and nothing is shown.
+  const iPhone = /iPhone/.test(device.userAgent || '');
+  check(`a phone outside it sees no gate and no club button${iPhone ? '; the installed iPhone app offers the invitation line' : ', and no invite line'}`,
+    await stranger.isHidden('#clubGate') && await stranger.isHidden('#clubButton') && (await stranger.locator('[data-club-join]').count()) === (iPhone ? 1 : 0));
 
   // A phone that has not reached the club yet is not told the club is off
   // (14 Sep 2026: «Клуб пока не включён» on a weak connection).

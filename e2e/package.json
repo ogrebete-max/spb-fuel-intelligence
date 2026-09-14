@@ -19,6 +19,7 @@
     "coarse": "node coarse-location-ui.mjs",
     "d1": "node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1",
     "live": "node live-open.mjs",
+    "audit": "node audit-server.mjs",
     "all": "node field-ui.mjs && node own-mode-ui.mjs && node race-ui.mjs && node club-ui.mjs && node club-rewards-ui.mjs && node scout-ui.mjs && node outbox-ui.mjs && node far-away-ui.mjs && node club-test-mode-ui.mjs && node club-return-ui.mjs && node club-votes-ui.mjs && node club-invites-ui.mjs && node coarse-location-ui.mjs && node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1"
   },
   "devDependencies": {

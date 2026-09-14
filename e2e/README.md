@@ -17,4 +17,10 @@ flows a second time against D1 (`npm run d1`), the storage the worker is meant t
 
 Worker checks without a browser: `node worker/run-tests.mjs` runs every suite on KV and on D1.
 
+To walk through the club by hand, `npm run audit` serves the built site with an in-process
+worker on two origins — `http://localhost:8971/` and `http://127.0.0.1:8973/` — so one browser
+can be the owner on one and a member on the other (owner key `audit-owner-key`).
+`?geo=lat,lon,accuracy` fakes the phone's place, `/__audit/gate?mode=closed|invite|test`
+switches the stage, `/__audit/state` shows what the worker stores.
+
 Screenshots land in `e2e/shots/`, which is not committed.
