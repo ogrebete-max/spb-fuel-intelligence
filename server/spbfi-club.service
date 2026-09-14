@@ -1,0 +1,51 @@
+# The club server: worker/spbfi-reports.js on Node with its data in SQLite.
+# It listens on 127.0.0.1:8787 only; Caddy brings the phones to it.
+[Unit]
+Description=SPB Fuel club server
+After=network-online.target
+Wants=network-online.target
+# Keep restarting however often it fails: a club without its server is worse
+# than a noisy journal.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=spbfi
+Group=spbfi
+# Root-only file with hashes and settings; systemd reads it before dropping to spbfi.
+EnvironmentFile=/etc/spbfi/env
+Environment=SPBFI_DB=/var/lib/spbfi/club.sqlite HOST=127.0.0.1 PORT=8787
+WorkingDirectory=/opt/spbfi-club/current
+ExecStart=/usr/local/bin/node --disable-warning=ExperimentalWarning server/main.mjs
+Restart=always
+RestartSec=2
+# The server spends up to 15 s letting pushes in flight go out.
+TimeoutStopSec=25
+UMask=0077
+
+# The server needs its database folder and the network, nothing more.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/spbfi
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=400M
+# No MemoryDenyWriteExecute: V8 compiles JavaScript to machine code while it
+# runs and needs memory that is both writable and executable.
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,40 @@
+# Caddy in front of the club server. install.sh writes this file to
+# /etc/caddy/Caddyfile with @IP@ replaced by the server's address.
+#
+# There is no domain: phones reach the club by the bare IP address. Let's
+# Encrypt certifies a bare IP only under its short-lived profile, about six
+# days, and Caddy renews such a certificate by itself well before it expires.
+{
+	servers {
+		# HTTP/1.1 and HTTP/2 only. QUIC (HTTP/3 over UDP) is often blocked on
+		# Russian networks, and a phone trying it first would only wait.
+		protocols h1 h2
+	}
+}
+
+http://@IP@ {
+	redir https://@IP@{uri} 308
+}
+
+https://@IP@ {
+	tls {
+		issuer acme {
+			profile shortlived
+		}
+	}
+	# The app sends small JSON; a body this large is not from it.
+	request_body {
+		max_size 1MB
+	}
+	encode gzip
+	reverse_proxy 127.0.0.1:8787 {
+		# The address Caddy saw. server/http.mjs takes the last entry of this
+		# header as the visitor, so it must be Caddy's own.
+		header_up X-Forwarded-For {remote_host}
+		# The club server holds an idle connection for 35 s. Caddy lets go
+		# after 30, so it never sends a request down one being closed.
+		transport http {
+			keepalive 30s
+		}
+	}
+}

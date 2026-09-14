@@ -1,0 +1,8 @@
+# The club server's scripts, systemd units and Caddyfile run on Linux (and
+# remote.sh in Git Bash), where a carriage return at a line's end breaks them.
+# A Windows checkout with core.autocrlf would otherwise write CRLF, and
+# server/remote.sh uploads the files exactly as they are checked out.
+server/*.sh text eol=lf
+server/*.service text eol=lf
+server/*.timer text eol=lf
+server/Caddyfile text eol=lf

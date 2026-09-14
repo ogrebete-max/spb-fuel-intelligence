@@ -1,0 +1,25 @@
+# Caddy, after the project's own unit
+# (https://github.com/caddyserver/dist/blob/master/init/caddy.service), with the
+# binary in /usr/local/bin. Certificates live in the caddy user's home,
+# /var/lib/caddy.
+[Unit]
+Description=Caddy
+Documentation=https://caddyserver.com/docs/
+After=network.target network-online.target
+Requires=network-online.target
+
+[Service]
+Type=notify
+User=caddy
+Group=caddy
+ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile
+ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
+TimeoutStopSec=5s
+LimitNOFILE=1048576
+PrivateTmp=true
+ProtectSystem=full
+# Ports 80 and 443 without running as root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target
