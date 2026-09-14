@@ -13,7 +13,9 @@ npm run all
 ```
 
 `npm run all` also drives a mark made without signal (`outbox-ui.mjs`) and runs the club
-flows a second time against D1 (`npm run d1`), the storage the worker is meant to run on.
+flows a second time against D1 (`npm run d1`), the storage the worker is meant to run on,
+and a third time the way the club's own server runs them (`npm run server`): through
+`server/http.mjs` on a SQLite file, with no KV.
 
 Worker checks without a browser: `node worker/run-tests.mjs` runs every suite on KV and on D1.
 
