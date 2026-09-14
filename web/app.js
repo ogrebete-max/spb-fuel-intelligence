@@ -1946,7 +1946,7 @@ const NEWS_KEY = 'spbfi-club-news-at-v1';
 const REWARD_ERRORS = {
   already_thanked: 'Вы уже сказали спасибо за эту отметку.',
   cannot_thank_self: 'Себе спасибо сказать нельзя 🙂',
-  mark_gone: 'Эта отметка уже устарела.',
+  mark_gone: 'Этой отметки уже нет: она устарела или её удалили.',
   too_many_thanks: 'На сегодня хватит «спасибо» — завтра можно снова.',
   expected_text: 'Напишите, за что благодарность.',
   member_unknown: 'Такого участника нет.',
@@ -2027,7 +2027,15 @@ function handleNews(news = [], now = Date.now()) {
     if (navigator.vibrate) navigator.vibrate([200, 80, 200]);
     showToast('⚠️ С вашими отметками не согласны', `${warning.people} ${plural(warning.people, 'человек', 'человека', 'человек')} на заправках поставили 👎. Отмечайте только то, что видите сами: после пяти — выбывание из клуба.`);
   }
-  const items = all.filter((item) => item.type !== 'warning');
+  // Nor is a mark the owner took down. The phone forgets its own copy of it,
+  // which would otherwise go on showing what nobody else sees.
+  const removed = all.filter((item) => item.type === 'mark_removed');
+  if (removed.length) {
+    removed.forEach((item) => forgetLook({ station: item.station, author: myId(), at: item.mark_at }));
+    redrawMarks();
+    showToast('🗑 Владелец удалил вашу отметку', 'Её больше не видят свои.', removed[removed.length - 1].station);
+  }
+  const items = all.filter((item) => !['warning', 'mark_removed'].includes(item.type));
   if (!items.length) return;
   if (items.length > 3) {
     const count = (type) => items.filter((item) => item.type === type).length;
@@ -2221,7 +2229,7 @@ async function renderOwnList() {
         <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
         <span class="own-age ${entry.tier.key}">${entry.tier.icon} ${escapeHtml(entry.tier.label)} · ${escapeHtml(formatAge((now - entry.latest) / 1000))}${who}</span>
       </button>
-      <div class="card-actions">${thanksButton(entry.stationId)}${verdictButtons(entry.stationId)}</div>
+      <div class="card-actions">${thanksButton(entry.stationId)}${verdictButtons(entry.stationId)}${ownerDeleteButtons(entry.stationId)}</div>
     </article>`;
   }).join('');
   list.querySelectorAll('[data-own-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.ownStation)));
@@ -2333,21 +2341,27 @@ async function sendThanks(stationId, button) {
 const VOTE_WINDOW_MS = 60 * 60 * 1000;
 const VOTE_RADIUS_METRES = 300;
 
-function voteTargets(stationId) {
+// What the club sees at a station, as looks: the grades one member marked at
+// one moment, none older than `maxAge`.
+function stationLooks(stationId, maxAge) {
   const grades = (state.groupMarks || {})[stationId] || {};
   const me = myId();
   const looks = new Map();
   for (const [grade, mark] of Object.entries(grades)) {
     // A mark without a name came from a phone outside the club (possible until
     // the door is closed): there is nobody to confirm or refute.
-    if (!mark.who || !mark.authorName || !GRADE_LABELS[grade] || Date.now() - mark.at > VOTE_WINDOW_MS) continue;
+    if (!mark.who || !mark.authorName || !GRADE_LABELS[grade] || Date.now() - mark.at > maxAge) continue;
     const key = `${mark.who}:${mark.at}`;
     const look = looks.get(key) || { station: stationId, at: mark.at, author: mark.who, name: mark.authorName, mine: mark.who === me, up: mark.up || 0, down: mark.down || 0, myVote: mark.myVote || null, grades: [] };
     look.grades.push(`${GRADE_LABELS[grade].replace('АИ-', '')} ${mark.seen ? 'есть' : 'нет'}`);
     looks.set(key, look);
   }
+  return [...looks.values()];
+}
+
+function voteTargets(stationId) {
   const latest = new Map();
-  for (const look of looks.values()) {
+  for (const look of stationLooks(stationId, VOTE_WINDOW_MS)) {
     if (!latest.has(look.author) || latest.get(look.author).at < look.at) latest.set(look.author, look);
   }
   return [...latest.values()].sort((a, b) => b.at - a.at);
@@ -2370,12 +2384,16 @@ function verdictInner(stationId) {
   if (!state.club.enabled || !state.club.member || !state.club.features?.votes) return '';
   const here = atPumpForVote(stationId);
   return voteTargets(stationId).map((look) => {
-    if (look.mine) return look.up || look.down ? `<p class="look-vote-own">Вашу отметку оценили на месте: 👍 ${look.up} · 👎 ${look.down}</p>` : '';
+    if (look.mine) {
+      const tally = look.up || look.down ? `<p class="look-vote-own">Вашу отметку оценили на месте: 👍 ${look.up} · 👎 ${look.down}</p>` : '';
+      return `${tally}${deleteButton(look, '🗑 Удалить отметку')}`;
+    }
     const button = (vote, icon, count, title) => `<button type="button" class="look-vote-button ${vote}${look.myVote === vote ? ' mine' : ''}${here ? '' : ' away'}" data-verdict="${vote}" aria-pressed="${look.myVote === vote}" title="${title}">${icon} <b>${count}</b></button>`;
     return `<div class="look-vote" data-verdict-author="${escapeHtml(look.author)}" data-verdict-at="${look.at}">
       <span class="look-vote-label">На месте так? ${look.name ? `<b>${escapeHtml(look.name)}</b>: ` : ''}${escapeHtml(look.grades.join(', '))}</span>
       ${button('up', '👍', look.up, 'Подтверждаю: вижу то же самое')}
       ${button('down', '👎', look.down, 'Опровергаю: на колонках другое')}
+      ${deleteButton(look, '🗑 Удалить')}
       <small class="look-vote-hint${here ? ' here' : ''}">${here ? 'Вы на этой заправке: всё так — 👍, неправда — 👎' : '👍 👎 — только на этой заправке, в первый час после отметки'}</small>
     </div>`;
   }).join('');
@@ -2393,6 +2411,12 @@ function bindVerdicts(root) {
       const look = button.closest('.look-vote');
       const station = button.closest('.look-votes').dataset.verdictsStation;
       sendVerdict({ station, author: look.dataset.verdictAuthor, at: Number(look.dataset.verdictAt) }, button.dataset.verdict, button);
+    });
+  });
+  root.querySelectorAll('[data-delete-at]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      deleteLook({ station: button.dataset.deleteStation, author: button.dataset.deleteAuthor, at: Number(button.dataset.deleteAt) }, button);
     });
   });
 }
@@ -2468,6 +2492,75 @@ async function sendVerdict(target, vote, button) {
     showToast('👎 Отметка опровергнута', 'Отметьте, как на самом деле: откройте карточку этой АЗС.', target.station);
   }
   refreshVerdicts(target.station, { force: true });
+}
+
+// ---------------------------------------------------------------- 🗑
+// A mark made by mistake could not be taken back. Its author deletes it in the
+// first hour, the owner any mark while it is listed, and the worker takes back
+// the 🤝 it earned, so a mark sent and deleted pays nothing.
+const DELETE_WINDOW_MS = 60 * 60 * 1000;
+// The phone dates its own copy of a mark a moment before the report goes out.
+const OWN_COPY_SLACK_MS = 5000;
+
+function deleteButton(look, label) {
+  const owner = state.club.member?.role === 'owner';
+  if (!state.club.features?.delete_marks || !(owner || (look.mine && Date.now() - look.at <= DELETE_WINDOW_MS))) return '';
+  return `<button type="button" class="look-delete" data-delete-station="${escapeHtml(look.station)}" data-delete-author="${escapeHtml(look.author)}" data-delete-at="${look.at}">${escapeHtml(label)}</button>`;
+}
+
+// In «Свои» the owner reaches marks older than an hour too. A look still fresh
+// enough for 👍 and 👎 has its 🗑 next to them already.
+function ownerDeleteButtons(stationId) {
+  if (!state.club.enabled || state.club.member?.role !== 'owner') return '';
+  const offered = new Set(voteTargets(stationId).map((look) => `${look.author}:${look.at}`));
+  const looks = stationLooks(stationId, OWN_WINDOW_MS).filter((look) => !offered.has(`${look.author}:${look.at}`));
+  return looks.map((look) => deleteButton(look, looks.length > 1 ? `🗑 Удалить: ${look.name}` : '🗑 Удалить')).join('');
+}
+
+async function deleteLook(target, button) {
+  const look = stationLooks(target.station, OWN_WINDOW_MS).find((item) => item.author === target.author && item.at === target.at);
+  if (!look || !confirm(`Удалить отметку «${look.mine ? '' : `${look.name}: `}${look.grades.join(', ')}»? Её перестанут видеть свои.`)) return;
+  // An open card would go on showing the look, so it is drawn again.
+  const inCard = !!button.closest('#drawerContent');
+  button.disabled = true;
+  const result = await clubCall('/club/report/delete', { method: 'POST', body: target }).catch(() => null);
+  button.disabled = false;
+  if (result && handleClubRejection(result)) return;
+  if (!result?.ok) {
+    showToast('Не получилось', result ? clubMessage(result) : 'Нет связи с клубом. Попробуйте ещё раз.');
+    return;
+  }
+  forgetLook(target);
+  redrawMarks();
+  if (inCard) openStation(target.station);
+  showToast('Отметка удалена', result.data.liters_back > 0 ? `Вернули ${result.data.liters_back} 🤝` : '');
+}
+
+// Gone from this phone at once and for good: from what the club showed, and
+// from the phone's own memory of its marks, which would otherwise bring the
+// look back on the next read.
+function forgetLook({ station, author, at }) {
+  const mine = author === myId();
+  const sameLook = (mark) => (mark.who ? mark.who === author && mark.at === at : mine && Math.abs(mark.at - at) < OWN_COPY_SLACK_MS);
+  const shown = state.groupMarks?.[station] || {};
+  for (const [grade, mark] of Object.entries(shown)) if (sameLook(mark)) delete shown[grade];
+  if (!mine) return;
+  const marks = loadMarks();
+  for (const [grade, mark] of Object.entries(marks[station] || {})) if (sameLook(mark)) delete marks[station][grade];
+  try {
+    localStorage.setItem(MARK_STORE, JSON.stringify(marks));
+  } catch {
+    // Private mode or a full quota: nothing was kept to forget.
+  }
+  state.marks = marks;
+}
+
+// Everything that shows marks: the feed, the list or «Свои» with its pins, the chip.
+function redrawMarks() {
+  renderGroupFeed();
+  updateOwnChip();
+  if (state.stations.length || state.ownOnly) renderStations();
+  if (state.ownOnly) renderMarkers();
 }
 
 function profileCard(profile) {
@@ -2575,6 +2668,8 @@ const CLUB_ERRORS = {
   vote_not_here: '👍 и 👎 — только на этой заправке: оценить отметку может тот, кто сейчас сам видит колонки.',
   vote_needs_place: 'Чтобы оценить отметку, приложению нужно видеть, что вы на заправке. Разрешите доступ к геопозиции.',
   too_many_votes: 'На сегодня оценок достаточно — завтра можно снова.',
+  not_yours: 'Это чужая отметка: удалить её может только владелец клуба.',
+  delete_too_late: 'Отметке больше часа — удалить её теперь может только владелец клуба.',
   invites_left: 'У вас ещё есть приглашения — просить больше пока не нужно.',
   owner_has_no_limit: 'У владельца приглашения не кончаются.',
   bad_chat_url: 'Нужна ссылка на группу в Telegram — она начинается с https://t.me/',

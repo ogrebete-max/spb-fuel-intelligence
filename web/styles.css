@@ -675,6 +675,11 @@ body.club-locked { overflow: hidden; }
 .look-vote-hint { flex: 1 1 100%; font-size: 12px; color: var(--muted); }
 .look-vote-hint.here { color: #0d5a43; font-weight: 700; }
 .look-vote-own { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+/* 🗑 is small and quiet: deleting is rare, and asked about first. */
+.look-delete { justify-self: start; min-height: 36px; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(165, 42, 42, .35); background: #fff; color: #a52a2a; font: inherit; font-size: 13px; cursor: pointer; }
+.look-vote .look-delete { margin-left: auto; }
+.card-actions > .look-delete { margin: 8px 8px 0 0; }
+.look-delete:disabled { opacity: .5; }
 .tank-card { margin: 14px 0 6px; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #0d3328, #1f5c45); color: #fff; }
 .tank-head { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
 .tank-icon { font-size: 40px; line-height: 1; }
