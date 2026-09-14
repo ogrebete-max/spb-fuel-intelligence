@@ -30,6 +30,8 @@
 
 ## Включение на Cloudflare
 
+С 14.09.2026 сервер клуба работает в Москве, а не на Cloudflare ([club-server.md](club-server.md)). Там ключ задаётся строкой `ANALYTICS_ADMIN_KEY=…` в `/etc/spbfi/env`, после этого нужен `systemctl restart spbfi-club`. Шаги ниже описывают прежний воркер.
+
 1. Обновить код существующего Worker содержимым `worker/spbfi-reports.js`.
 2. В Worker → Settings → Variables and Secrets создать зашифрованный секрет `ANALYTICS_ADMIN_KEY` — длинную случайную строку не короче 24 символов.
 3. Необязательно создать отдельный секрет `ANALYTICS_SALT`. Без него Worker безопасно использует закрытую часть уже созданного VAPID-ключа; наружу она не возвращается.

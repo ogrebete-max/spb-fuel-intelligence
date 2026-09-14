@@ -67,6 +67,8 @@
 
 ## Включение (один раз, владельцу)
 
+С 14.09.2026 сервер клуба свой, в Москве: [club-server.md](club-server.md). Телефоны в России без VPN до Cloudflare не достают. Шаги ниже — как клуб включали на Cloudflare. На своём сервере `CLUB_GATE` задаётся строкой в `/etc/spbfi/env`, после неё нужен `systemctl restart spbfi-club`. Ключ владельца там хранится только хешем.
+
 После каждого **Deploy** Cloudflare переключается на новую версию не сразу: снаружи она начинает отвечать минут через 10–15. Поэтому после шага, который заканчивается Deploy, дождитесь проверки.
 
 1. **Создать базу клуба.** Cloudflare → **Storage & Databases → D1 SQL Database → Create Database**. Имя `spbfi-club`, Location, если спросит, — **Eastern Europe**. **Create**.
