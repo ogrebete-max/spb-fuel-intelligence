@@ -1,0 +1,204 @@
+{
+ "captured_at": "2026-09-14T18:50:32.321489Z",
+ "services": {
+  "AI92": 4,
+  "AI95": 3,
+  "AI98": 2,
+  "AI100": 10,
+  "DT": 1
+ },
+ "errors": [],
+ "_sample": {
+  "source": "transitcard",
+  "note": "A few stations of a real capture of 14 Sep 2026, picked to cover every status the normalizer handles.",
+  "stations_in_capture": 748
+ },
+ "stations": [
+  {
+   "id": "37D4D07BCC3EB6BAE063024A14ACBDBA",
+   "lat": 59.99221,
+   "lon": 30.25449,
+   "brand": "Сургутнефтегаз",
+   "statuses": {
+    "AI92": "available",
+    "AI95": "available",
+    "AI98": "possibly_available",
+    "DT": "available"
+   },
+   "prices": {
+    "1": 80.95,
+    "2": 99.9,
+    "3": 70.97,
+    "4": 65.54
+   }
+  },
+  {
+   "id": "37D4D07BCBDAB6BAE063024A14ACBDBA",
+   "lat": 59.94425,
+   "lon": 30.59208,
+   "brand": "Сургутнефтегаз",
+   "statuses": {
+    "AI92": "available",
+    "AI95": "available",
+    "AI98": "possibly_available",
+    "DT": "available"
+   },
+   "prices": {
+    "1": 80.95,
+    "2": 99.9,
+    "3": 70.97,
+    "4": 65.54
+   }
+  },
+  {
+   "id": "3667CCD14C044701E053034A14AC6B2D",
+   "lat": 60.136024,
+   "lon": 30.527164,
+   "brand": "ЛУКОЙЛ",
+   "statuses": {
+    "AI92": "unavailable",
+    "AI95": "unavailable",
+    "AI100": "unavailable",
+    "DT": "has_limit"
+   },
+   "prices": {
+    "1": 82.49,
+    "3": 72.26,
+    "4": 66.26,
+    "10": 99.4
+   }
+  },
+  {
+   "id": "3667CCD14C804701E053034A14AC6B2D",
+   "lat": 59.862552,
+   "lon": 30.258836,
+   "brand": "ЛУКОЙЛ",
+   "statuses": {
+    "AI92": "unavailable",
+    "AI95": "unavailable",
+    "DT": "has_limit"
+   },
+   "prices": {
+    "1": 82.49,
+    "3": 72.26,
+    "4": 66.26
+   }
+  },
+  {
+   "id": "3667CCD167F84701E053034A14AC6B2D",
+   "lat": 59.994294,
+   "lon": 30.272845,
+   "brand": "ЛУКОЙЛ",
+   "statuses": {
+    "AI92": "possibly_available",
+    "AI95": "possibly_available",
+    "DT": "possibly_available"
+   },
+   "prices": {
+    "1": 82.49,
+    "3": 73.16,
+    "4": 66.26
+   }
+  },
+  {
+   "id": "3667CCD14C784701E053034A14AC6B2D",
+   "lat": 59.952867,
+   "lon": 30.26187,
+   "brand": "ЛУКОЙЛ",
+   "statuses": {
+    "AI92": "possibly_available",
+    "AI95": "has_limit",
+    "AI100": "possibly_available",
+    "DT": "possibly_available"
+   },
+   "prices": {
+    "1": 82.49,
+    "3": 72.26,
+    "4": 66.26,
+    "10": 99.4,
+    "6": 82.49,
+    "7": 73.16,
+    "8": 66.26
+   }
+  },
+  {
+   "id": "3667CCD167784701E053034A14AC6B2D",
+   "lat": 59.903337,
+   "lon": 30.337253,
+   "brand": "ЛУКОЙЛ",
+   "statuses": {
+    "AI92": "unavailable",
+    "AI95": "unavailable",
+    "AI100": "unavailable",
+    "DT": "has_limit"
+   },
+   "prices": {
+    "1": 82.49,
+    "3": 72.26,
+    "4": 66.26,
+    "10": 99.4,
+    "6": 82.49,
+    "7": 73.16,
+    "8": 66.26
+   }
+  },
+  {
+   "id": "3667CCD14CC84701E053034A14AC6B2D",
+   "lat": 60.086802,
+   "lon": 30.262302,
+   "brand": "ЛУКОЙЛ",
+   "statuses": {
+    "AI92": "has_limit",
+    "AI95": "has_limit",
+    "AI100": "unavailable",
+    "DT": "has_limit"
+   },
+   "prices": {
+    "1": 82.49,
+    "3": 73.16,
+    "4": 66.26,
+    "10": 99.4
+   }
+  },
+  {
+   "id": "E1FF97B10626D106E053024A14AC3981",
+   "lat": 59.889241,
+   "lon": 30.464629,
+   "brand": "TATNEFT",
+   "statuses": {
+    "AI92": "available",
+    "AI95": "available",
+    "AI98": "available",
+    "AI100": "available",
+    "DT": "available"
+   },
+   "prices": {
+    "1": 80.3,
+    "2": 99.9,
+    "3": 70.9,
+    "4": 65.5,
+    "10": 109.0
+   }
+  },
+  {
+   "id": "D446ABDA1FEC3296E053024A14ACB511",
+   "lat": 59.622019,
+   "lon": 30.183926,
+   "brand": "TATNEFT",
+   "statuses": {
+    "AI92": "available",
+    "AI95": "available",
+    "AI98": "available",
+    "AI100": "available",
+    "DT": "available"
+   },
+   "prices": {
+    "1": 80.3,
+    "2": 99.9,
+    "3": 70.9,
+    "4": 65.5,
+    "10": 109.0
+   }
+  }
+ ]
+}

@@ -217,6 +217,8 @@ def probability_available(
             "kind": item.row.get("kind"),
             "availability": item.row.get("availability"),
             "age_seconds": round(item.age_seconds) if item.age_seconds is not None else None,
+            # Dated only by our poll: the page must not show it as minutes old.
+            "undated": not item.row.get("observed_at"),
             "weight": round(weight, 3),
             "direction": direction,
         })
@@ -241,6 +243,7 @@ def probability_available(
             "kind": item.row.get("kind"),
             "availability": item.row.get("availability"),
             "age_seconds": round(item.age_seconds) if item.age_seconds is not None else None,
+            "undated": not item.row.get("observed_at"),
             "weight": round(abs(contribution), 3),
             "direction": 1.0 if contribution > 0 else -1.0,
             "expired": True,
@@ -290,8 +293,10 @@ def _cluster_family(value: Any) -> str:
         return "sber-2gis"
     if raw.startswith("gdebenzin:sber"):
         return "sber-2gis"
+    # гдебензин.рф's "2gis:" stations are 2GIS «Статус АЗС» stations under the
+    # same ids (248 of 250 on 14 Sep 2026), carrying 2GIS's statuses late.
     if raw.startswith("gdebenzin:2gis"):
-        return "2gis-catalog"
+        return "2gis-benzin"
     if raw.startswith("gdebenzin:gdb"):
         return "gdebenz-crowd"
     if "gdebenz-crowd" in raw:
@@ -346,6 +351,29 @@ RELAY_SOURCES = {"tofuel", "tutbenz"}
 RELAY_CLUSTERS = {"tofuel-mixed-upstream", "tbank-payments"}
 RELAY_LAG = (timedelta(minutes=-5), timedelta(minutes=45))
 
+# Some feeds repeat another one's observation with no time that could show the
+# lag, so a copy is recognised by saying the same thing about the same grade at
+# the same station. It then counts as the original, and a copy that disagrees
+# keeps its own voice.
+#
+# AZS MAP takes its stations, its prices and part of its marks from the ГдеБЕНЗ
+# feed: on 14 Sep 2026 about seven marks in ten matched ГдеБЕНЗ at the same
+# station, whose map rows carry no time either. ППР's card locator and Alfa-
+# Bank's map read one sales state: of 321 grades Alfa marked unavailable that
+# ППР also listed, ППР said unavailable for 317, and on Gazpromneft forecourts
+# the two disagreed with the official stock together 20 times and apart twice.
+COPY_SOURCES = {"azsmap": "gdebenz-crowd", "transitcard": "alfa-payments"}
+
+# tboo.ru/gpn builds its payment tiers from other feeds' times: Alfa-Bank's
+# per-grade transactions ("a"), 2GIS drivers' reports ("g") and T-Bank payments
+# ("t"). On 14 Sep 2026, 2538 of its Alfa times matched Alfa's own to the
+# minute and 379 of 397 of its 2GIS times matched 2GIS. When the feed behind a
+# tier's newest time is read directly for the same grade, the tier is that feed
+# again in tboo's words: it joins that feed's cluster, where the direct reading
+# outranks it, so it can neither repeat the feed nor contradict it. When that
+# feed is not read, or failed, the tier keeps its own voice.
+PREDICTION_UPSTREAMS = {"a": "alfa-payments", "g": "2gis-benzin", "t": "tbank-payments"}
+
 
 def _sense(availability: Any) -> int:
     if availability in POSITIVE_SENSE:
@@ -355,7 +383,7 @@ def _sense(availability: Any) -> int:
     return 0
 
 
-def _fold_relays(rows: list[EvaluatedRow]) -> list[EvaluatedRow]:
+def _fold_sber_relays(rows: list[EvaluatedRow]) -> list[EvaluatedRow]:
     origins = [item for item in rows if item.cluster == "sber-2gis" and item.observed_at and _sense(item.row.get("availability"))]
     if not origins:
         return rows
@@ -372,21 +400,81 @@ def _fold_relays(rows: list[EvaluatedRow]) -> list[EvaluatedRow]:
     return folded
 
 
+def _fold_copies(rows: list[EvaluatedRow]) -> list[EvaluatedRow]:
+    for source, origin in COPY_SOURCES.items():
+        senses = {
+            _sense(item.row.get("availability"))
+            for item in rows if item.cluster == origin and item.row.get("source") != source
+        } - {0}
+        if senses:
+            rows = [
+                replace(item, cluster=origin)
+                if item.row.get("source") == source and _sense(item.row.get("availability")) in senses
+                else item
+                for item in rows
+            ]
+    return rows
+
+
+def _fold_predictions(rows: list[EvaluatedRow]) -> list[EvaluatedRow]:
+    direct = {item.cluster for item in rows if item.row.get("kind") != "payment_prediction"}
+    if not direct & set(PREDICTION_UPSTREAMS.values()):
+        return rows
+    folded = []
+    for item in rows:
+        confidence = item.row.get("confidence")
+        times = confidence.get("source_times") if isinstance(confidence, dict) else None
+        if item.row.get("kind") == "payment_prediction" and isinstance(times, dict):
+            stamps = {key: parse_time(value) for key, value in times.items() if key in PREDICTION_UPSTREAMS}
+            stamps = {key: value for key, value in stamps.items() if value}
+            if stamps:
+                upstream = PREDICTION_UPSTREAMS[max(stamps, key=lambda key: stamps[key])]
+                if upstream in direct:
+                    item = replace(item, cluster=upstream)
+        folded.append(item)
+    return folded
+
+
+def _fold_relays(rows: list[EvaluatedRow]) -> list[EvaluatedRow]:
+    return _fold_predictions(_fold_copies(_fold_sber_relays(rows)))
+
+
+def _restricts(item: EvaluatedRow) -> int:
+    """2 for a limit in litres or a sized queue, 1 for a bare «limited», else 0."""
+    row = item.row
+    if row.get("limit_liters") or _has_known_queue(row):
+        return 2
+    return 1 if row.get("availability") in RESTRICTED else 0
+
+
+def _outranks(item: EvaluatedRow, other: EvaluatedRow | None) -> bool:
+    """Whether ``item`` should speak for its cluster instead of ``other``.
+
+    Fresh beats stale, a stronger kind beats a weaker one, and then the newer
+    row wins. Two rows their sources did not date carry only the times we
+    polled them, which say nothing about which feed saw more: between those the
+    one that reports a restriction is kept, so counting ППР's copy of Alfa-
+    Bank's sales state once cannot lose Alfa's litre limit because ППР was
+    polled a few seconds later.
+    """
+    if other is None:
+        return True
+    head = (1 if item.fresh else 0, item.strength)
+    other_head = (1 if other.fresh else 0, other.strength)
+    if head != other_head:
+        return head > other_head
+    if not item.row.get("observed_at") and not other.row.get("observed_at"):
+        if _restricts(item) != _restricts(other):
+            return _restricts(item) > _restricts(other)
+    polled = item.observed_at.timestamp() if item.observed_at else 0
+    other_polled = other.observed_at.timestamp() if other.observed_at else 0
+    return polled > other_polled
+
+
 def _deduplicate(rows: Iterable[EvaluatedRow]) -> list[EvaluatedRow]:
     best: dict[str, EvaluatedRow] = {}
     for item in rows:
-        previous = best.get(item.cluster)
-        rank = (
-            1 if item.fresh else 0,
-            item.strength,
-            item.observed_at.timestamp() if item.observed_at else 0,
-        )
-        old_rank = (
-            1 if previous and previous.fresh else 0,
-            previous.strength if previous else -1,
-            previous.observed_at.timestamp() if previous and previous.observed_at else 0,
-        )
-        if previous is None or rank > old_rank:
+        if _outranks(item, best.get(item.cluster)):
             best[item.cluster] = item
     return sorted(
         best.values(),
@@ -424,6 +512,11 @@ QUEUE_BUCKETS: dict[str, tuple[int, int | None, str]] = {
     "medium": (5, 20, "средняя"),
     "none": (0, 0, "без очереди"),
     "no_queue": (0, 0, "без очереди"),
+    # 2GIS «Статус АЗС» and азсрадар.рф count in their own steps.
+    "up_to_25": (1, 25, "до 25 машин"),
+    "from_25_to_50": (25, 50, "25–50 машин"),
+    "over_50": (50, None, "больше 50 машин"),
+    "gt20": (20, None, "больше 20 машин"),
 }
 # One car takes roughly a minute and a half at a single dispenser; stations have
 # several, so the estimate is deliberately given as a range and labelled as one.

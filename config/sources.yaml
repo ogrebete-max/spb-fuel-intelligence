@@ -684,3 +684,99 @@ sources:
     polling: "every run"
     collector_ready: true
     reason: "Weighed above every remote feed, expires in 45 minutes, and a repeat report from the same device replaces the earlier one instead of stacking into a fake crowd."
+
+  - id: 2gis_benzin
+    priority: 36
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://2gis.ru/spb"
+    access: "anonymous JSON REST behind the «Статус АЗС» tab of 2gis.ru; the page's own Origin and Referer, gzip"
+    endpoints:
+      - "GET https://benzin.api.2gis.ru/api/v1/stations?minLat={south}&maxLat={north}&minLon={west}&maxLon={east}"
+    auth: "none"
+    geo_query: "bounding box of at most five degrees a side; Saint Petersburg and the Leningrad region are read in two tiles"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "driver marks per grade: there or not, queue size, litre limit and the time of the last mark; a station closed by its schedule"
+    fields: [station_id, coordinates, address, brand, grade, available, queue_level, limit_liters, reports_count, last_report_at, closed_by_schedule, price, price_updated_at]
+    upstream: "marks of 2GIS users; station ids are the 2GIS branch ids the Sber feed uses too"
+    independence: "own crowd cluster; the гдебензин.рф 2gis: stations and the tboo.ru g times are counted inside it"
+    polling: "every run, two requests"
+    collector_ready: true
+    reason: "1324 stations in Saint Petersburg and the Leningrad region, 891 in the AOI, on 14 Sep 2026. The station card endpoint lists the drivers' user ids and is never called; the collector drops any user field. A mark with no time, or a positive mark at a station closed by its schedule, is not a vote."
+
+  - id: transitcard_ppr
+    priority: 37
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://locator.transitcard.ru/"
+    access: "anonymous JSON REST of the PPR fuel-card locator, shared by TransitCard, Petrol Plus and E1 CARD"
+    endpoints:
+      - "GET https://locator.transitcard.ru/web/v2/point/transpose-list?pointTypes=8&services={service}&fuelAvailability=available;possibly_available;unavailable&x1={south}&y1={west}&x2={north}&y2={east}"
+    auth: "none"
+    geo_query: "bounding box; one request per grade, services 4, 3, 2, 10 and 1 for 92, 95, 98, 100 and diesel"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "how fuel-card sales of a grade go right now: available, has_limit, possibly_available or unavailable, with no time of its own"
+    fields: [station_id, coordinates, brand, grade, sales_status, card_price]
+    upstream: "fuel-card transactions of the PPR network; benzokarta.com republishes it and is not read"
+    independence: "payment signal, never independent; a status that agrees with Alfa-Bank's counts as Alfa's, because the two read one sales state"
+    polling: "every run, five requests a second and a half apart"
+    collector_ready: true
+    reason: "748 stations in Saint Petersburg and the Leningrad region, 535 in the AOI, on 14 Sep 2026. possibly_available means too few transactions to tell and is not a vote; between 23:00 and 07:00 Moscow time unavailable only means nobody is buying and is not a vote either."
+
+  - id: alfa_azs_map
+    priority: 38
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://alfabank.ru/azs/"
+    access: "anonymous JSON REST; TLS is verified against the Russian Trusted Root CA, vendored as config/russian-trusted-root-ca.pem and trusted for this one request"
+    endpoints:
+      - "GET https://alfabank.ru/api/v1/azs-stations/public/stations"
+    auth: "none"
+    geo_query: "one national list of 16 375 stations, 3 MB compressed; the region is cut out locally"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "Alfa-Bank's per-grade sales status with Benzuber limits and sales stops, the last card payment per grade and a price; the status has no time of its own"
+    fields: [station_id, coordinates, address, brand, grade, status, price, last_transaction_at, restrictions, partner_stations, last_alfa_transaction_time]
+    upstream: "Alfa-Bank card payments and the Benzuber fuel-payment network, which sits wholly inside this list and is not read separately"
+    independence: "payment signal, never independent; tboo.ru tiers built on its payment times count as Alfa"
+    polling: "every other run (15 minutes)"
+    collector_ready: true
+    reason: "899 stations in Saint Petersburg and the Leningrad region, 645 in the AOI, on 14 Sep 2026. available and unavailable vote; probably_unavailable matched the PPR locator's too-few-transactions status for 289 of 354 grades and is not a vote; closed, unknown and the merged AI98_100 bucket are left out. Supersedes the Phase-0 alfa_fuel entry."
+
+  - id: azsradar_rf
+    priority: 39
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://xn--80aaapn8cdd.xn--p1ai/"
+    access: "anonymous JSON REST"
+    endpoints:
+      - "GET https://xn--80aaapn8cdd.xn--p1ai/api/stations?minLat={south}&maxLat={north}&minLng={west}&maxLng={east}"
+    auth: "none"
+    geo_query: "bounding box"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "the site's own drivers: ok or empty per grade, a queue in cars, a litre limit, a technical break, one mark time per station"
+    fields: [station_id, coordinates, address, brand, grade, status, status_updated_at, queue_size, fuel_limit, break_until, confidence]
+    upstream: "own driver community; its T-Bank and Sber forecast columns repeat feeds read directly and are not kept"
+    independence: "own crowd cluster"
+    polling: "every run"
+    collector_ready: true
+    reason: "1061 stations in Saint Petersburg and the Leningrad region, 681 in the AOI, on 14 Sep 2026, only a dozen of them marked in the last three hours. Supersedes the Phase-0 azs_radar entry: the old azs-radar.ru serves another site's certificate."
+
+  - id: azsmap
+    priority: 40
+    status: GREEN_VERIFIED_HTTP
+    public_url: "https://azsmap.com/region/lenobl"
+    access: "anonymous JavaScript data model of the public map page: const STATIONS in plain JSON"
+    endpoints:
+      - "GET https://azsmap.com/api/data-model.js?city=lenobl"
+      - "GET https://azsmap.com/api/data-model.js?city=spb"
+    auth: "none"
+    geo_query: "one file per region; the Leningrad file stops at 1500 stations, so the city file is merged in"
+    station_level: true
+    grade_specific: true
+    realtime_kind: "per-grade have, low, none or stale with the age of the mark and of the price in minutes"
+    fields: [station_key, coordinates, address, brand, grade, state, mark_age_minutes, price, price_age_minutes]
+    upstream: "own marks on top of the ГдеБЕНЗ feed, OpenStreetMap, Yandex Maps organisations and user pins"
+    independence: "own crowd cluster, but a mark that agrees with ГдеБЕНЗ counts as ГдеБЕНЗ and its prices are ГдеБЕНЗ's"
+    polling: "every run, two requests"
+    collector_ready: true
+    reason: "1500 stations in the region file, 1339 in the AOI, on 14 Sep 2026. It only joins stations other feeds know: the cards only it had were Yandex organisations and user pins, a hospital among them, with two fresh marks between them. Its key ai98 is shown on the site as АИ-100 and is read that way."

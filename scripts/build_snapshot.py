@@ -56,6 +56,8 @@ from src.sources_crowd import (  # noqa: E402
 )
 from src.sources_eyewitness import normalize_eyewitness  # noqa: E402
 from src.sources_gdebenzi import normalize_gdebenzi  # noqa: E402
+from src.sources_maps import normalize_2gis_benzin, normalize_azsmap, normalize_azsradar  # noqa: E402
+from src.sources_payments import normalize_alfa, normalize_transitcard  # noqa: E402
 from src.station_filters import drop_gas_only  # noqa: E402
 from src.station_matcher import merge_stations  # noqa: E402
 
@@ -64,6 +66,15 @@ from collectors import parse_moscow_confirmation  # noqa: E402
 
 
 AOI = {"west": 29.50, "south": 59.60, "east": 31.10, "north": 60.35}
+
+# Sources that may join a station another feed knows but never start one.
+# A report is about a station somebody is standing at.  When its coordinates
+# match nothing we know, it must not invent a forecourt out of one tap — a
+# stray GPS fix would otherwise become a station with an eyewitness behind it
+# and nothing else.  AZS MAP mixes user pins and Yandex organisations into its
+# catalogue under transliterated names; on 14 Sep 2026 the 124 cards only it
+# knew included a hospital and a car service, and two of them had a fresh mark.
+JOIN_ONLY_SOURCES = {"own-eyewitness", "azsmap"}
 
 
 def read_json(path: Path, default: Any = None) -> Any:
@@ -145,6 +156,11 @@ CAPTURE_SOURCES: dict[str, tuple[str, ...]] = {
     "gdebenzi": ("gdebenzi",),
     "own-reports": (),
     "gpn-official": ("gazpromneft",),
+    "2gis-benzin": ("2gis-benzin",),
+    "transitcard": ("transitcard",),
+    "alfa-azs": ("alfa-azs",),
+    "azsradar-rf": ("azsradar-rf",),
+    "azsmap": ("azsmap",),
 }
 
 
@@ -269,13 +285,20 @@ def prediction_row(station: dict[str, Any]) -> dict[str, Any]:
         observed = max((value or 0 for value in sources.values()), default=0) or None
         row["evidence"].append({
             "grade": canonical_grade(raw_grade),
-            "availability": tier_map.get(state.get("t"), "UNKNOWN"),
+            # A tier with no payment time behind it observed nothing that can be
+            # dated. Dated by our own poll instead, such tiers read as a current
+            # «скорее нет» for some 450 grades a refresh on 14 Sep 2026, mostly
+            # 98 and 100 where tboo never saw a payment.
+            "availability": tier_map.get(state.get("t"), "UNKNOWN") if observed else "UNKNOWN",
             "kind": "payment_prediction",
             "observed_at": observed,
             "price_rub": None,
             "limit_liters": state.get("lim"),
             "queue": None,
-            "confidence": {"tier": state.get("t")},
+            # Whose time is whose: "a" Alfa-Bank, "g" 2GIS, "t" T-Bank. The
+            # engine counts a tier as the feed behind its newest time whenever
+            # that feed is read directly too.
+            "confidence": {"tier": state.get("t"), "source_times": {key: value for key, value in sources.items() if value}},
             "provenance_cluster": "alpha+tbank+sber+2gis",
             "independent": False,
             "raw_status": state.get("t"),
@@ -468,14 +491,43 @@ def build(raw_dir: Path, last_seen_path: Path | None = None) -> dict[str, Any]:
         fixture_time = (fixture.get("_fixture") or {}).get("captured_at") or snapshot_at
         add_rows(rows, counts, fixture_rows, fixture_time)
 
+    # Three maps whose drivers mark each grade and two payment feeds whose
+    # status is the feed's "now", found on 14 Sep 2026; what each shares with
+    # the feeds above is in src/sources_maps.py and src/sources_payments.py.
+    # They come last so that they only join stations or add their own: a card
+    # takes its id from the row that started it, and the stations people
+    # already know keep theirs.
+    two_gis = read_json(raw_dir / "2gis-benzin.json", {}) or {}
+    add_rows(
+        rows, counts,
+        [row for item in two_gis.get("stations", []) for row in normalize_2gis_benzin(item)],
+        two_gis.get("captured_at") or snapshot_at,
+    )
+    for name, normalize in (
+        ("azsradar-rf", normalize_azsradar),
+        ("alfa-azs", normalize_alfa),
+        ("transitcard", normalize_transitcard),
+    ):
+        payload = read_json(raw_dir / f"{name}.json", {}) or {}
+        payload_at = payload.get("captured_at") or snapshot_at
+        add_rows(
+            rows, counts,
+            [row for item in payload.get("stations", []) for row in normalize(item, payload_at)],
+            payload_at,
+        )
+    azsmap = read_json(raw_dir / "azsmap.json", {}) or {}
+    azsmap_at = azsmap.get("captured_at") or snapshot_at
+    add_rows(
+        rows, counts,
+        [row for item in azsmap.get("stations", []) for row in normalize_azsmap(item, azsmap_at, azsmap.get("fuel_labels"))],
+        azsmap_at,
+    )
+
     canonical = merge_stations(rows)
-    # A report is about a station somebody is standing at.  When its coordinates
-    # match nothing we know, it must not invent a forecourt out of one tap — a
-    # stray GPS fix would otherwise become a station with an eyewitness behind
-    # it and nothing else.
+    # Some sources may join a station another feed knows but never start one.
     canonical = [
         station for station in canonical
-        if {ref["source"] for ref in station.get("source_refs", [])} != {"own-eyewitness"}
+        if not {ref["source"] for ref in station.get("source_refs", [])} <= JOIN_ONLY_SOURCES
     ]
     # Gas pumps are not where anyone here is going to refuel.
     canonical = drop_gas_only(canonical)

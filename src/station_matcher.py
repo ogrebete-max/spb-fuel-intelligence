@@ -11,6 +11,12 @@ from typing import Any
 
 OSM_ID_SOURCES = {"gdebenz", "benzas", "benzinkarta"}
 GENERIC_NETWORKS = {"азс", "station", "неизвестно", "unknown", ""}
+# The Sber feed and 2GIS «Статус АЗС» both key stations by 2GIS branch id.
+TWO_GIS_ID_SOURCES = {"sber", "2gis-benzin"}
+# AZS MAP keys a card by where it came from: osm_n<id> or osm_w<id> for an
+# OpenStreetMap node or way, ya_<id> for a Yandex Maps organisation.
+AZSMAP_OSM = re.compile(r"osm_[nwr](\d+)")
+AZSMAP_YANDEX = re.compile(r"ya_(\d+)")
 
 
 def _text(value: Any) -> str:
@@ -95,9 +101,21 @@ def _explicit_crosswalk_match(a: dict[str, Any], b: dict[str, Any]) -> bool:
         right_id = str(right.get("station_id") or "")
         if left.get("source") == "gdebenzin" and ":" in left_id:
             prefix, upstream_id = left_id.split(":", 1)
-            if prefix in {"sber", "2gis"} and right.get("source") == "sber" and upstream_id == right_id:
+            if prefix in {"sber", "2gis"} and right.get("source") in TWO_GIS_ID_SOURCES and upstream_id == right_id:
                 return True
             if prefix == "gdb" and right.get("source") in {"gdebenz", "benzas"} and upstream_id == right_id:
+                return True
+        if left.get("source") == "azsmap":
+            osm = AZSMAP_OSM.fullmatch(left_id)
+            yandex = AZSMAP_YANDEX.fullmatch(left_id)
+            upstream = (
+                osm.group(1) if osm and right.get("source") in OSM_ID_SOURCES
+                else yandex.group(1) if yandex and right.get("source") == "yandex-maps"
+                else None
+            )
+            # The OSM-based feeds carry the bare number, which a node and a way
+            # may share, so the two must also stand on practically one spot.
+            if upstream and upstream == right_id and haversine_km(a["location"], b["location"]) <= 0.15:
                 return True
     # Identical non-trivial IDs plus geographic agreement form an explicit
     # cross-source key; this is materially stronger than proximity alone.

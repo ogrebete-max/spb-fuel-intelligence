@@ -55,10 +55,13 @@ def walk_keys(value: object, path: str = "$") -> list[str]:
 def main() -> None:
     fixture_paths = sorted(FIXTURES.glob("*/*.json"))
     documents = {path: json.loads(path.read_text(encoding="utf-8")) for path in fixture_paths}
+    # Folders starting with an underscore hold probe evidence and samples of
+    # the sources added after Phase 0, not Phase-0 source contracts. The
+    # forbidden-key scan below still covers every file.
     source_docs = {
         path: value
         for path, value in documents.items()
-        if path.parent.name != "_probe-evidence"
+        if not path.parent.name.startswith("_")
     }
 
     assert len(source_docs) == 24, f"expected 24 source fixtures, got {len(source_docs)}"
