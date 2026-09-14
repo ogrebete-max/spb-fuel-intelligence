@@ -21,6 +21,7 @@ const runs = [
   ['club-invites.test.mjs', 'kv'],
   ['club-invites.test.mjs', 'd1'],
   ['storage.test.mjs', 'kv+d1'],
+  ['migrate.test.mjs', 'd1'],
 ];
 
 let failed = 0;

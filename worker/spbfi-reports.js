@@ -40,6 +40,10 @@
  *   GROUP_KEY            legacy shared passphrase, used only without the club
  *   ANALYTICS_ADMIN_KEY  optional secret; without it analytics store nothing
  *   ORIGIN               optional allowed origin; defaults to the GitHub Pages site
+ *
+ * On the club's own server a secret may be given as <NAME>_HASH instead
+ * (CLUB_OWNER_KEY_HASH and so on): a salted hash made while moving there
+ * through /migrate/, so the key itself never leaves Cloudflare.
  */
 
 const DEFAULT_ORIGIN = 'https://ogrebete-max.github.io';
@@ -100,6 +104,9 @@ function json(body, request, env, status = 200) {
 // worker keeps using KV as before.
 const LEGACY_KEYS = ['vapid', 'subscriptions', 'reports', 'club:secret', 'club:members', 'club:invites', 'club:stats', 'club:flags', 'club:heroes'];
 const MOVED_KEY = 'meta:moved-from-kv';
+// There while the club is copied to a server of its own: every write is
+// refused, so nothing changes between the last copy and the switch.
+const FROZEN_KEY = 'meta:frozen';
 // While Cloudflare rolls a new version out, the old one keeps answering some
 // requests for about a quarter of an hour and still writes to KV. Marks and
 // subscriptions it takes in during the first hour are folded in, not lost.
@@ -117,8 +124,16 @@ class StorageBusy extends Error {
   }
 }
 
+class Frozen extends Error {
+  constructor() {
+    super('the club is moving to another server; writes are stopped');
+    this.name = 'Frozen';
+  }
+}
+
+// The club's own server runs this file over SQLite, and its adapter says so.
 function storageKind(env) {
-  return env.DB ? 'd1' : 'kv';
+  return env.DB ? (typeof env.DB.kind === 'string' ? env.DB.kind : 'd1') : 'kv';
 }
 
 function parseDoc(raw, fallback) {
@@ -215,13 +230,18 @@ async function writeDocs(env, changed) {
     return;
   }
   const now = Date.now();
-  await env.DB.batch(changed.flatMap(({ key, raw, version }) => [
-    version
-      ? env.DB.prepare('INSERT INTO doc_guard (ok) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM docs WHERE key = ? AND version = ?)').bind(key, version)
-      : env.DB.prepare('INSERT INTO doc_guard (ok) SELECT 0 WHERE EXISTS (SELECT 1 FROM docs WHERE key = ?)').bind(key),
-    env.DB.prepare('INSERT INTO docs (key, body, version, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, version = excluded.version, updated_at = excluded.updated_at')
-      .bind(key, raw, version + 1, now),
-  ]));
+  await env.DB.batch([
+    // A write that read before the club was frozen and commits after it is
+    // refused like a stale one, and its retry finds the club frozen.
+    env.DB.prepare('INSERT INTO doc_guard (ok) SELECT 0 WHERE EXISTS (SELECT 1 FROM docs WHERE key = ?)').bind(FROZEN_KEY),
+    ...changed.flatMap(({ key, raw, version }) => [
+      version
+        ? env.DB.prepare('INSERT INTO doc_guard (ok) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM docs WHERE key = ? AND version = ?)').bind(key, version)
+        : env.DB.prepare('INSERT INTO doc_guard (ok) SELECT 0 WHERE EXISTS (SELECT 1 FROM docs WHERE key = ?)').bind(key),
+      env.DB.prepare('INSERT INTO docs (key, body, version, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET body = excluded.body, version = excluded.version, updated_at = excluded.updated_at')
+        .bind(key, raw, version + 1, now),
+    ]),
+  ]);
 }
 
 function staleWrite(error) {
@@ -233,11 +253,13 @@ function staleWrite(error) {
  * and writes back the ones it changed, all together. If anyone wrote one of
  * them in the meantime, the write is refused and `change` runs again on what
  * is stored now — so `change` must do nothing but edit and return a result.
+ * While the club is frozen for a move it throws Frozen and changes nothing.
  */
 async function transact(env, defaults, change) {
   const keys = Object.keys(defaults);
   for (let attempt = 1; ; attempt += 1) {
-    const stored = await readDocs(env, keys);
+    const stored = await readDocs(env, [...keys, FROZEN_KEY]);
+    if (stored[FROZEN_KEY].raw != null) throw new Frozen();
     const docs = {};
     const before = {};
     for (const key of keys) {
@@ -427,7 +449,7 @@ function applyAnalyticsEvent(day, event, userHash, sessionHash) {
 async function storeAnalytics(request, env) {
   // Every accepted batch is a KV write. Until the owner has set up the
   // dashboard there is nobody to read the numbers, so nothing is written.
-  if (!env.ANALYTICS_ADMIN_KEY) return json({ ok: true, accepted: 0, disabled: true }, request, env, 202);
+  if (!secretSet(env, 'ANALYTICS_ADMIN_KEY')) return json({ ok: true, accepted: 0, disabled: true }, request, env, 202);
   if (await overRate(request, env, 'analytics')) return json({ error: 'too many events' }, request, env, 429);
   let body;
   try { body = await request.json(); } catch { return json({ error: 'expected JSON' }, request, env, 400); }
@@ -478,8 +500,8 @@ function ranked(counter, minimum = 0) {
 }
 
 async function analyticsDashboard(request, env, url) {
-  if (!env.ANALYTICS_ADMIN_KEY) return json({ error: 'ANALYTICS_ADMIN_KEY is not configured' }, request, env, 503);
-  if (!constantEqual(request.headers.get('X-Analytics-Key') || '', String(env.ANALYTICS_ADMIN_KEY))) {
+  if (!secretSet(env, 'ANALYTICS_ADMIN_KEY')) return json({ error: 'ANALYTICS_ADMIN_KEY is not configured' }, request, env, 503);
+  if (!(await secretMatches(request, env, 'ANALYTICS_ADMIN_KEY', request.headers.get('X-Analytics-Key')))) {
     return json({ error: 'forbidden' }, request, env, 403);
   }
   const days = Math.round(finiteNumber(url.searchParams.get('days') || 7, 1, 30));
@@ -995,7 +1017,7 @@ const DISPUTE_WINDOW_MS = 20 * 60 * 1000;
 const MAX_FLAGS = 1000;
 
 function clubEnabled(env) {
-  return !!env.CLUB_OWNER_KEY;
+  return secretSet(env, 'CLUB_OWNER_KEY');
 }
 
 // 'off'; 'test' — only members see the club; 'invite' — everyone is offered
@@ -1019,13 +1041,19 @@ async function readJson(request) {
 }
 
 async function clubSecret(env) {
-  // Every member's pass is signed with it: two first requests at once must
-  // settle on one secret, or some passes would stop working.
-  return remembered(env, 'club:secret', () => transact(env, { 'club:secret': null }, (docs) => {
-    if (typeof docs['club:secret'] === 'string' && docs['club:secret']) return docs['club:secret'];
-    docs['club:secret'] = b64u.encode(crypto.getRandomValues(new Uint8Array(32)));
-    return docs['club:secret'];
-  }));
+  return remembered(env, 'club:secret', async () => {
+    // Read first: while the club is frozen for a move a transaction is refused
+    // even when it would change nothing, and members must still get in to read.
+    const stored = await readDoc(env, 'club:secret', null);
+    if (typeof stored === 'string' && stored) return stored;
+    // Every member's pass is signed with it: two first requests at once must
+    // settle on one secret, or some passes would stop working.
+    return transact(env, { 'club:secret': null }, (docs) => {
+      if (typeof docs['club:secret'] === 'string' && docs['club:secret']) return docs['club:secret'];
+      docs['club:secret'] = b64u.encode(crypto.getRandomValues(new Uint8Array(32)));
+      return docs['club:secret'];
+    });
+  });
 }
 
 async function clubSign(env, value) {
@@ -1292,15 +1320,14 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, migrate: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
   if (request.method === 'POST' && path === '/club/owner') {
     if (limited(request, 'club-owner', 5)) return json({ error: 'too_many_attempts' }, request, env, 429);
     const body = (await readJson(request)) || {};
-    const expected = ownerKeyForm(env.CLUB_OWNER_KEY);
-    if (!expected || !constantEqual(ownerKeyForm(body.key), expected)) {
+    if (!(await secretMatches(request, env, 'CLUB_OWNER_KEY', body.key))) {
       return json({ error: 'wrong_owner_key' }, request, env, 403);
     }
     const owner = await transact(env, { 'club:members': {} }, (docs) => {
@@ -1951,9 +1978,151 @@ async function recordDisputes(env, reports, looks) {
   });
 }
 
+// ---------------------------------------------------------------- moving to another server
+//
+// Phones in Russia no longer reach workers.dev, so the club moves to a server
+// of its own that runs this same file, and the maintainer copies everything
+// out through /migrate/. Nobody is to see the owner's key, and Cloudflare
+// never shows a secret's value, so secrets travel as salted hashes: this
+// worker does the first rounds, as many as fit in Cloudflare's CPU budget,
+// the maintainer's tool adds the rest, and the new server does both when it
+// checks a key. Each request is signed with the maintainer's key for its
+// host, path and query, and is good for five minutes.
+
+// The maintainer's Ed25519 public key, raw, in base64url. MIGRATE_PUBLIC_KEY
+// in the environment replaces it; the tests sign with a pair of their own.
+const MIGRATE_PUBLIC_KEY = 'YgzYRO4bdgREQebyo0-yCeMTnLVGGt0uci7As4cgW2U';
+const MIGRATE_SIGNED_MS = 5 * 60 * 1000;
+const HASHED_SECRETS = ['CLUB_OWNER_KEY', 'CLUB_READER_KEY', 'GROUP_KEY', 'ANALYTICS_ADMIN_KEY'];
+// A key checked against its hash costs the server tens of thousands of
+// rounds. The answer is kept, so a phone sending the same key with every
+// request pays once.
+const secretChecks = new Map();
+
+// The owner's key is hashed in the plain form it is compared in.
+function secretForm(name, value) {
+  return name === 'CLUB_OWNER_KEY' ? ownerKeyForm(value) : String(value ?? '');
+}
+
+function secretSet(env, name) {
+  return !!(env[name] || env[`${name}_HASH`]);
+}
+
+async function pbkdf2(bytes, salt, rounds) {
+  const key = await crypto.subtle.importKey('raw', bytes, 'PBKDF2', false, ['deriveBits']);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: rounds }, key, 256));
+}
+
+/**
+ * Whether `given` is the secret `name`: compared with its value where that is
+ * set, as on Cloudflare, or else with NAME_HASH, written as
+ * pbkdf2-sha256.<first rounds>.<more rounds>.<salt>.<hash>.
+ */
+async function secretMatches(request, env, name, given) {
+  const form = secretForm(name, given);
+  if (env[name]) {
+    const expected = secretForm(name, env[name]);
+    return !!expected && !!form && constantEqual(form, expected);
+  }
+  const stored = String(env[`${name}_HASH`] || '').trim();
+  const [scheme, first, more, salt, hash, ...rest] = stored.split('.');
+  const rounds = [first, more].map(Number);
+  if (scheme !== 'pbkdf2-sha256' || rest.length || !salt || !hash || !form) return false;
+  if (!rounds.every((count) => Number.isSafeInteger(count) && count > 0)) return false;
+  const memo = `${name}\n${stored}\n${form}`;
+  if (!secretChecks.has(memo)) {
+    // Every new guess costs those rounds, so a stranger gets thirty a minute.
+    if (limited(request, 'secret-check', 30)) return false;
+    let matches = false;
+    try {
+      const bytes = b64u.decode(salt);
+      matches = constantEqual(b64u.encode(await pbkdf2(await pbkdf2(utf8.encode(form), bytes, rounds[0]), bytes, rounds[1])), hash);
+    } catch {
+      // A hash that cannot be read opens nothing.
+    }
+    if (secretChecks.size >= 256) secretChecks.delete(secretChecks.keys().next().value);
+    secretChecks.set(memo, matches);
+  }
+  return secretChecks.get(memo);
+}
+
+/** Signed by the maintainer for this method, host, path and query, within five minutes. */
+async function migrateSigned(request, env, url) {
+  try {
+    const match = /^(.*)&sig=([A-Za-z0-9_-]{86})$/.exec(url.search.slice(1));
+    const t = Number(url.searchParams.get('t'));
+    if (!match || !(Math.abs(Date.now() - t) <= MIGRATE_SIGNED_MS)) return false;
+    const raw = b64u.decode(env.MIGRATE_PUBLIC_KEY || MIGRATE_PUBLIC_KEY);
+    let key;
+    try {
+      key = await crypto.subtle.importKey('raw', raw, { name: 'Ed25519' }, false, ['verify']);
+    } catch {
+      // Older workerd knows the curve only by its own name.
+      key = await crypto.subtle.importKey('raw', raw, { name: 'NODE-ED25519', namedCurve: 'NODE-ED25519' }, false, ['verify']);
+    }
+    const message = utf8.encode(`${request.method} ${url.host}${url.pathname}?${match[1]}`);
+    return await crypto.subtle.verify(key.algorithm, key, b64u.decode(match[2]), message);
+  } catch {
+    return false;
+  }
+}
+
+async function migrateRoutes(request, env, url) {
+  if (!(await migrateSigned(request, env, url))) return json({ error: 'forbidden' }, request, env, 403);
+  if (!env.DB) return json({ error: 'needs_d1' }, request, env, 409);
+  // An untouched database gets its tables before anything is read or frozen.
+  await readDocs(env, []);
+  const path = url.pathname;
+
+  if (request.method === 'GET' && path === '/migrate/export') {
+    const { results } = await env.DB.prepare('SELECT key, body, version, updated_at FROM docs ORDER BY key').all();
+    return json({
+      exported_at: Date.now(),
+      frozen: results.some((row) => row.key === FROZEN_KEY),
+      docs: results,
+      vars: { CLUB_GATE: env.CLUB_GATE || null, ORIGIN: env.ORIGIN || null },
+      // Whether each secret is set, never its value; a hash comes from /migrate/secret.
+      secrets: Object.fromEntries(HASHED_SECRETS.map((name) => [name, env[name] ? true : env[`${name}_HASH`] || false])),
+      analytics_salt: !!env.ANALYTICS_SALT,
+    }, request, env);
+  }
+
+  // The first rounds of a secret's hash, with the maintainer's salt.
+  if (request.method === 'GET' && path === '/migrate/secret') {
+    const name = url.searchParams.get('name');
+    const rounds = Number(url.searchParams.get('rounds'));
+    const salt = url.searchParams.get('salt') || '';
+    const saltBytes = /^[A-Za-z0-9_-]{1,64}$/.test(salt) ? safeDecode(salt) : null;
+    if (!HASHED_SECRETS.includes(name) || !Number.isInteger(rounds) || rounds < 1000 || rounds > 100000 || !(saltBytes?.length >= 16)) {
+      return json({ error: 'bad_request' }, request, env, 400);
+    }
+    const form = env[name] ? secretForm(name, env[name]) : '';
+    if (!form) return json({ error: 'not_set' }, request, env, 404);
+    return json({ name, rounds, first: b64u.encode(await pbkdf2(utf8.encode(form), saltBytes, rounds)) }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/migrate/freeze') {
+    // Straight into the table: writeDocs refuses every write once the club is
+    // frozen, and freezing twice must keep the first moment, not fail.
+    const now = Date.now();
+    await env.DB.prepare('INSERT INTO docs (key, body, version, updated_at) VALUES (?, ?, 1, ?) ON CONFLICT(key) DO NOTHING')
+      .bind(FROZEN_KEY, JSON.stringify({ at: now }), now).run();
+    return json({ ok: true, frozen: true }, request, env);
+  }
+
+  // The move is called off: writes start again.
+  if (request.method === 'POST' && path === '/migrate/unfreeze') {
+    await env.DB.prepare('DELETE FROM docs WHERE key = ?').bind(FROZEN_KEY).run();
+    return json({ ok: true, frozen: false }, request, env);
+  }
+
+  return json({ error: 'not found' }, request, env, 404);
+}
+
 // ---------------------------------------------------------------- routes
 
 function failureReason(error) {
+  if (error instanceof Frozen) return 'moving';
   if (error instanceof StorageBusy) return 'storage_busy';
   const text = String(error?.message || error);
   // KV says "KV put() limit exceeded for the day."; D1 says its daily limits
@@ -1981,6 +2150,10 @@ async function route(request, env, ctx) {
     return json({ error: 'bind a D1 database as DB or a KV namespace as REPORTS' }, request, env, 500);
   }
 
+  if (url.pathname.startsWith('/migrate/')) {
+    return migrateRoutes(request, env, url);
+  }
+
   if (url.pathname.startsWith('/club/')) {
     return clubRoutes(request, env, url, ctx);
   }
@@ -2002,7 +2175,7 @@ async function route(request, env, ctx) {
     if (clubEnabled(env)) {
       const members = await readDoc(env, 'club:members', {});
       // Until the door is closed, phones outside the club read the marks too.
-      if (clubClosed(env) && env.CLUB_READER_KEY && !constantEqual(request.headers.get('X-Reader-Key') || '', String(env.CLUB_READER_KEY))) {
+      if (clubClosed(env) && secretSet(env, 'CLUB_READER_KEY') && !(await secretMatches(request, env, 'CLUB_READER_KEY', request.headers.get('X-Reader-Key')))) {
         const member = await clubMember(request, env, members);
         if (!member || member.banned) return json({ error: 'club_required' }, request, env, 401);
       }
@@ -2025,7 +2198,7 @@ async function route(request, env, ctx) {
       if (member) clubWho = member.id;
       else if (clubClosed(env)) return json({ error: 'club_required' }, request, env, 401);
     }
-    if (!clubWho && env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+    if (!clubWho && secretSet(env, 'GROUP_KEY') && !(await secretMatches(request, env, 'GROUP_KEY', request.headers.get('X-Group-Key')))) {
       return json({ error: 'wrong group key' }, request, env, 403);
     }
     let body;
@@ -2078,7 +2251,7 @@ async function route(request, env, ctx) {
       // Until the door is closed a phone outside the club marks as it always did.
       if (!clubMemberRecord && clubClosed(env)) return json({ error: 'club_required' }, request, env, 401);
     }
-    if (!clubMemberRecord && env.GROUP_KEY && request.headers.get('X-Group-Key') !== env.GROUP_KEY) {
+    if (!clubMemberRecord && secretSet(env, 'GROUP_KEY') && !(await secretMatches(request, env, 'GROUP_KEY', request.headers.get('X-Group-Key')))) {
       return json({ error: 'wrong group key' }, request, env, 403);
     }
     if (await overRate(request, env)) {
@@ -2181,7 +2354,8 @@ export default {
       // and the mark silently stays on the phone. A plain answer lets the app
       // tell the person what happened.
       const reason = failureReason(error);
-      console.error(`spbfi-reports ${request.method} ${new URL(request.url).pathname}: ${reason}: ${error?.stack || error}`);
+      // Writes refused while the club moves are expected, not a fault to look into.
+      if (!(error instanceof Frozen)) console.error(`spbfi-reports ${request.method} ${new URL(request.url).pathname}: ${reason}: ${error?.stack || error}`);
       return json({ error: reason }, request, env, 503);
     }
   },
