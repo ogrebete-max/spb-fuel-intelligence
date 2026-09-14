@@ -424,6 +424,48 @@ body { touch-action: pan-y; -webkit-text-size-adjust: 100%; }
   color: var(--brand-dark); text-decoration: none; cursor: pointer;
 }
 
+/* Pulling up to a pump, or driving past one, its card and its pin are the ones
+   the eye has to find: the badge says so in words, the station you are at gets
+   a frame, and the pins close by grow. */
+.nearby-badge {
+  flex: 0 0 auto; margin-left: auto; padding: 2px 8px; border-radius: 999px;
+  background: rgba(13, 51, 40, .08); color: var(--brand-dark);
+  font-size: 12px; font-weight: 800; white-space: nowrap;
+}
+/* «рядом · 450 м» already gives the distance; the figure beside it would only
+   repeat it and take the room the network name needs on a phone. */
+.station-card.is-near .distance { display: none; }
+.station-card.is-here .distance { flex: 0 0 auto; white-space: nowrap; }
+.station-list .station-card.is-here {
+  /* The left edge keeps the decision colour, so the other sides are set one by
+     one: «Свои» cards have no decision colour, and a shorthand naming
+     var(--status-color) would then drop the green on every side. */
+  border-top-color: #1f7a4d; border-right-color: #1f7a4d; border-bottom-color: #1f7a4d;
+  box-shadow: inset 0 0 0 1px #1f7a4d;
+  background: #eef8f1;
+}
+.station-card.is-here .nearby-badge { background: #1f7a4d; color: #fff; }
+/* Leaflet moves the icon element itself with a transform, so only what is
+   inside it is resized; the tip of the bigger pin stays on the station. */
+.leaflet-marker-icon.near .fuel-marker {
+  left: -3px; top: -10px; width: 26px; height: 26px;
+  box-shadow: 0 0 0 3px rgba(13, 51, 40, .5), 0 2px 9px rgba(0, 0, 0, .3);
+}
+.leaflet-marker-icon.here .fuel-marker { box-shadow: 0 0 0 3px #1f7a4d, 0 2px 9px rgba(0, 0, 0, .3); }
+.leaflet-marker-icon.near .pin-label { left: 32px; }
+.leaflet-marker-icon.here .fuel-pin::before {
+  content: ""; position: absolute; left: -7px; top: -14px; width: 34px; height: 34px; box-sizing: border-box;
+  border: 3px solid #1f7a4d; border-radius: 50%; opacity: .45; pointer-events: none;
+  animation: here-pulse 1.8s ease-out infinite;
+}
+@keyframes here-pulse {
+  from { transform: scale(.75); opacity: .7; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-marker-icon.here .fuel-pin::before { animation: none; }
+}
+
 .mark-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
 .mark-row > span { flex: 1 1 100%; font-size: 12px; color: var(--muted); }
 .mark { border: 1px solid var(--line); border-radius: 10px; padding: 9px 13px; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }

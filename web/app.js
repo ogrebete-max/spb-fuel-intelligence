@@ -526,6 +526,7 @@ function setRoughTrusted(trusted) {
   if (state.searchScope === 'device') renderSearchContext();
   renderHerePanel();
   refreshVerdicts(null, { force: true });
+  refreshNearby();
   renderLocationHelpStatus();
 }
 
@@ -926,6 +927,7 @@ function applyFix(coords, { force = false } = {}) {
   renderMe();
   renderLocateButton();
   refreshVerdicts();
+  refreshNearby();
   if (firstFix) {
     state.bbox = null;
     state.search = '';
@@ -2212,7 +2214,7 @@ async function renderOwnList() {
     const grades = entry.items.map(([grade, mark]) => `<span class="feed-grade ${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))} ${mark.seen ? '✓' : '✗'}</span>`).join('');
     const queue = queueWords(entry.queue);
     const who = entry.names.length ? ` · ${escapeHtml(entry.names.join(', '))}` : '';
-    return `<article class="station-card own-card ${entry.tier.key}">
+    return `<article class="station-card own-card ${entry.tier.key}" data-nearby-station="${escapeHtml(entry.stationId)}">
       <button type="button" class="card-main own-main" data-own-station="${escapeHtml(entry.stationId)}">
         <span class="card-topline"><strong class="network">${escapeHtml(displayNetwork(entry.info.network))}</strong><span class="distance">${escapeHtml(formatDistance(entry.km))}</span></span>
         <span class="address">${escapeHtml(shortAddress(entry.info.address || ''))}</span>
@@ -2226,6 +2228,7 @@ async function renderOwnList() {
   list.querySelector('[data-own-back]').addEventListener('click', leaveOwnView);
   bindThanks(list);
   bindVerdicts(list);
+  paintNearby();
 }
 
 function renderOwnMarkers() {
@@ -2239,10 +2242,11 @@ function renderOwnMarkers() {
       html: `<div class="fuel-pin labelled own-pin ${entry.tier.key}"><span class="fuel-marker"></span><span class="pin-label"><b>${entry.tier.icon} ${escapeHtml(shortNetwork(info.network))}</b><span class="pin-grades">${grades}</span><em>${escapeHtml(formatAge((now - entry.latest) / 1000))}</em></span></div>`,
       iconSize: [20, 20], iconAnchor: [10, 20],
     });
-    const marker = L.marker([info.lat, info.lon], { icon });
+    const marker = L.marker([info.lat, info.lon], { icon, stationId: entry.stationId });
     marker.on('click', () => openStation(entry.stationId));
     marker.addTo(state.markers);
   }
+  paintNearby();
 }
 
 function thankTargets(stationId) {
@@ -3871,6 +3875,118 @@ function renderHerePanel() {
   });
 }
 
+// ---------------------------------------------------------------- close by
+// Pulling up to a pump, or driving past one, the eye has to find its card and
+// its pin at once: «📍 Вы здесь» on the station the phone is at, «📍 рядом» on
+// the ones within a kilometre. Words and a symbol, not colour alone, so it
+// reads in low sun and for someone who cannot tell green from grey.
+const NEAR_BADGE_KM = 1;
+// A watch can report a fix every second. Repainting on each would only make
+// the badges twitch and keep a phone in its holder busy for nothing.
+const NEARBY_REFRESH_MS = 2000;
+let nearbyPaintedAt = 0;
+let nearbyTimer = null;
+
+// Only where the phone is counts. A place found by «Проверить по адресу» has
+// no accuracy, and while that search is on, the distances on the cards are
+// from the address typed in, not from the driver.
+function phonePlace() {
+  return state.location && state.accuracy != null && state.searchScope !== 'place' ? state.location : null;
+}
+
+// Every station a card or a pin on screen can stand for, and where it is.
+function nearbyPlaces() {
+  const places = new Map();
+  state.stations.forEach((station) => {
+    if (station.location) places.set(station.id, station.location);
+  });
+  if (state.ownOnly) {
+    ownEntries().forEach(({ stationId }) => {
+      const place = stationPlace(stationId);
+      if (place) places.set(stationId, place);
+    });
+  }
+  return places;
+}
+
+// The one station the phone is at: the nearest within AT_STATION_METRES, as
+// the «Вы у АЗС» panel picks it. Two stations facing each other across a road
+// can both be that close, and «Вы здесь» on both would point at neither. A
+// rough fix can put the dot on the wrong forecourt, so it names none.
+function stationHereId(phone, places) {
+  if (!phone || effectiveAccuracy() > ROUGH_METRES) return null;
+  let best = null;
+  places.forEach((place, id) => {
+    const metres = haversineKm(phone, place) * 1000;
+    if (metres <= AT_STATION_METRES && (!best || metres < best.metres)) best = { id, metres };
+  });
+  return best?.id ?? null;
+}
+
+function nearness(stationId, km, hereId) {
+  if (km == null) return '';
+  if (stationId === hereId) return 'here';
+  return km <= NEAR_BADGE_KM ? 'near' : '';
+}
+
+// Cards and pins follow the phone in place, the way the 👍/👎 buttons do: a
+// class and a few words change and nothing is redrawn, so the list does not
+// jump and a finger on its way to a card still lands on it.
+function paintNearby() {
+  const phone = phonePlace();
+  const places = nearbyPlaces();
+  const hereId = stationHereId(phone, places);
+  document.querySelectorAll('#stationList .station-card[data-nearby-station]').forEach((card) => {
+    const id = card.dataset.nearbyStation;
+    const place = places.get(id);
+    const km = phone && place ? haversineKm(phone, place) : null;
+    const nearby = nearness(id, km, hereId);
+    card.classList.toggle('is-here', nearby === 'here');
+    card.classList.toggle('is-near', nearby === 'near');
+    const topline = card.querySelector('.card-topline');
+    if (!topline) return;
+    const distance = topline.querySelector('.distance');
+    const words = nearby === 'here' ? '📍 Вы здесь' : nearby === 'near' ? `📍 рядом · ${formatDistance(km)}` : '';
+    let badge = topline.querySelector('.nearby-badge');
+    if (words && !badge) {
+      badge = document.createElement('span');
+      badge.className = 'nearby-badge';
+      topline.insertBefore(badge, distance);
+    }
+    if (!words) badge?.remove();
+    else if (badge.textContent !== words) badge.textContent = words;
+    // «Вы здесь» beside the distance from when the list was loaded, a few
+    // hundred metres back, would contradict itself.
+    const figure = formatDistance(km);
+    if (distance && km != null && distance.textContent !== figure) distance.textContent = figure;
+  });
+  // Pins change on the element Leaflet already drew: a new icon would be built
+  // under a finger about to tap it, and would restart the pulse on every fix.
+  state.markers?.eachLayer((marker) => {
+    const element = marker.getElement();
+    if (!element) return;
+    const { lat, lng } = marker.getLatLng();
+    const nearby = phone ? nearness(marker.options.stationId, haversineKm(phone, { lat, lon: lng }), hereId) : '';
+    element.classList.toggle('near', nearby !== '');
+    element.classList.toggle('here', nearby === 'here');
+    // Over the neighbours' labels, still under the phone's own blue dot.
+    const lift = nearby === 'here' ? 800 : nearby ? 500 : 0;
+    if ((marker.options.zIndexOffset || 0) !== lift) marker.setZIndexOffset(lift);
+  });
+}
+
+// Called whenever the phone's place changes. Paints at most once per
+// NEARBY_REFRESH_MS and always once after the last fix, so the badges settle
+// where the phone did.
+function refreshNearby() {
+  if (nearbyTimer) return;
+  nearbyTimer = setTimeout(() => {
+    nearbyTimer = null;
+    nearbyPaintedAt = Date.now();
+    paintNearby();
+  }, Math.max(0, nearbyPaintedAt + NEARBY_REFRESH_MS - Date.now()));
+}
+
 function renderStations({ append = false } = {}) {
   const list = $('#stationList');
   renderHerePanel();
@@ -3904,6 +4020,7 @@ function renderStations({ append = false } = {}) {
     const grade = station.grade;
     const advice = grade.advice || {};
     const card = node.querySelector('.station-card');
+    card.dataset.nearbyStation = station.id;
     card.style.setProperty('--status-color', DECISION_TONE[advice.decision] || STATUS[grade.status].color);
     node.querySelector('.network').textContent = displayNetwork(station.network);
     node.querySelector('.address').textContent = shortAddress(station.address);
@@ -3976,6 +4093,7 @@ function renderStations({ append = false } = {}) {
   } else {
     list.replaceChildren(fragment);
   }
+  paintNearby();
   if (state.visible < state.stations.length) {
     const more = document.createElement('button');
     more.type = 'button';
@@ -4068,10 +4186,11 @@ function renderMarkers() {
       html: `<div class="fuel-pin${withLabel ? ' labelled' : ''}" style="--marker:${status.color}"><span class="fuel-marker"></span>${withLabel ? pinLabel(station) : ''}</div>`,
       iconSize: [20, 20], iconAnchor: [10, 20],
     });
-    const marker = L.marker([station.location.lat, station.location.lon], { icon });
+    const marker = L.marker([station.location.lat, station.location.lon], { icon, stationId: station.id });
     marker.bindPopup(`<div class="popup-title">${escapeHtml(station.network)}</div><div>${escapeHtml(shortAddress(station.address))}</div><div class="popup-status" style="--popup-color:${status.color}">${escapeHtml(station.grade.label)}</div><button class="popup-open" onclick="window.openFuelStation('${station.id}')">Открыть и отметить</button>`);
     marker.addTo(state.markers);
   });
+  paintNearby();
 }
 
 window.openFuelStation = openStation;
