@@ -24,7 +24,9 @@
  * the same invite code while it runs, or with a short code shown by a device
  * still inside. Members standing at a pump confirm (👍) or refute (👎)
  * each other's fresh marks; five refutations from different people take the
- * author out of the club until the owner brings them back. It opens in stages.
+ * author out of the club until the owner brings them back. A mark made by
+ * mistake is deleted by its author in the first hour, or by the owner while it
+ * is listed, and the 🤝 it earned go with it. It opens in stages.
  * With CLUB_OWNER_KEY alone it is a test: members see it on their own phones,
  * and for everyone else the app stays as it was. CLUB_GATE=invite offers
  * joining to everyone; CLUB_GATE=closed shuts the door, and only members can
@@ -753,6 +755,8 @@ const VOTE_RADIUS_SLACK_M = 100;
 const VOTES_PER_DAY = 40;
 const REFUTED_WARNING = 3;
 const REFUTED_BAN = 5;
+// Its author takes a mark back while it is news; the owner, while it is listed.
+const DELETE_WINDOW_MS = 60 * 60 * 1000;
 const LEVELS = [
   { min: 0, icon: '🔰', title: 'Новичок' },
   { min: 10, icon: '⛽', title: 'Заправщик' },
@@ -783,6 +787,7 @@ function emptyStats() {
     liters: 0, marks: 0, confirmed: 0, thanks: 0, saved: 0, given: 0, scout: 0, first_seen: 0,
     night: 0, queue_confirmed: 0, sponsor: 0, heroes: 0, blind: 0, zones: [], weeks: {}, days: {}, given_days: {},
     badges: {}, awards: [], news: [], thanked: {}, confirms: {}, votes: {}, refuted_by: {}, vote_days: {},
+    paid_looks: {},
   };
 }
 
@@ -830,6 +835,28 @@ function addLiters(stats, amount, at, type, extra = {}) {
   const after = levelFor(stats.liters);
   if (after.rank > before) pushNews(stats, { type: 'level', icon: after.icon, title: after.title, at });
   return after.rank > before ? after : null;
+}
+
+/**
+ * Takes back what a look earned its author, as payMark wrote it down in
+ * paid_looks, never below zero; a week or a day no longer kept is skipped.
+ * Returns the 🤝 taken back.
+ */
+function unpayLook(stats, key) {
+  const paid = stats.paid_looks?.[key];
+  if (!paid) return 0;
+  const take = (holder, name, amount) => {
+    if (!holder || holder[name] == null || !amount) return 0;
+    const before = Number(holder[name]) || 0;
+    holder[name] = Math.max(0, before - amount);
+    return before - holder[name];
+  };
+  const back = take(stats, 'liters', paid.liters);
+  take(stats.weeks, weekKey(paid.at), paid.liters);
+  take(stats.days, paid.day, paid.day_liters);
+  for (const name of ['marks', 'blind', 'first_seen', 'scout', 'night']) take(stats, name, paid[name]);
+  delete stats.paid_looks[key];
+  return back;
 }
 
 function awardBadges(stats, at) {
@@ -901,32 +928,47 @@ function payMark(all, members, reports, looks, { blindSpot = false } = {}) {
   const me = statsFor(all, report.who);
   const at = report.at;
   const result = { liters: 0, confirmed: [], badges: [], level_up: null };
+  // Written down per look, so that deleting the look takes back exactly what
+  // it earned its author.
+  const paid = { at, station: report.station, liters: 0, marks: 0, blind: 0, first_seen: 0, scout: 0, night: 0, day: dayKey(at), day_liters: 0 };
   // Only members' marks count: until the door is closed, marks from phones
   // outside the club share the same list.
   const others = reports.filter((item) => item.who !== report.who && members[item.who] && !members[item.who].banned);
   // One look at a station is one mark, however many grades it lists and
-  // however often it is repeated within the hour.
-  const repeat = reports.some((item) => item.who === report.who && item.station === report.station && at - item.at < SAME_STATION_MS);
+  // however often it is repeated within the hour. The hour's first look counts
+  // even after a repeat has replaced it and been deleted; otherwise mark, mark
+  // again and delete would pay the next look as a first one.
+  const repeat = reports.some((item) => item.who === report.who && item.station === report.station && at - item.at < SAME_STATION_MS)
+    || Object.values(me.paid_looks).some((item) => item.station === report.station && item.marks && at - item.at < SAME_STATION_MS);
   if (!repeat) {
     me.marks += 1;
+    paid.marks = 1;
     const today = dayKey(at);
     const earned = me.days[today] || 0;
     if (earned < MARK_LITERS_PER_DAY) {
       me.days = { [today]: earned + LITERS.mark };
+      paid.day_liters = LITERS.mark;
       result.level_up = addLiters(me, LITERS.mark, at, 'mark', { station: report.station }) || result.level_up;
       result.liters += LITERS.mark;
     }
-    if (!others.some((item) => item.station === report.station)) me.scout += 1;
+    if (!others.some((item) => item.station === report.station)) {
+      me.scout += 1;
+      paid.scout = 1;
+    }
     // The phone says the app had nothing fresh here. Taken on trust inside the
     // club, and only for a first look, so it cannot be farmed by re-marking.
     if (blindSpot) {
       me.blind += 1;
+      paid.blind = 1;
       result.level_up = addLiters(me, LITERS.blind_spot, at, 'blind_spot', { station: report.station }) || result.level_up;
       result.liters += LITERS.blind_spot;
       result.blind_spot = true;
     }
     const hour = moscowDate(at).getUTCHours();
-    if (hour >= 23 || hour < 6) me.night += 1;
+    if (hour >= 23 || hour < 6) {
+      me.night += 1;
+      paid.night = 1;
+    }
     const zone = zoneOf(report.lat, report.lon);
     if (zone && !me.zones.includes(zone)) me.zones = [...me.zones, zone];
     const sponsorId = members[report.who]?.sponsor;
@@ -944,6 +986,7 @@ function payMark(all, members, reports, looks, { blindSpot = false } = {}) {
     if (!firstSeenPaid && look.seen && sameGrade[0] && sameGrade[0].seen === false) {
       firstSeenPaid = true;
       me.first_seen += 1;
+      paid.first_seen = 1;
       result.level_up = addLiters(me, LITERS.first_seen, at, 'first_seen', { station: look.station }) || result.level_up;
       result.liters += LITERS.first_seen;
     }
@@ -961,6 +1004,14 @@ function payMark(all, members, reports, looks, { blindSpot = false } = {}) {
       awardBadges(author, at);
       result.confirmed.push(members[prior.who]?.name || '');
     }
+  }
+  paid.liters = result.liters;
+  // A repeat that earned nothing leaves nothing to take back. A look can be
+  // deleted only while it is listed, so older entries are dropped.
+  if (paid.marks || paid.first_seen) {
+    const cutoff = Date.now() - WINDOW_MS;
+    for (const [key, item] of Object.entries(me.paid_looks)) if (!(item.at > cutoff)) delete me.paid_looks[key];
+    me.paid_looks[lookKey(report)] = paid;
   }
   result.badges = awardBadges(me, at);
   result.total = me.liters;
@@ -1320,7 +1371,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, migrate: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -1753,6 +1804,39 @@ async function clubRoutes(request, env, url, ctx) {
       }).catch(() => {}));
     }
     return json({ ok: true, up: outcome.up, down: outcome.down, mine: outcome.mine, ...(outcome.paid ? { paid: outcome.paid } : {}) }, request, env);
+  }
+
+  // A mark made by mistake used to stay. Its author deletes it in the first
+  // hour, the owner any mark while it is listed, and what the look earned its
+  // author goes with it, so marking and deleting pays nothing. Confirmations it
+  // paid others, badges and zones stay.
+  if (request.method === 'POST' && path === '/club/report/delete') {
+    if (limited(request, 'mark-delete', 20)) return json({ error: 'too_many_attempts' }, request, env, 429);
+    const body = (await readJson(request)) || {};
+    const owner = member.role === 'owner';
+    const named = String(body.author || '');
+    if (named && named !== member.id && !owner) return json({ error: 'not_yours' }, request, env, 403);
+    const authorId = named || member.id;
+    const station = String(body.station || '');
+    const at = Number(body.at);
+    const now = Date.now();
+    const outcome = await transact(env, { reports: [], 'club:stats': {} }, (docs) => {
+      const cutoff = now - WINDOW_MS;
+      const look = docs.reports.filter((report) => report && report.at > cutoff && report.who === authorId && report.station === station && report.at === at);
+      if (!look.length) return { error: 'mark_gone', status: 404 };
+      if (!owner && now - at > DELETE_WINDOW_MS) return { error: 'delete_too_late', status: 410 };
+      docs.reports = docs.reports.filter((report) => !look.includes(report));
+      const stats = docs['club:stats'][authorId];
+      if (!stats) return { removed: look.length, liters_back: 0 };
+      const back = unpayLook(stats, lookKey(look[0]));
+      stats.news = (stats.news || []).filter((item) => !(['mark', 'blind_spot', 'first_seen'].includes(item.type) && item.station === station && item.at === at));
+      // Dated now, not by the mark: a phone asks only for news newer than the
+      // last it read, and it read the mark's own news long ago.
+      if (authorId !== member.id) pushNews(stats, { type: 'mark_removed', station, at: now, mark_at: at, by: 'owner' });
+      return { removed: look.length, liters_back: back };
+    });
+    if (outcome.error) return json({ error: outcome.error }, request, env, outcome.status);
+    return json({ ok: true, removed: outcome.removed, liters_back: outcome.liters_back }, request, env);
   }
 
   if (request.method === 'GET' && path === '/club/leaderboard') {

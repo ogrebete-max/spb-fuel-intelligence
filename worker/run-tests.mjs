@@ -22,6 +22,8 @@ const runs = [
   ['club-votes.test.mjs', 'd1'],
   ['club-invites.test.mjs', 'kv'],
   ['club-invites.test.mjs', 'd1'],
+  ['club-delete.test.mjs', 'kv'],
+  ['club-delete.test.mjs', 'd1'],
   ['storage.test.mjs', 'kv+d1'],
   ['migrate.test.mjs', 'd1'],
   ['club.test.mjs', 'd1-file'],
