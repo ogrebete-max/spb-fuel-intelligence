@@ -1,88 +1,81 @@
-// A stand-in for Cloudflare D1 in tests: real SQLite (node:sqlite) behind the
-// calls the worker makes — prepare, bind, first, all, run, batch — with a
-// small random delay before each, so requests running at once interleave the
-// way they do over the network. A batch is one transaction, as in D1.
-import { DatabaseSync } from 'node:sqlite';
+// A stand-in for Cloudflare D1 in tests: the club server's own SQLite database
+// (server/sqlite-d1.mjs) behind the calls the worker makes — prepare, bind,
+// first, all, run, batch — with a small random delay before each, so requests
+// running at once interleave the way they do over the network. A batch is one
+// transaction, as in D1.
+//
+// SPBFI_D1_FILE=1 keeps every database in a temporary file with a write-ahead
+// log instead of memory, so the whole worker suite can run on files the way
+// the club server does.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { SqliteD1 } from '../server/sqlite-d1.mjs';
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-class Statement {
-  constructor(d1, sql, params = []) {
-    this.d1 = d1;
-    this.sql = sql;
-    this.params = params;
-  }
+let folder = null;
+let made = 0;
+const onDisk = new Set();
 
-  bind(...params) {
-    if (params.some((value) => value === undefined)) throw new TypeError("D1_TYPE_ERROR: Type 'undefined' not supported for value 'undefined'");
-    return new Statement(this.d1, this.sql, params);
+function databaseFile() {
+  if (!folder) {
+    folder = fs.mkdtempSync(path.join(os.tmpdir(), 'spbfi-d1-'));
+    process.once('exit', removeFiles);
   }
+  made += 1;
+  return path.join(folder, `d1-${made}.sqlite`);
+}
 
-  execute() {
-    const statement = this.d1.db.prepare(this.sql);
-    if (statement.columns().length) return { success: true, results: statement.all(...this.params), meta: { changes: 0 } };
-    const info = statement.run(...this.params);
-    return { success: true, results: [], meta: { changes: Number(info.changes), last_row_id: Number(info.lastInsertRowid) } };
+function removeFiles() {
+  // Windows cannot delete a file that is still open, so close them all first.
+  for (const d1 of onDisk) {
+    try {
+      d1.close();
+    } catch {
+      // Already closed.
+    }
   }
-
-  all() {
-    return this.d1.perform([this], () => this.execute());
-  }
-
-  run() {
-    return this.all();
-  }
-
-  async first(column) {
-    const row = (await this.all()).results[0];
-    if (!row) return null;
-    return column ? row[column] : row;
+  try {
+    fs.rmSync(folder, { recursive: true, force: true });
+  } catch (error) {
+    // Windows may hold a file a moment longer (an antivirus scan, say). A
+    // leftover folder in the temp directory is not worth failing a test for.
+    if (!['EBUSY', 'EPERM', 'ENOTEMPTY'].includes(error.code)) console.error(`could not remove ${folder}: ${error.message}`);
   }
 }
 
-export class FakeD1 {
+export class FakeD1 extends SqliteD1 {
   /**
    * @param {object} options
    * @param {number} options.latencyMs  upper bound of the random delay before each call
    * @param {(sql: string) => string|null} options.failure  a message to throw instead of running `sql`
    */
   constructor({ latencyMs = 4, failure = null } = {}) {
-    this.db = new DatabaseSync(':memory:');
+    const inFile = process.env.SPBFI_D1_FILE === '1';
+    super(inFile ? databaseFile() : ':memory:');
+    if (inFile) onDisk.add(this);
+    // It stands in for Cloudflare D1, and the worker should report it as such.
+    this.kind = 'd1';
     this.latencyMs = latencyMs;
     this.failure = failure;
     // Committed document writes, the D1 counterpart of counting KV puts.
     this.docWrites = 0;
   }
 
-  prepare(sql) {
-    return new Statement(this, sql);
-  }
-
-  batch(statements) {
-    return this.perform(statements, () => {
-      this.db.exec('BEGIN');
-      try {
-        const results = statements.map((statement) => statement.execute());
-        this.db.exec('COMMIT');
-        this.docWrites += statements.filter((statement) => /^INSERT INTO docs\b[\s\S]*DO UPDATE/.test(statement.sql)).length;
-        return results;
-      } catch (error) {
-        this.db.exec('ROLLBACK');
-        throw error;
-      }
-    });
+  async batch(statements) {
+    const results = await super.batch(statements);
+    this.docWrites += statements.filter((statement) => /^INSERT INTO docs\b[\s\S]*DO UPDATE/.test(statement.sql)).length;
+    return results;
   }
 
   async perform(statements, work) {
     if (this.latencyMs) await pause(Math.random() * this.latencyMs);
     for (const statement of statements) {
+      // Thrown as given, not wrapped: a test spells out the exact error D1 reports.
       const message = this.failure?.(statement.sql);
       if (message) throw new Error(message);
     }
-    try {
-      return work();
-    } catch (error) {
-      throw new Error(`D1_ERROR: ${error.message}`);
-    }
+    return super.perform(statements, work);
   }
 }
