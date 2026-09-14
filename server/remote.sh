@@ -17,8 +17,10 @@ DOWNLOADS="${SPBFI_DOWNLOADS:-$HOME/.spbfi-club/downloads}"
 NODE_VERSION=24.21.0
 CADDY_VERSION=2.11.4
 # accept-new: the first connection to a fresh VPS remembers its host key,
-# and a changed key later is refused.
-SSH=(ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new)
+# and a changed key later is refused. The known_hosts path is given outright:
+# ssh in Git Bash works its home folder out by itself and garbles a Cyrillic
+# user name, so it could neither remember the key nor notice it change.
+SSH=(ssh -i "$KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 usage() {
