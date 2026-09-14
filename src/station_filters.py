@@ -23,7 +23,9 @@ from typing import Any
 # rows of petrol grades for these too, so no amount of that evidence keeps them.
 GAS_PUMP = re.compile(
     r"агзс|агнкс|газозаправ|газомотор|газов(?:ая|ой|ые) заправ|пропан|метан"
-    r"|\bкпг\b|\bспг\b|\blpg\b|\bcng\b|газов(?:ых|ые) (?:баллон|технолог)|газсервис|трансгаз|газon|газ \d+",
+    r"|\bкпг\b|\bспг\b|\blpg\b|\bcng\b|газов(?:ых|ые) (?:баллон|технолог)|газсервис|трансгаз|газon|газ \d+"
+    # «Газпром ГМТ», as Alfa-Bank's map names Gazprom's methane stations.
+    r"|\bгмт\b",
     re.IGNORECASE,
 )
 # A brand that sells gas but also runs ordinary forecourts; evidence decides.

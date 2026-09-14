@@ -67,6 +67,9 @@ MIN_INTERVAL_SECONDS = {
     "gdebenzfuel": 20 * 60,
     "tbank-fuel": 20 * 60,
     "telegram-benzinspb78": 15 * 60,
+    # All of Russia in one 3 MB answer; its statuses move with card payments,
+    # so every other ten-minute run is enough.
+    "alfa-azs": 15 * 60,
     "lukoil-search": 6 * 3600,
     "rosneft-stations": 3600,
     "tatneft-azs": 3600,

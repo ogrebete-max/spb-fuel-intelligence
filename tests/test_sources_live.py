@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+import os
 from pathlib import Path
 import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
+import collectors  # noqa: E402
 from collectors import parse_moscow_confirmation  # noqa: E402
 from src.sources_live import (  # noqa: E402
     normalize_gdezapravka,
@@ -14,6 +17,10 @@ from src.sources_live import (  # noqa: E402
     normalize_telegram_post,
     normalize_tofuel,
 )
+from src.sources_maps import normalize_2gis_benzin  # noqa: E402
+
+# Checks below read the real sources and are off unless asked for.
+READ_REAL_SOURCES = os.environ.get("SPBFI_LIVE_SOURCES") == "1"
 
 
 REFERENCE = datetime(2026, 9, 11, 21, 0, tzinfo=timezone.utc)
@@ -131,6 +138,40 @@ class TelegramTests(unittest.TestCase):
     def test_a_confirmation_is_never_read_as_the_future(self):
         stamp = parse_moscow_confirmation("Последнее подтверждение: 31 декабря в 23:30", reference=REFERENCE)
         self.assertEqual(stamp, "2025-12-31T20:30:00Z")
+
+
+@unittest.skipUnless(READ_REAL_SOURCES, "reads the real sources; run with SPBFI_LIVE_SOURCES=1")
+class NewSourcesLiveTests(unittest.TestCase):
+    """The five sources found on 14 Sep 2026, read for real: is the contract still there?"""
+
+    def test_2gis_benzin_lists_the_region_with_timed_marks(self):
+        payload = collectors.collect_2gis_benzin()
+        self.assertGreater(len(payload["stations"]), 500)
+        self.assertNotIn("user_id", json.dumps(payload))
+        rows = [row for item in payload["stations"] for row in normalize_2gis_benzin(item)]
+        self.assertTrue(any(row["evidence"] for row in rows))
+
+    def test_transitcard_answers_for_every_grade(self):
+        payload = collectors.collect_transitcard()
+        self.assertEqual(payload["errors"], [])
+        self.assertGreater(len(payload["stations"]), 300)
+        seen = {status for station in payload["stations"] for status in station["statuses"].values()}
+        self.assertTrue({"available", "has_limit"} & seen)
+
+    def test_alfa_answers_through_the_state_root(self):
+        payload = collectors.collect_alfa()
+        self.assertGreater(payload["russia_total"], 10_000)
+        self.assertGreater(len(payload["stations"]), 500)
+
+    def test_azsradar_keeps_only_its_own_marks(self):
+        payload = collectors.collect_azsradar()
+        self.assertGreater(len(payload["stations"]), 500)
+        self.assertFalse(any(set(collectors.AZSRADAR_BANK_FIELDS) & set(row) for row in payload["stations"]))
+
+    def test_azsmap_data_model_still_parses(self):
+        payload = collectors.collect_azsmap()
+        self.assertGreater(len(payload["stations"]), 1000)
+        self.assertIn("ai98", payload["fuel_labels"])
 
 
 if __name__ == "__main__":

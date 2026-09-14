@@ -1,0 +1,877 @@
+{
+ "captured_at": "2026-09-14T18:50:16.010869Z",
+ "tiles": 2,
+ "errors": [],
+ "_sample": {
+  "source": "2gis-benzin",
+  "note": "A few stations of a real capture of 14 Sep 2026, picked to cover every status the normalizer handles.",
+  "stations_in_capture": 1324
+ },
+ "stations": [
+  {
+   "station": {
+    "id": "5348552840320026",
+    "region_id": 38,
+    "name": "Роснефть",
+    "brand": "Роснефть",
+    "address": "Санкт-Петербург, улица Гидростроителей, 9",
+    "lat": 60.006976,
+    "lng": 29.71223,
+    "last_transaction_at": "2026-09-10T10:47:28Z",
+    "created_at": "2026-07-10T15:34:42.835564Z",
+    "updated_at": "2026-09-14T10:30:33.960275Z",
+    "has_shop": true,
+    "has_cafe": true,
+    "has_toilet": true,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": true,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "5348552840320026",
+     "fuel_type": "AI_95",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 6,
+     "last_report_at": "2026-09-12T22:21:05Z"
+    },
+    {
+     "station_id": "5348552840320026",
+     "fuel_type": "AI_92",
+     "available": false,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 30,
+     "reports_count": 9,
+     "last_report_at": "2026-09-12T22:21:05Z"
+    },
+    {
+     "station_id": "5348552840320026",
+     "fuel_type": "DT",
+     "available": true,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 30,
+     "reports_count": 13,
+     "last_report_at": "2026-09-12T22:21:05Z"
+    }
+   ],
+   "status": "PARTIALLY_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "limit_liters": 30,
+   "queue_level": "UP_TO_25"
+  },
+  {
+   "station": {
+    "id": "5348552838746363",
+    "region_id": 38,
+    "name": "Газпромнефть, АЗС",
+    "brand": "Газпромнефть",
+    "address": "Санкт-Петербург, Таллинское шоссе, 151 к1",
+    "lat": 59.810717,
+    "lng": 30.168531,
+    "last_transaction_at": "2026-08-27T04:14:50Z",
+    "created_at": "2026-07-10T15:34:47.998202Z",
+    "updated_at": "2026-09-14T10:30:27.793771Z",
+    "has_shop": true,
+    "has_cafe": true,
+    "has_toilet": true,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_100",
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "5348552838746363",
+     "fuel_type": "AI_100",
+     "available": false,
+     "queue_level": "NONE",
+     "limit_liters": 0,
+     "reports_count": 9,
+     "last_report_at": "2026-09-14T12:52:29Z"
+    },
+    {
+     "station_id": "5348552838746363",
+     "fuel_type": "AI_95",
+     "available": null,
+     "queue_level": "OVER_50",
+     "limit_liters": 30,
+     "reports_count": 21,
+     "last_report_at": "2026-09-14T12:52:29Z"
+    },
+    {
+     "station_id": "5348552838746363",
+     "fuel_type": "AI_92",
+     "available": null,
+     "queue_level": "OVER_50",
+     "limit_liters": 30,
+     "reports_count": 18,
+     "last_report_at": "2026-09-14T12:52:29Z"
+    },
+    {
+     "station_id": "5348552838746363",
+     "fuel_type": "DT",
+     "available": true,
+     "queue_level": "OVER_50",
+     "limit_liters": 30,
+     "reports_count": 20,
+     "last_report_at": "2026-09-14T12:52:29Z"
+    }
+   ],
+   "status": "PARTIALLY_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "limit_liters": 30,
+   "queue_level": "UP_TO_25",
+   "prices": [
+    {
+     "station_id": "5348552838746363",
+     "fuel_type": "AI_100",
+     "price": 99.9,
+     "updated_at": "2026-09-14T18:09:43Z"
+    },
+    {
+     "station_id": "5348552838746363",
+     "fuel_type": "AI_92",
+     "price": 65.32,
+     "updated_at": "2026-09-14T18:09:43Z"
+    },
+    {
+     "station_id": "5348552838746363",
+     "fuel_type": "DT",
+     "price": 80.43,
+     "updated_at": "2026-09-14T18:09:43Z"
+    }
+   ]
+  },
+  {
+   "station": {
+    "id": "70000001037126219",
+    "region_id": 38,
+    "name": "Teboil, АЗС",
+    "brand": "Teboil",
+    "address": "Ускуля (Пениковское СП, Ломоносовский муниципальный район, Ленинградская обл.), Ускуля деревня, 11",
+    "lat": 59.886297,
+    "lng": 29.682327,
+    "last_transaction_at": "2026-09-10T07:45:50Z",
+    "created_at": "2026-07-10T15:34:20.660002Z",
+    "updated_at": "2026-09-14T10:31:52.219353Z",
+    "has_shop": true,
+    "has_cafe": true,
+    "has_toilet": false,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": true,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_100",
+     "AI_98",
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "70000001037126219",
+     "fuel_type": "AI_100",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 3,
+     "last_report_at": "2026-07-25T14:51:47Z"
+    },
+    {
+     "station_id": "70000001037126219",
+     "fuel_type": "AI_98",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 2,
+     "last_report_at": "2026-07-25T14:51:47Z"
+    },
+    {
+     "station_id": "70000001037126219",
+     "fuel_type": "AI_95",
+     "available": true,
+     "queue_level": "FROM_25_TO_50",
+     "reports_count": 12,
+     "last_report_at": "2026-09-14T18:12:00Z"
+    },
+    {
+     "station_id": "70000001037126219",
+     "fuel_type": "AI_92",
+     "available": null,
+     "queue_level": "FROM_25_TO_50",
+     "limit_liters": 0,
+     "reports_count": 13,
+     "last_report_at": "2026-09-13T16:10:14Z"
+    },
+    {
+     "station_id": "70000001037126219",
+     "fuel_type": "DT",
+     "available": true,
+     "queue_level": "FROM_25_TO_50",
+     "limit_liters": 0,
+     "reports_count": 23,
+     "last_report_at": "2026-09-14T08:22:51Z"
+    }
+   ],
+   "status": "AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "queue_level": "NONE"
+  },
+  {
+   "station": {
+    "id": "5348552838656654",
+    "region_id": 38,
+    "name": "Роснефть",
+    "brand": "Роснефть",
+    "address": "Санкт-Петербург, улица Федюнинского, 1 лит А",
+    "lat": 59.893185,
+    "lng": 29.794891,
+    "last_transaction_at": "2026-09-10T05:07:21Z",
+    "created_at": "2026-07-10T15:34:48.670926Z",
+    "updated_at": "2026-09-14T10:30:19.466882Z",
+    "has_shop": true,
+    "has_cafe": true,
+    "has_toilet": true,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": true,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "5348552838656654",
+     "fuel_type": "AI_95",
+     "available": false,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 30,
+     "reports_count": 15,
+     "last_report_at": "2026-09-14T12:23:59Z"
+    },
+    {
+     "station_id": "5348552838656654",
+     "fuel_type": "AI_92",
+     "available": false,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 30,
+     "reports_count": 18,
+     "last_report_at": "2026-09-13T00:34:43Z"
+    },
+    {
+     "station_id": "5348552838656654",
+     "fuel_type": "DT",
+     "available": false,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 30,
+     "reports_count": 24,
+     "last_report_at": "2026-09-14T18:19:12Z"
+    }
+   ],
+   "status": "NOT_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "limit_liters": 30,
+   "queue_level": "NONE",
+   "prices": [
+    {
+     "station_id": "5348552838656654",
+     "fuel_type": "AI_95",
+     "price": 70.25,
+     "updated_at": "2026-09-14T18:09:48Z"
+    },
+    {
+     "station_id": "5348552838656654",
+     "fuel_type": "AI_92",
+     "price": 65.35,
+     "updated_at": "2026-09-14T18:09:48Z"
+    },
+    {
+     "station_id": "5348552838656654",
+     "fuel_type": "DT",
+     "price": 80.95,
+     "updated_at": "2026-09-14T18:09:48Z"
+    }
+   ]
+  },
+  {
+   "station": {
+    "id": "70000001116931304",
+    "region_id": 38,
+    "name": "Shelf, АЗС",
+    "brand": "Shelf",
+    "address": "Пеники, АЗС",
+    "lat": 59.91474,
+    "lng": 29.649565,
+    "created_at": "2026-08-14T00:03:20.216748Z",
+    "updated_at": "2026-09-13T23:04:06.585222Z",
+    "has_shop": false,
+    "has_cafe": false,
+    "has_toilet": false,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": false,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "70000001116931304",
+     "fuel_type": "AI_95",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 1,
+     "last_report_at": "2026-09-09T17:14:59Z"
+    },
+    {
+     "station_id": "70000001116931304",
+     "fuel_type": "AI_92",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 2,
+     "last_report_at": "2026-09-09T17:14:59Z"
+    },
+    {
+     "station_id": "70000001116931304",
+     "fuel_type": "DT",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 4,
+     "last_report_at": "2026-09-12T09:37:47Z"
+    }
+   ],
+   "status": "NOT_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "queue_level": "NONE"
+  },
+  {
+   "station": {
+    "id": "70000001101227332",
+    "region_id": 38,
+    "name": "Teboil, АЗС",
+    "brand": "Teboil",
+    "address": "АЗС",
+    "lat": 59.884216,
+    "lng": 29.681745,
+    "last_transaction_at": "2026-09-10T10:59:12Z",
+    "created_at": "2026-07-10T15:33:58.6705Z",
+    "updated_at": "2026-09-14T10:38:32.116745Z",
+    "has_shop": true,
+    "has_cafe": false,
+    "has_toilet": false,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": true,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_100",
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "70000001101227332",
+     "fuel_type": "AI_100",
+     "available": false,
+     "queue_level": "NONE",
+     "limit_liters": 0,
+     "reports_count": 6,
+     "last_report_at": "2026-09-12T13:09:17Z"
+    },
+    {
+     "station_id": "70000001101227332",
+     "fuel_type": "AI_95",
+     "available": null,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 0,
+     "reports_count": 10,
+     "last_report_at": "2026-09-13T16:09:44Z"
+    },
+    {
+     "station_id": "70000001101227332",
+     "fuel_type": "AI_92",
+     "available": null,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 0,
+     "reports_count": 12,
+     "last_report_at": "2026-09-13T16:09:44Z"
+    },
+    {
+     "station_id": "70000001101227332",
+     "fuel_type": "DT",
+     "available": true,
+     "queue_level": "NONE",
+     "limit_liters": 0,
+     "reports_count": 18,
+     "last_report_at": "2026-09-14T09:01:45Z"
+    }
+   ],
+   "status": "AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "queue_level": "UP_TO_25"
+  },
+  {
+   "station": {
+    "id": "5348552839666751",
+    "region_id": 38,
+    "name": "Газпромнефть, АЗС",
+    "brand": "Газпромнефть",
+    "address": "Санкт-Петербург, Краснофлотское шоссе, 54",
+    "lat": 59.924265,
+    "lng": 29.7094,
+    "last_transaction_at": "2026-09-10T10:57:57Z",
+    "created_at": "2026-07-10T15:34:44.80501Z",
+    "updated_at": "2026-09-14T10:30:28.849395Z",
+    "has_shop": true,
+    "has_cafe": true,
+    "has_toilet": true,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "5348552839666751",
+     "fuel_type": "AI_95",
+     "available": null,
+     "queue_level": "OVER_50",
+     "limit_liters": 30,
+     "reports_count": 21,
+     "last_report_at": "2026-09-13T19:00:54Z"
+    },
+    {
+     "station_id": "5348552839666751",
+     "fuel_type": "AI_92",
+     "available": false,
+     "queue_level": "OVER_50",
+     "limit_liters": 30,
+     "reports_count": 17,
+     "last_report_at": "2026-09-13T19:00:54Z"
+    },
+    {
+     "station_id": "5348552839666751",
+     "fuel_type": "DT",
+     "available": null,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 30,
+     "reports_count": 22,
+     "last_report_at": "2026-09-12T20:38:43Z"
+    }
+   ],
+   "status": "PARTIALLY_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "limit_liters": 30,
+   "queue_level": "UP_TO_25",
+   "prices": [
+    {
+     "station_id": "5348552839666751",
+     "fuel_type": "AI_95",
+     "price": 71.07,
+     "updated_at": "2026-09-14T18:09:39Z"
+    },
+    {
+     "station_id": "5348552839666751",
+     "fuel_type": "AI_92",
+     "price": 65.74,
+     "updated_at": "2026-09-14T18:09:39Z"
+    },
+    {
+     "station_id": "5348552839666751",
+     "fuel_type": "DT",
+     "price": 80.12,
+     "updated_at": "2026-09-14T18:09:39Z"
+    }
+   ]
+  },
+  {
+   "station": {
+    "id": "5348552838606154",
+    "region_id": 38,
+    "name": "Лукойл, АЗС",
+    "brand": "Лукойл",
+    "address": "Санкт-Петербург, Краснофлотское шоссе, 18-20",
+    "lat": 59.919182,
+    "lng": 29.735995,
+    "last_transaction_at": "2026-09-10T10:59:51Z",
+    "created_at": "2026-07-10T15:34:47.223843Z",
+    "updated_at": "2026-09-14T10:30:17.376512Z",
+    "has_shop": true,
+    "has_cafe": true,
+    "has_toilet": true,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "5348552838606154",
+     "fuel_type": "AI_95",
+     "available": null,
+     "queue_level": "NONE",
+     "reports_count": 4,
+     "last_report_at": "2026-09-14T14:27:12Z"
+    },
+    {
+     "station_id": "5348552838606154",
+     "fuel_type": "AI_92",
+     "available": null,
+     "queue_level": "NONE",
+     "limit_liters": 30,
+     "reports_count": 5,
+     "last_report_at": "2026-09-14T14:27:12Z"
+    },
+    {
+     "station_id": "5348552838606154",
+     "fuel_type": "DT",
+     "available": true,
+     "queue_level": "NONE",
+     "limit_liters": 0,
+     "reports_count": 11,
+     "last_report_at": "2026-09-14T15:41:11Z"
+    }
+   ],
+   "status": "AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": true,
+   "limit_liters": 30,
+   "queue_level": "NONE",
+   "prices": [
+    {
+     "station_id": "5348552838606154",
+     "fuel_type": "AI_95",
+     "price": 72.26,
+     "updated_at": "2026-09-14T18:09:47Z"
+    },
+    {
+     "station_id": "5348552838606154",
+     "fuel_type": "AI_92",
+     "price": 66.26,
+     "updated_at": "2026-09-14T18:09:47Z"
+    },
+    {
+     "station_id": "5348552838606154",
+     "fuel_type": "DT",
+     "price": 82.49,
+     "updated_at": "2026-09-14T18:09:47Z"
+    }
+   ]
+  },
+  {
+   "station": {
+    "id": "5348552840937875",
+    "region_id": 38,
+    "name": "Лукойл, АЗС",
+    "brand": "Лукойл",
+    "address": "Санкт-Петербург, улица Демьяна Бедного, 29",
+    "lat": 59.861236,
+    "lng": 29.953744,
+    "last_transaction_at": "2026-09-10T09:35:09Z",
+    "created_at": "2026-07-10T15:34:41.237471Z",
+    "updated_at": "2026-09-14T10:30:39.197096Z",
+    "has_shop": true,
+    "has_cafe": true,
+    "has_toilet": true,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_95",
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "5348552840937875",
+     "fuel_type": "AI_95",
+     "available": false,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 0,
+     "reports_count": 15,
+     "last_report_at": "2026-09-13T08:15:00Z"
+    },
+    {
+     "station_id": "5348552840937875",
+     "fuel_type": "AI_92",
+     "available": false,
+     "queue_level": "UP_TO_25",
+     "limit_liters": 0,
+     "reports_count": 16,
+     "last_report_at": "2026-09-13T08:15:00Z"
+    },
+    {
+     "station_id": "5348552840937875",
+     "fuel_type": "DT",
+     "available": true,
+     "queue_level": "NONE",
+     "limit_liters": 0,
+     "reports_count": 20,
+     "last_report_at": "2026-09-14T17:31:08Z"
+    }
+   ],
+   "status": "PARTIALLY_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": true,
+   "queue_level": "UP_TO_25",
+   "prices": [
+    {
+     "station_id": "5348552840937875",
+     "fuel_type": "AI_95",
+     "price": 72.26,
+     "updated_at": "2026-09-14T18:09:42Z"
+    },
+    {
+     "station_id": "5348552840937875",
+     "fuel_type": "AI_92",
+     "price": 66.26,
+     "updated_at": "2026-09-14T18:09:42Z"
+    },
+    {
+     "station_id": "5348552840937875",
+     "fuel_type": "DT",
+     "price": 82.49,
+     "updated_at": "2026-09-14T18:09:42Z"
+    }
+   ]
+  },
+  {
+   "station": {
+    "id": "5348553838528042",
+    "region_id": 38,
+    "name": "Лукойл, АЗС",
+    "brand": "Лукойл",
+    "address": "Санкт-Петербург, Гатчинское шоссе, 25",
+    "lat": 59.656561,
+    "lng": 30.115586,
+    "last_transaction_at": "2026-09-10T09:51:46Z",
+    "created_at": "2026-07-10T15:34:46.824224Z",
+    "updated_at": "2026-09-14T10:30:43.071579Z",
+    "has_shop": false,
+    "has_cafe": false,
+    "has_toilet": false,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "AI_92",
+     "DT"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "5348553838528042",
+     "fuel_type": "AI_92",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 7,
+     "last_report_at": "2026-09-12T10:21:30Z"
+    },
+    {
+     "station_id": "5348553838528042",
+     "fuel_type": "DT",
+     "available": true,
+     "queue_level": "NONE",
+     "reports_count": 3,
+     "last_report_at": "2026-09-12T10:21:30Z"
+    }
+   ],
+   "status": "PARTIALLY_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": true,
+   "queue_level": "NONE",
+   "prices": [
+    {
+     "station_id": "5348553838528042",
+     "fuel_type": "AI_92",
+     "price": 66.26,
+     "updated_at": "2026-09-14T18:09:44Z"
+    },
+    {
+     "station_id": "5348553838528042",
+     "fuel_type": "DT",
+     "price": 82.49,
+     "updated_at": "2026-09-14T18:09:44Z"
+    }
+   ]
+  },
+  {
+   "station": {
+    "id": "70000001048312883",
+    "region_id": 38,
+    "name": "Росгаз",
+    "brand": "Росгаз",
+    "address": "Гостилицы, АГЗС",
+    "lat": 59.745103,
+    "lng": 29.621319,
+    "last_transaction_at": "2026-07-09T10:25:10Z",
+    "created_at": "2026-07-10T15:34:08.145433Z",
+    "updated_at": "2026-09-11T07:24:02.960548Z",
+    "has_shop": false,
+    "has_cafe": false,
+    "has_toilet": false,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": true,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "GAS"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "70000001048312883",
+     "fuel_type": "GAS",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 2,
+     "last_report_at": "2026-08-22T17:13:26Z"
+    }
+   ],
+   "status": "NOT_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "queue_level": "NONE"
+  },
+  {
+   "station": {
+    "id": "70000001032736782",
+    "region_id": 38,
+    "name": "Росгаз",
+    "brand": "Росгаз",
+    "address": "Ропша (Ропшинское СП, Ломоносовский муниципальный район, Ленинградская обл.), Красносельское шоссе, 46з",
+    "lat": 59.721283,
+    "lng": 29.851972,
+    "created_at": "2026-07-10T15:38:25.065192Z",
+    "updated_at": "2026-09-11T07:14:11.806564Z",
+    "has_shop": false,
+    "has_cafe": false,
+    "has_toilet": false,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "GAS"
+    ]
+   },
+   "fuel_statuses": [
+    {
+     "station_id": "70000001032736782",
+     "fuel_type": "GAS",
+     "available": false,
+     "queue_level": "NONE",
+     "reports_count": 2,
+     "last_report_at": "2026-09-13T12:28:35Z"
+    }
+   ],
+   "status": "NOT_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "queue_level": "NONE"
+  },
+  {
+   "station": {
+    "id": "70000001027652154",
+    "region_id": 38,
+    "name": "Атг",
+    "brand": "Атг",
+    "address": "Лангерево (Пениковское СП, Ломоносовский муниципальный район, Ленинградская обл.), Пениковская улица, 16",
+    "lat": 59.908049,
+    "lng": 29.636016,
+    "last_transaction_at": "2026-09-10T09:31:36Z",
+    "created_at": "2026-07-10T15:37:41.333144Z",
+    "updated_at": "2026-09-11T07:10:48.691753Z",
+    "has_shop": true,
+    "has_cafe": false,
+    "has_toilet": true,
+    "has_car_wash": false,
+    "pay_card": true,
+    "pay_cash": true,
+    "pay_sbp": false,
+    "timezone_offset": 3,
+    "fuel_assortment": [
+     "GAS"
+    ]
+   },
+   "fuel_statuses": null,
+   "status": "PARTIALLY_AVAILABLE",
+   "closed": false,
+   "closed_by_schedule": false,
+   "queue_level": "NONE"
+  },
+  {
+   "station": {
+    "id": "70000001111380130",
+    "region_id": 38,
+    "name": "Ижораавтогаз, АГЗС",
+    "brand": "Ижораавтогаз",
+    "address": "Большая Ижора (Большеижорское ГП, Ломоносовский муниципальный район, Ленинградская обл.), Сосновая улица, 4а",
+    "lat": 59.940267,
+    "lng": 29.580848,
+    "last_transaction_at": "2026-07-02T14:15:39Z",
+    "created_at": "2026-07-10T15:35:31.56822Z",
+    "updated_at": "2026-07-15T15:29:28.986829Z",
+    "timezone_offset": 3
+   },
+   "fuel_statuses": null,
+   "status": "NO_DATA",
+   "closed": false,
+   "closed_by_schedule": false,
+   "queue_level": "NONE"
+  }
+ ]
+}

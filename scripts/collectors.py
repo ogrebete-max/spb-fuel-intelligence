@@ -1,25 +1,29 @@
 """Collectors for sources that are not a single plain JSON GET.
 
 Everything here is anonymous public data: a tiled bbox API, two form POSTs, a
-JSON blob embedded in a public HTML page, and the public web preview of a
-Telegram channel.  No account, key or protected content is involved.
+JSON blob embedded in a public HTML page, the public web preview of a Telegram
+channel, a bank's public station list and a map's JavaScript data model.  No
+account, key or protected content is involved.
 """
 
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+import gzip
 import html
 import json
 import os
 import re
+import ssl
 import time
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 ROOT_WEB = Path(__file__).resolve().parents[1] / "web"
+ROOT_CONFIG = Path(__file__).resolve().parents[1] / "config"
 
 
 AOI = {"west": 29.50, "south": 59.60, "east": 31.10, "north": 60.35}
@@ -42,15 +46,21 @@ def _now() -> str:
 
 def _fetch(url: str, *, referer: str | None = None, data: bytes | None = None,
            content_type: str | None = None, accept: str = "application/json",
-           timeout: int = 60, extra_headers: dict[str, str] | None = None) -> bytes:
+           timeout: int = 60, extra_headers: dict[str, str] | None = None,
+           compressed: bool = False, context: ssl.SSLContext | None = None) -> bytes:
     headers = {"Accept": accept, "User-Agent": BROWSER_UA, "Accept-Language": "ru,en;q=0.8"}
+    if compressed:
+        headers["Accept-Encoding"] = "gzip"
     headers.update(extra_headers or {})
     if referer:
         headers["Referer"] = referer
     if content_type:
         headers["Content-Type"] = content_type
-    with urlopen(Request(url, headers=headers, data=data), timeout=timeout) as response:
-        return response.read()
+    with urlopen(Request(url, headers=headers, data=data), timeout=timeout, context=context) as response:
+        body = response.read()
+        if str(response.headers.get("Content-Encoding") or "").lower() == "gzip":
+            body = gzip.decompress(body)
+        return body
 
 
 def _json(url: str, **kwargs: Any) -> Any:
@@ -367,6 +377,230 @@ def collect_gdebenzi() -> dict[str, Any]:
     return {"captured_at": _now(), "stations": payload.get("stations") or []}
 
 
+# The five feeds below were found on 14 Sep 2026 and answer from abroad. They
+# are read for Saint Petersburg and the whole Leningrad region: the build keeps
+# the city AOI, and the wider box keeps a capture comparable with what the
+# sources themselves show.
+REGION = {"south": 58.4, "west": 27.6, "north": 61.4, "east": 35.8}
+
+
+def _in_region(lat: Any, lon: Any) -> bool:
+    try:
+        latitude, longitude = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return False
+    return REGION["south"] <= latitude <= REGION["north"] and REGION["west"] <= longitude <= REGION["east"]
+
+
+def without_personal_fields(value: Any) -> Any:
+    """Drop every field that names a person's account, however deep it sits.
+
+    The 2GIS station card lists the drivers behind its reports by user id. The
+    list read here carries no such field today; one that appears tomorrow must
+    still never reach a capture file.
+    """
+    if isinstance(value, dict):
+        return {
+            key: without_personal_fields(item)
+            for key, item in value.items() if "user" not in str(key).lower()
+        }
+    if isinstance(value, list):
+        return [without_personal_fields(item) for item in value]
+    return value
+
+
+# 2GIS «Статус АЗС»: the tab on 2gis.ru where drivers mark each grade as there
+# or not, with a queue and a litre limit. The page calls this host with no key
+# or cookie. A box may span at most five degrees a side, so the region is read
+# in two tiles; the city lies wholly in the western one. The station card
+# (/stations/{id}) would add the drivers' user ids and is never called.
+TWO_GIS_BENZIN = "https://benzin.api.2gis.ru/api/v1/stations"
+TWO_GIS_TILES = ((58.4, 27.6, 61.4, 31.7), (58.4, 31.7, 61.4, 35.8))
+
+
+def collect_2gis_benzin() -> dict[str, Any]:
+    stations: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for index, (south, west, north, east) in enumerate(TWO_GIS_TILES):
+        if index:
+            time.sleep(1.0)
+        url = f"{TWO_GIS_BENZIN}?minLat={south}&maxLat={north}&minLon={west}&maxLon={east}"
+        try:
+            rows = _json(url, referer="https://2gis.ru/", compressed=True,
+                         extra_headers={"Origin": "https://2gis.ru"})
+        except Exception as exc:
+            # Without the western tile there is no city at all.
+            if index == 0:
+                raise
+            errors.append(f"tile {index}: {type(exc).__name__}: {exc}")
+            continue
+        if not isinstance(rows, list):
+            raise RuntimeError("2gis benzin: the station list is not a list")
+        for row in rows:
+            station_id = (row.get("station") or {}).get("id") if isinstance(row, dict) else None
+            if station_id is not None:
+                stations[str(station_id)] = without_personal_fields(row)
+    return {"captured_at": _now(), "tiles": len(TWO_GIS_TILES), "errors": errors,
+            "stations": list(stations.values())}
+
+
+# ППР's fuel-card locator, the backend behind TransitCard, Petrol Plus and E1
+# CARD. Filtered by one fuel, it says how card sales of that grade go at every
+# station right now: available, has_limit, possibly_available (too few
+# transactions to tell) or unavailable. It carries no time: the status is the
+# locator's "now". benzokarta.com republishes it and is not read.
+TRANSITCARD = "https://locator.transitcard.ru/web/v2/point/transpose-list"
+# Service ids from the locator's own service list; branded premium grades are
+# separate services and are left out.
+TRANSITCARD_SERVICES = {"AI92": 4, "AI95": 3, "AI98": 2, "AI100": 10, "DT": 1}
+
+
+def transposed_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """The locator sends columns, one array per field, instead of rows."""
+    columns = {key: value for key, value in payload.items() if isinstance(value, list)}
+    size = payload.get("size")
+    if not isinstance(size, int):
+        size = len(columns.get("id") or [])
+    return [
+        {key: values[index] for key, values in columns.items() if index < len(values)}
+        for index in range(size)
+    ]
+
+
+def collect_transitcard() -> dict[str, Any]:
+    stations: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for index, (grade, service) in enumerate(TRANSITCARD_SERVICES.items()):
+        if index:
+            time.sleep(1.5)
+        query = urlencode({
+            "pointTypes": 8, "services": service,
+            "fuelAvailability": "available;possibly_available;unavailable",
+            "x1": REGION["south"], "y1": REGION["west"], "x2": REGION["north"], "y2": REGION["east"],
+        }, safe=";")
+        try:
+            payload = _json(f"{TRANSITCARD}?{query}", referer="https://locator.transitcard.ru/")
+        except Exception as exc:
+            errors.append(f"{grade}: {type(exc).__name__}: {exc}")
+            continue
+        for row in transposed_rows(payload if isinstance(payload, dict) else {}):
+            if row.get("id") is None or not _in_region(row.get("latitude"), row.get("longitude")):
+                continue
+            station = stations.setdefault(str(row["id"]), {
+                "id": str(row["id"]), "lat": row["latitude"], "lon": row["longitude"],
+                "brand": row.get("brand"), "statuses": {}, "prices": {},
+            })
+            station["statuses"][grade] = row.get("status")
+            station["prices"].update(row.get("prices") or {})
+    if not stations:
+        raise RuntimeError("; ".join(errors) or "transitcard: no stations returned")
+    return {"captured_at": _now(), "services": TRANSITCARD_SERVICES, "errors": errors,
+            "stations": list(stations.values())}
+
+
+# Alfa-Bank's public fuel map: one list for all of Russia with, per grade, the
+# bank's status, a price, the last card transaction and the Benzuber sales
+# limits and stops. Benzuber runs Alfa's in-app fuel payments and its whole
+# network is in this list, so Benzuber is not read on its own.
+ALFA_STATIONS = "https://alfabank.ru/api/v1/azs-stations/public/stations"
+# alfabank.ru is certified by the Russian Trusted Root CA of the Ministry of
+# Digital Development, which the Windows, Ubuntu and certifi stores lack.
+# Verification stays on: that one public root is added to a context made for
+# this one request, and no other request ever sees it. SHA-256 of the root:
+# D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B5:BD:70:3E:97:88:CA:8E:CF:31
+RUSSIAN_TRUSTED_ROOT = ROOT_CONFIG / "russian-trusted-root-ca.pem"
+
+
+def alfa_tls_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    context.load_verify_locations(cafile=str(RUSSIAN_TRUSTED_ROOT))
+    return context
+
+
+def collect_alfa() -> dict[str, Any]:
+    """All of Russia comes at once (3 MB compressed); the region is cut out here."""
+    rows = _json(ALFA_STATIONS, referer="https://alfabank.ru/azs/", compressed=True,
+                 timeout=120, context=alfa_tls_context())
+    if not isinstance(rows, list):
+        raise RuntimeError("alfa: the station list is not a list")
+    stations = []
+    for row in rows:
+        location = ((row.get("address") or {}).get("location") or {}) if isinstance(row, dict) else {}
+        if _in_region(location.get("latitude"), location.get("longitude")):
+            stations.append(row)
+    return {"captured_at": _now(), "russia_total": len(rows), "stations": stations}
+
+
+# азсрадар.рф: its own drivers mark each grade ok or empty, with a queue in cars,
+# a litre limit and a technical break. Its T-Bank and Sber columns are the
+# site's reading of two payment feeds this pipeline reads directly, so they are
+# not kept. The old azs-radar.ru now serves another site's certificate.
+AZSRADAR = "https://xn--80aaapn8cdd.xn--p1ai/api/stations"
+AZSRADAR_BANK_FIELDS = ("tbank_status", "sber_status", "forecast_fuels", "forecast_updated_at")
+
+
+def collect_azsradar() -> dict[str, Any]:
+    url = (f"{AZSRADAR}?minLat={REGION['south']}&maxLat={REGION['north']}"
+           f"&minLng={REGION['west']}&maxLng={REGION['east']}")
+    rows = _json(url, referer="https://xn--80aaapn8cdd.xn--p1ai/")
+    if not isinstance(rows, list):
+        raise RuntimeError("azsradar: the station list is not a list")
+    stations = [
+        {key: value for key, value in row.items() if key not in AZSRADAR_BANK_FIELDS}
+        for row in rows if isinstance(row, dict)
+    ]
+    return {"captured_at": _now(), "stations": stations}
+
+
+# AZS MAP (azsmap.com) loads its whole data model as a script holding
+# `const STATIONS = {...}` in plain JSON. A grade is [key, state, price, minutes
+# since the mark, …, minutes since the price]. The Leningrad-region model stops
+# at exactly 1500 stations, so the city model is read as well and the two are
+# merged. The site's own grade labels are kept with the capture: its key "ai98"
+# is shown on the site as АИ-100.
+AZSMAP_MODEL = "https://azsmap.com/api/data-model.js?city={city}"
+AZSMAP_CITIES = ("lenobl", "spb")
+AZSMAP_STATIONS = re.compile(r"const\s+STATIONS\s*=\s*")
+AZSMAP_LABELS = re.compile(r"const\s+FUEL_LABELS\s*=\s*\{([^}]*)\}")
+AZSMAP_FIELDS = ("brand", "address", "lat", "lon", "fuels", "attrs")
+
+
+def parse_azsmap_model(script: str) -> tuple[dict[str, Any], dict[str, str]]:
+    """The stations and the grade labels out of the map's data-model script."""
+    match = AZSMAP_STATIONS.search(script)
+    if not match:
+        raise RuntimeError("azsmap: STATIONS block is missing from the data model")
+    stations, _ = json.JSONDecoder().raw_decode(script, match.end())
+    if not isinstance(stations, dict):
+        raise RuntimeError("azsmap: STATIONS is not an object")
+    block = AZSMAP_LABELS.search(script)
+    labels = dict(re.findall(r"(\w+)\s*:\s*['\"]([^'\"]*)['\"]", block.group(1))) if block else {}
+    return stations, labels
+
+
+def collect_azsmap() -> dict[str, Any]:
+    stations: dict[str, dict[str, Any]] = {}
+    labels: dict[str, str] = {}
+    errors: list[str] = []
+    for index, city in enumerate(AZSMAP_CITIES):
+        if index:
+            time.sleep(1.0)
+        try:
+            script = _fetch(AZSMAP_MODEL.format(city=city), referer=f"https://azsmap.com/region/{city}",
+                            accept="*/*", compressed=True).decode("utf-8", "replace")
+            rows, found = parse_azsmap_model(script)
+        except Exception as exc:
+            errors.append(f"{city}: {type(exc).__name__}: {exc}")
+            continue
+        labels.update(found)
+        for key, row in rows.items():
+            if isinstance(row, dict) and _in_region(row.get("lat"), row.get("lon")):
+                stations[key] = {"key": key, **{name: row.get(name) for name in AZSMAP_FIELDS}}
+    if not stations:
+        raise RuntimeError("; ".join(errors) or "azsmap: no stations returned")
+    return {"captured_at": _now(), "fuel_labels": labels, "errors": errors,
+            "stations": list(stations.values())}
+
 
 def _report_endpoint() -> str | None:
     """The reports Worker address, taken from the single place it is configured."""
@@ -420,4 +654,9 @@ COLLECTORS = {
     "tbank-fuel": collect_tbank,
     "gdebenzi": collect_gdebenzi,
     "own-reports": collect_own_reports,
+    "2gis-benzin": collect_2gis_benzin,
+    "transitcard": collect_transitcard,
+    "alfa-azs": collect_alfa,
+    "azsradar-rf": collect_azsradar,
+    "azsmap": collect_azsmap,
 }

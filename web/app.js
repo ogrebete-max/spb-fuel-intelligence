@@ -15,6 +15,7 @@ const QUEUE_LABELS = {
   '5_20': '5–20 авто', from_5_to_20: '5–20 авто',
   '20_50': '20–50 авто', from_20_to_50: '20–50 авто',
   gt50: 'более 50 авто', more_than_50: 'более 50 авто',
+  up_to_25: 'до 25 авто', from_25_to_50: '25–50 авто', over_50: 'более 50 авто', gt20: 'более 20 авто',
   high: 'большая', reported: 'есть', unknown: 'неизвестна',
 };
 const AVAILABILITY_LABELS = {
@@ -247,6 +248,13 @@ function localizeNote(note) {
   if (/collected by Yandex Maps/i.test(value)) return 'Отметки водителей в Яндекс Картах, а не официальное чтение остатка.';
   if (/not proof of a specific grade/i.test(value)) return 'Платёж не доказывает наличие конкретной марки топлива.';
   if (/provenance is separate from availability/i.test(value)) return 'Источник цены не подтверждает наличие топлива.';
+  if (/closed by its schedule/i.test(value)) return 'АЗС сейчас закрыта по расписанию.';
+  if (/technical break/i.test(value)) return 'На АЗС сейчас технический перерыв.';
+  if (/collected by 2GIS/i.test(value)) return 'Отметки водителей в 2ГИС, а не официальное чтение остатка.';
+  if (/site's own drivers/i.test(value)) return 'Отметки водителей азсрадар.рф; банковские прогнозы сайта не учитываются.';
+  if (/shown by AZS MAP/i.test(value)) return 'Отметки на карте AZS MAP; совпадающие с ГдеБЕНЗ считаются голосом ГдеБЕНЗ.';
+  if (/seen by Alfa-Bank/i.test(value)) return 'Оплаты картами Альфа-Банка и остановки продаж Benzuber; своего времени у статуса нет.';
+  if (/seen by the PPR network/i.test(value)) return 'Транзакции топливных карт ППР; своего времени у статуса нет.';
   return value;
 }
 
@@ -1211,7 +1219,7 @@ function votePanel(grade) {
     const note = vote.expired ? ' · просрочен, учтён с понижением' : '';
     return `<div class="vote-row${vote.expired ? ' expired' : ''}">
       <span class="vote-side ${positive ? 'yes' : 'no'}">${positive ? 'за' : 'против'}</span>
-      <span class="vote-name">${escapeHtml(vote.source || '')}<small>${escapeHtml(KIND_LABELS[vote.kind] || vote.kind || '')} · ${escapeHtml(formatAge(vote.age_seconds))}${note}</small></span>
+      <span class="vote-name">${escapeHtml(vote.source || '')}<small>${escapeHtml(KIND_LABELS[vote.kind] || vote.kind || '')} · ${escapeHtml(vote.undated ? 'без времени' : formatAge(vote.age_seconds))}${note}</small></span>
       <span class="vote-bar"><span style="width:${Math.max(6, share)}%"></span></span>
     </div>`;
   }).join('');
@@ -4464,7 +4472,7 @@ async function openStation(id) {
       const rowStatus = row.fresh ? (row.availability === 'AVAILABLE' || row.availability === 'LIKELY' ? '#158257' : row.availability === 'NOT_AVAILABLE' || row.availability === 'LIKELY_NOT' ? '#b8333a' : '#d58a13') : '#8a9691';
       const extras = [row.limit_liters != null ? `лимит ${row.limit_liters} л` : null, formatQueue(row.queue) ? `очередь: ${formatQueue(row.queue)}` : null].filter(Boolean).join(' · ');
       const note = localizeNote(row.note);
-      return `<div class="evidence-row" style="--evidence-color:${rowStatus}"><div class="evidence-head"><strong>${escapeHtml(AVAILABILITY_LABELS[row.availability] || row.availability)}</strong><span>${row.fresh ? formatAge(row.age_seconds) : 'устарело'}</span></div><div class="evidence-meta">${escapeHtml(row.source || 'источник не указан')} · ${escapeHtml(KIND_LABELS[row.kind] || row.kind)}${extras ? `<br>${escapeHtml(extras)}` : ''}<br>provenance: ${escapeHtml(row.effective_provenance)}${note ? `<br>${escapeHtml(note)}` : ''}</div></div>`;
+      return `<div class="evidence-row" style="--evidence-color:${rowStatus}"><div class="evidence-head"><strong>${escapeHtml(AVAILABILITY_LABELS[row.availability] || row.availability)}</strong><span>${row.fresh ? (row.observed_at ? formatAge(row.age_seconds) : 'без времени') : 'устарело'}</span></div><div class="evidence-meta">${escapeHtml(row.source || 'источник не указан')} · ${escapeHtml(KIND_LABELS[row.kind] || row.kind)}${extras ? `<br>${escapeHtml(extras)}` : ''}<br>provenance: ${escapeHtml(row.effective_provenance)}${note ? `<br>${escapeHtml(note)}` : ''}</div></div>`;
     }).join('') : '<div class="empty-state">Для этой марки нет даже устаревших station-level свидетельств.</div>';
     $('#drawerContent').innerHTML = `
       <h2>${escapeHtml(displayNetwork(station.network))}</h2>

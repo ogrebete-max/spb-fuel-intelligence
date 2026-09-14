@@ -17,6 +17,10 @@ SOURCE_PRIORITY = {
     "gazpromneft": 0, "lukoil": 1, "teboil": 2, "sber": 3,
     "gdebenz": 4, "benzas": 5, "benzinest": 6, "tutbenz": 7,
     "gdebenzin": 8, "benzonavt": 9,
+    # Sources added on 14 Sep 2026 come after every earlier one, named or not:
+    # a station they join keeps its history id, which would otherwise change
+    # to "2gis-benzin:…" and start the station's history over.
+    "2gis-benzin": 100, "alfa-azs": 100, "azsmap": 100, "azsradar-rf": 100, "transitcard": 100,
 }
 
 

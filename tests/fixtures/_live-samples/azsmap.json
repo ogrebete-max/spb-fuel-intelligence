@@ -1,0 +1,515 @@
+{
+ "captured_at": "2026-09-14T18:50:20.533498Z",
+ "fuel_labels": {
+  "ai92": "АИ-92",
+  "ai95": "АИ-95",
+  "ai98": "АИ-100",
+  "dt": "ДТ",
+  "gas": "ГАЗ"
+ },
+ "errors": [],
+ "_sample": {
+  "source": "azsmap",
+  "note": "A few stations of a real capture of 14 Sep 2026, picked to cover every status the normalizer handles.",
+  "stations_in_capture": 1500
+ },
+ "stations": [
+  {
+   "key": "osm_w699101085",
+   "brand": "Роснефть",
+   "address": "улица Рабочего Батальона",
+   "lat": 59.9731596,
+   "lon": 31.0167755,
+   "fuels": [
+    [
+     "ai92",
+     "have",
+     "65,35",
+     24,
+     0,
+     false,
+     true,
+     true,
+     769
+    ],
+    [
+     "ai95",
+     "have",
+     "69,90",
+     24,
+     0,
+     false,
+     true,
+     true,
+     769
+    ],
+    [
+     "ai98",
+     "stale",
+     "—",
+     100648,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "stale",
+     "81,25",
+     100648,
+     0,
+     null,
+     false,
+     null,
+     769
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "osm_w125082268",
+   "brand": "Газпром",
+   "address": "Набережная улица, 1/2",
+   "lat": 59.8577616,
+   "lon": 30.9667897,
+   "fuels": [
+    [
+     "ai92",
+     "low",
+     "—",
+     259,
+     0,
+     false,
+     true,
+     false,
+     null
+    ],
+    [
+     "ai95",
+     "low",
+     "—",
+     259,
+     0,
+     false,
+     true,
+     false,
+     null
+    ],
+    [
+     "ai98",
+     "stale",
+     "—",
+     1189,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "stale",
+     "—",
+     827,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "osm_n4246253678",
+   "brand": "АЗС",
+   "address": "Ириновское шоссе",
+   "lat": 60.0881138,
+   "lon": 30.9482075,
+   "fuels": [
+    [
+     "ai92",
+     "none",
+     "—",
+     107,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai95",
+     "none",
+     "—",
+     107,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai98",
+     "none",
+     "—",
+     107,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "none",
+     "—",
+     107,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "ya_3152388637",
+   "brand": "АЗС",
+   "address": "Центральная улица, 4",
+   "lat": 60.097011388,
+   "lon": 30.963586889,
+   "fuels": [
+    [
+     "ai92",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai95",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai98",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "osm_n11723413407",
+   "brand": "АЗС",
+   "address": "А-181",
+   "lat": 59.9271745,
+   "lon": 30.97673,
+   "fuels": [
+    [
+     "ai92",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai95",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai98",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "u_59.973066696597755_31.016500142914484",
+   "brand": "АЗС",
+   "address": "улица Рабочего Батальона",
+   "lat": 59.973066696597755,
+   "lon": 31.016500142914484,
+   "fuels": [
+    [
+     "ai92",
+     "stale",
+     "—",
+     1189,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai95",
+     "stale",
+     "—",
+     1189,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai98",
+     "stale",
+     "—",
+     1189,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "have",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "ya_4086008009",
+   "brand": "АЗС",
+   "address": null,
+   "lat": 59.971950732,
+   "lon": 31.047885108,
+   "fuels": [
+    [
+     "ai92",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai95",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai98",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "stale",
+     "—",
+     110799,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "osm_w79597086",
+   "brand": "Сургутнефтегаз",
+   "address": "Выборгское шоссе, 6Б",
+   "lat": 60.0345166,
+   "lon": 30.3194753,
+   "fuels": [
+    [
+     "ai92",
+     "low",
+     "—",
+     151,
+     0,
+     false,
+     true,
+     false,
+     null
+    ],
+    [
+     "ai95",
+     "low",
+     "—",
+     151,
+     0,
+     false,
+     true,
+     false,
+     null
+    ],
+    [
+     "ai98",
+     "stale",
+     "—",
+     4269,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "stale",
+     "—",
+     4269,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "gas",
+     "stale",
+     null,
+     4269,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  },
+  {
+   "key": "u_59.974523257844346_30.934436739189554",
+   "brand": "АЗС",
+   "address": "Северная дорога",
+   "lat": 59.974523257844346,
+   "lon": 30.934436739189554,
+   "fuels": [
+    [
+     "ai92",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai95",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "ai98",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ],
+    [
+     "dt",
+     "none",
+     "—",
+     407,
+     0,
+     null,
+     false,
+     null,
+     null
+    ]
+   ],
+   "attrs": []
+  }
+ ]
+}

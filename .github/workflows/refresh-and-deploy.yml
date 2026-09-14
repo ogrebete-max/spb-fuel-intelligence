@@ -102,6 +102,7 @@ jobs:
             data/live/gdebenzfuel.json
             data/live/tbank-fuel.json
             data/live/telegram-benzinspb78.json
+            data/live/alfa-azs.json
           key: live-captures-${{ github.run_id }}-${{ matrix.slot }}
           restore-keys: live-captures-
 

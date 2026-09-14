@@ -1,0 +1,350 @@
+{
+ "captured_at": "2026-09-14T18:50:16.849034Z",
+ "_sample": {
+  "source": "azsradar-rf",
+  "note": "A few stations of a real capture of 14 Sep 2026, picked to cover every status the normalizer handles.",
+  "stations_in_capture": 1061
+ },
+ "stations": [
+  {
+   "id": 21315,
+   "name": "Татнефть",
+   "brand": "tatneft",
+   "latitude": 59.9306306,
+   "longitude": 30.4001834,
+   "address": "Малоохтинский проспект, 59",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T18:44:17.035Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "queue_size": "Нет",
+   "fuel_statuses": {
+    "AI-92": "empty",
+    "AI-95": "empty",
+    "AI-98": "empty",
+    "DT": "ok"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  },
+  {
+   "id": 18895,
+   "name": "Роснефть",
+   "brand": "rosneft",
+   "latitude": 59.9473427,
+   "longitude": 30.434963,
+   "address": "Партизанская улица, 17А",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T18:43:47.340Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "Больше 20 машин",
+   "fuel_statuses": {
+    "AI-92": "ok",
+    "AI-95": "ok",
+    "DT": "ok"
+   },
+   "fuel_limit": 30,
+   "break_until": null,
+   "confidence_percent": 60,
+   "confidence_level": "medium"
+  },
+  {
+   "id": 19060,
+   "name": "Лукойл",
+   "brand": "lukoil",
+   "latitude": 59.9913196,
+   "longitude": 30.3331579,
+   "address": "Большой Сампсониевский проспект, 89",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T09:50:12.888Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "queue_size": "До 5 машин",
+   "fuel_statuses": {
+    "AI-92": "ok",
+    "AI-95": "ok",
+    "AI-98": "ok",
+    "DT": "ok"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  },
+  {
+   "id": 17337,
+   "name": "АЗС",
+   "brand": "other",
+   "latitude": 59.9109787,
+   "longitude": 30.3600968,
+   "address": "набережная реки Волковки",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-13T08:49:43.973Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "До 5 машин",
+   "fuel_statuses": {
+    "AI-92": "empty",
+    "AI-95": "ok",
+    "DT": "empty"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  },
+  {
+   "id": 18193,
+   "name": "АЗС",
+   "brand": "other",
+   "latitude": 59.9008689,
+   "longitude": 30.5249736,
+   "address": "КАД",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T16:18:52.350Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "5–20 машин",
+   "fuel_statuses": {
+    "AI-92": "ok",
+    "AI-95": "empty",
+    "DT": "empty"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 60,
+   "confidence_level": "medium"
+  },
+  {
+   "id": 19523,
+   "name": "Газпромнефть",
+   "brand": "gazpromneft",
+   "latitude": 59.9098422,
+   "longitude": 30.2893688,
+   "address": "улица Циолковского, 18 литЯ",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T13:29:47.086Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "5–20 машин",
+   "fuel_statuses": {
+    "AI-92": "ok",
+    "AI-95": "ok",
+    "DT": "ok"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  },
+  {
+   "id": 27853,
+   "name": "Teboil",
+   "brand": "teboil",
+   "latitude": 59.9551067,
+   "longitude": 30.2841113,
+   "address": "Санкт-Петербург, Ждановская улица, 2А",
+   "street": "Ждановская улица",
+   "house": "2А",
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T17:49:57.946Z",
+   "fuel_types": [
+    "AI-95",
+    "AI-98",
+    "DT"
+   ],
+   "queue_size": "Больше 20 машин",
+   "fuel_statuses": {
+    "AI-95": "ok",
+    "AI-98": "empty",
+    "DT": "ok"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 60,
+   "confidence_level": "medium"
+  },
+  {
+   "id": 26215,
+   "name": "Газпромнефть",
+   "brand": "gazpromneft",
+   "latitude": 59.9094851,
+   "longitude": 30.4446194,
+   "address": "Дальневосточный проспект, 11 к2",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T17:26:26.454Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "Больше 20 машин",
+   "fuel_statuses": {
+    "AI-92": "ok",
+    "AI-95": "empty",
+    "DT": "ok"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  },
+  {
+   "id": 14372,
+   "name": "Газпромнефть",
+   "brand": "gazpromneft",
+   "latitude": 59.7922592,
+   "longitude": 30.3937488,
+   "address": "Витебский проспект",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T14:20:05.491Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "Больше 20 машин",
+   "fuel_statuses": {
+    "AI-92": "ok",
+    "AI-95": "ok",
+    "DT": "ok"
+   },
+   "fuel_limit": 30,
+   "break_until": null,
+   "confidence_percent": 60,
+   "confidence_level": "medium"
+  },
+  {
+   "id": 26116,
+   "name": "Роснефть",
+   "brand": "rosneft",
+   "latitude": 59.724843,
+   "longitude": 30.4437343,
+   "address": "Новодеревенская улица, 14 литА",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "ok",
+   "status_updated_at": "2026-09-14T12:22:54.665Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "Больше 20 машин",
+   "fuel_statuses": {
+    "AI-92": "ok",
+    "AI-95": "ok",
+    "DT": "ok"
+   },
+   "fuel_limit": 30,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  },
+  {
+   "id": 21128,
+   "name": "Роснефть",
+   "brand": "rosneft",
+   "latitude": 60.0069162,
+   "longitude": 29.7121834,
+   "address": "улица Гидростроителей, 9",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "no_data",
+   "status_updated_at": "2026-09-11T11:00:21.414Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "Нет",
+   "fuel_statuses": {
+    "AI-92": "no_data",
+    "AI-95": "no_data",
+    "DT": "no_data"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  },
+  {
+   "id": 13680,
+   "name": "АЗС",
+   "brand": "other",
+   "latitude": 60.2967718,
+   "longitude": 30.4528705,
+   "address": "улица Забогонского",
+   "street": null,
+   "house": null,
+   "approved": 1,
+   "status": "no_data",
+   "status_updated_at": "2026-07-09T10:21:50.374Z",
+   "fuel_types": [
+    "AI-92",
+    "AI-95",
+    "DT"
+   ],
+   "queue_size": "Нет",
+   "fuel_statuses": {
+    "AI-92": "no_data",
+    "AI-95": "no_data",
+    "DT": "no_data"
+   },
+   "fuel_limit": null,
+   "break_until": null,
+   "confidence_percent": 0,
+   "confidence_level": "outdated"
+  }
+ ]
+}

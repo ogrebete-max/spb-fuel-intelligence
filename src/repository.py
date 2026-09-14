@@ -28,6 +28,10 @@ SOURCE_COUNT_KEYS = {
     "gdebenzin_net": "gdebenzin-net",
     "tbank_fuel_map": "tbank-fuel",
     "own_eyewitness": "own-eyewitness",
+    "2gis_benzin": "2gis-benzin",
+    "transitcard_ppr": "transitcard",
+    "alfa_azs_map": "alfa-azs",
+    "azsradar_rf": "azsradar-rf",
 }
 
 
