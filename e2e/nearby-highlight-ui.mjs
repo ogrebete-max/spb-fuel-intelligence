@@ -183,7 +183,7 @@ async function run(label, browserType, device) {
     return box.height < parts[0].height * 1.9 && parts.every((rect) => rect.right <= box.right + 1 && rect.width > 0);
   }, station.id);
   check('with the longest network name the top line is still one line', squeezed);
-  await page.click('[data-view="map"]');
+  await page.click('#modeBar [data-screen="map"]');
   await page.waitForTimeout(1000);
   // Close enough to see both pins; moving the map draws every pin anew.
   await page.evaluate(({ lat, lon }) => state.map.setView([lat, lon], 15), station.location);
@@ -199,7 +199,7 @@ async function run(label, browserType, device) {
   const still = await pulse();
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   check(`the pin pulses (${moving}) and holds still when motion is reduced (${still})`, moving === 'here-pulse' && still === 'none');
-  await page.click('[data-view="list"]');
+  await page.click('#modeBar [data-screen="list"]');
 
   // 3. «Свои»: the group's card for the same station says «Вы здесь» as well.
   const report = await fetch(`http://localhost:${WORKER_PORT}/report`, {

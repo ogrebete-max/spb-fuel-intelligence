@@ -1009,3 +1009,27 @@ body.driving .toast-stack { display: none; }
   .feed-empty { padding: 8px 12px; font-size: 13px; line-height: 1.4; }
   .feed-empty .push-button { margin: 6px 0 0; }
 }
+
+/* A phone's three screens (15 Sep 2026): the bar at the bottom switches between
+   the navigator, the ordinary map over the whole screen and the list. */
+.mode-bar, .map-top { display: none; }
+@media (max-width: 850px) {
+  .mode-bar { position: fixed; z-index: 850; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); background: #0d3328; box-shadow: 0 -8px 24px rgba(5, 25, 18, .22); }
+  .mode-bar button { min-height: 50px; display: grid; place-items: center; gap: 1px; border: 0; border-radius: 14px; background: transparent; color: #cfe3d8; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+  .mode-bar button span { font-size: 19px; line-height: 1; }
+  .mode-bar button[aria-pressed="true"] { background: #c9f06b; color: #0d3328; }
+  .mode-bar button:focus-visible { outline: 3px solid #c9f06b; outline-offset: 2px; }
+  .app-shell { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+  /* The bar does what «Список | Карта» did. */
+  .view-switch { display: none; }
+  .drive-offer { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  body.map-screen { overflow: hidden; }
+  body.map-screen .map-wrap { position: fixed; z-index: 800; top: 0; left: 0; right: 0; bottom: calc(62px + env(safe-area-inset-bottom, 0px)); display: block; min-height: 0; border: 0; border-radius: 0; }
+  body.map-screen .map-top { position: absolute; z-index: 650; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 10px; right: 10px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; pointer-events: none; }
+  .map-top > * { pointer-events: auto; }
+  .map-grades { display: flex; gap: 2px; padding: 4px; border-radius: 16px; background: rgba(255, 255, 255, .95); box-shadow: 0 4px 16px rgba(5, 25, 18, .22); }
+  .map-grades button { min-width: 44px; min-height: 40px; border: 0; border-radius: 12px; background: transparent; color: #10231d; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .map-grades button.active { background: #0d3328; color: #c9f06b; }
+  .map-round { width: 48px; height: 48px; flex: 0 0 auto; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .95); color: #0d3328; font-size: 24px; line-height: 1; box-shadow: 0 4px 16px rgba(5, 25, 18, .22); cursor: pointer; }
+  body.map-screen .map-area-button, body.map-screen .drive-button { display: none !important; }
+}

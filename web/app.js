@@ -135,7 +135,15 @@ async function staticApi(path) {
   if (url.pathname === '/api/sources') return staticJson('static-data/sources.json');
   if (url.pathname === '/api/grades-brief') return staticJson('static-data/grades-brief.json');
   const detail = url.pathname.match(/^\/api\/stations\/([^/]+)$/);
-  if (detail) return staticJson(`static-data/details/${encodeURIComponent(decodeURIComponent(detail[1]))}.json`);
+  if (detail) {
+    // A card ages the way the list does (see expireGrade); without it the two
+    // could disagree about the same station (15 Sep 2026: the owner saw a pin
+    // on the navigator and «скорее есть · 61%» in its card).
+    const station = structuredClone(await staticJson(`static-data/details/${encodeURIComponent(decodeURIComponent(detail[1]))}.json`));
+    const elapsed = staticElapsedSeconds();
+    Object.values(station?.grades || {}).forEach((grade) => expireGrade(grade, elapsed));
+    return station;
+  }
   if (url.pathname !== '/api/stations') throw new Error('Эта функция доступна только в локальном режиме.');
 
   const p = url.searchParams;
@@ -209,6 +217,8 @@ function expireGrade(grade, elapsed) {
     grade.label = 'НЕТ СВЕЖИХ ДАННЫХ';
     grade.reason = 'Сигнал, на котором держался ответ, устарел уже после публикации снимка.';
     grade.confidence = 'none';
+    grade.probability = null;
+    grade.probability_percent = null;
     grade.trust_score = 0;
     grade.trust_tier = 'none';
     grade.trust_label = 'нет данных';
@@ -225,6 +235,16 @@ function expireGrade(grade, elapsed) {
     grade.trust_label = { high: 'высокая', moderate: 'средняя', low: 'низкая', conflict: 'противоречивая', none: 'нет данных' }[grade.trust_tier];
   }
   return grade;
+}
+
+// The grades brief ages the same way: an entry carries the seconds its answer
+// had left at the snapshot.
+function briefFor(stationId) {
+  const row = state.gradesBrief?.[stationId];
+  if (!row) return {};
+  const elapsed = state.staticMode ? staticElapsedSeconds() : 0;
+  if (!elapsed) return row;
+  return Object.fromEntries(Object.entries(row).map(([grade, entry]) => [grade, entry.x != null && elapsed > entry.x ? { ...entry, s: 'NO_FRESH_DATA' } : entry]));
 }
 
 function formatQueue(queue) {
@@ -297,14 +317,15 @@ async function bootstrap() {
     initMap();
     await loadStations();
     // On a phone the navigator is the first screen (15 Sep 2026: drivers skip
-    // the cards); «☰» opens the map and the list, and the theme sheet can make
-    // them the first screen instead. An automated browser starts on the
-    // ordinary screen, which most of the browser checks walk through.
+    // the cards); its «🗺» opens the ordinary map, and the theme sheet can make
+    // the map or the list the first screen instead. An automated browser starts
+    // on the ordinary screen, which most of the browser checks walk through.
     // Only for a phone that already lets the app know where it is (15 Sep 2026:
     // someone opening the link from Telegram for the first time landed on the
     // navigator with no location and a «доступ запрещён» box, and had no idea
     // what to do). Everyone else starts on the ordinary screen.
     if (touchDevice && !wanted && !navigator.webdriver && driveStartsFirst() && await locationGranted()) openDrive('start');
+    else if (touchDevice && !wanted && startScreen() === 'map') showScreen('map');
     // The automated checks tap through screens of their own, without the phone's notification question.
     if (!navigator.webdriver) switchPushOnByDefault();
     const health = state.meta?.collectors || {};
@@ -425,6 +446,17 @@ function bindControls() {
   $('#driveListButton')?.addEventListener('click', () => openDrive('button'));
   $('#driveOfferYes')?.addEventListener('click', () => openDrive('suggestion'));
   $('#driveOfferNo')?.addEventListener('click', silenceDriveOffer);
+  $('#modeBar')?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-screen]');
+    if (!button) return;
+    if (button.dataset.screen === 'drive') openDrive('button');
+    else showScreen(button.dataset.screen);
+  });
+  $('#mapTop')?.addEventListener('click', (event) => {
+    const grade = event.target.closest('[data-map-grade]');
+    if (grade) chooseGrade(grade.dataset.mapGrade);
+    else if (event.target.closest('#mapLocate')) locateOnMap();
+  });
   bindDrive();
   $('.location-row .segmented').addEventListener('click', (event) => {
     const button = event.target.closest('[data-area]');
@@ -495,6 +527,10 @@ function chooseGrade(grade) {
   $$('#gradePicker [data-grade]').forEach((item) => {
     item.classList.toggle('active', item.dataset.grade === grade);
     item.setAttribute('aria-checked', item.dataset.grade === grade);
+  });
+  $$('#mapTop [data-map-grade]').forEach((item) => {
+    item.classList.toggle('active', item.dataset.mapGrade === grade);
+    item.setAttribute('aria-checked', String(item.dataset.mapGrade === grade));
   });
   state.status = null;
   state.timeline = null;
@@ -1280,6 +1316,11 @@ async function loadStations({ silent = false } = {}) {
     renderMarkers();
     if (state.club.member) renderGroupFeed();
     renderDrive();
+    // The map screen holds the whole city for the grade; it is read again with the list.
+    if (mapScreenOn()) {
+      state.mapStationsGrade = null;
+      loadMapStations();
+    }
   } catch (error) {
     $('#stationList').innerHTML = `<div class="empty-state">Ошибка: ${escapeHtml(error.message)}</div>`;
   }
@@ -1418,7 +1459,7 @@ const DECISION_TONE = { GO: '#158257', GO_WITH_WAIT: '#77a827', RISKY: '#d58a13'
 // "70,90 ₽/л", and two different numbers for one price is what made the card
 // look wrong. The price is stated once, exactly, with its source count.
 function gradeChips(station) {
-  const brief = (state.gradesBrief || {})[station.id] || {};
+  const brief = briefFor(station.id);
   return Object.keys(GRADE_LABELS).map((grade) => {
     const status = grade === state.grade
       ? station.grade.status
@@ -4224,7 +4265,7 @@ function bindComposer(root) {
     const queueText = queue != null ? `, очередь: ${queueWords(queue)}` : '';
     // A look at a station the app knew nothing fresh about is worth a bonus.
     const details = state.stationDetails[stationId];
-    const blindSpot = grades.some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(details?.grades?.[grade]?.status || state.gradesBrief?.[stationId]?.[grade]?.s));
+    const blindSpot = grades.some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(details?.grades?.[grade]?.status || briefFor(stationId)[grade]?.s));
     grades.forEach((grade) => saveMark(stationId, grade, chosen[grade], queue, { render: false, share: false }));
     box.innerHTML = `<span class="mark-sent">⏳ Отправляю своим: ${escapeHtml(summary)}${escapeHtml(queueText)}…</span>`;
     // Another composer of this station, on the card under the panel, empties too.
@@ -4307,7 +4348,7 @@ function renderHerePanel() {
     .sort((a, b) => a.km - b.km)[0];
   if (nearest && nearest.km * 1000 <= AT_STATION_METRES && !markedRecently(nearest.item.id, 10)) {
     const station = nearest.item;
-    const brief = (state.gradesBrief || {})[station.id] || {};
+    const brief = briefFor(station.id);
     const rows = Object.keys(GRADE_LABELS).map((grade) => {
       const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
       const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
@@ -4630,6 +4671,52 @@ function initMap() {
   state.map.on('moveend', () => { $('#mapAreaButton').style.display = 'block'; renderMarkers(); });
 }
 
+// A phone has three screens (15 Sep 2026): the navigator, the ordinary map over
+// the whole screen with every station, and the list of cards. The bar at the
+// bottom switches between them, and the navigator's own button leads to the map.
+function mapScreenOn() {
+  return document.body.classList.contains('map-screen');
+}
+
+function showScreen(name) {
+  const map = name === 'map' && window.matchMedia('(max-width: 850px)').matches;
+  document.body.classList.toggle('map-screen', map);
+  state.view = map ? 'map' : 'list';
+  $$('[data-view]').forEach((item) => item.classList.toggle('active', item.dataset.view === state.view));
+  $('#contentGrid').classList.toggle('map-mode', map);
+  $$('#modeBar [data-screen]').forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.screen === state.view)));
+  $$('#mapTop [data-map-grade]').forEach((item) => {
+    item.classList.toggle('active', item.dataset.mapGrade === state.grade);
+    item.setAttribute('aria-checked', String(item.dataset.mapGrade === state.grade));
+  });
+  if (map) loadMapStations();
+  if (state.map) setTimeout(() => { state.map.invalidateSize(); renderMarkers(); }, 80);
+  track('view_change', { view: state.view });
+}
+
+async function loadMapStations() {
+  const grade = state.grade;
+  if (state.mapStationsGrade === grade) return;
+  try {
+    const data = await api(`/api/stations?grade=${grade}&area=all&sort=status&limit=5000`);
+    if (grade !== state.grade || !mapScreenOn()) return;
+    state.mapStations = data.stations || [];
+    state.mapStationsGrade = grade;
+    renderMarkers();
+  } catch {
+    // The list's own stations stay on the map.
+  }
+}
+
+// «⌖» on the map screen: to where the phone is, asking for the place first if need be.
+function locateOnMap() {
+  if (!state.follow) {
+    startFollowing({ manual: true });
+    return;
+  }
+  if (state.location && state.map) state.map.setView([state.location.lat, state.location.lon], Math.max(state.map.getZoom(), 14));
+}
+
 function renderMe() {
   if (!state.map || !state.location) {
     if (state.meLayer) { state.meLayer.remove(); state.meLayer = null; }
@@ -4664,7 +4751,7 @@ function shortNetwork(name) {
 }
 
 function pinLabel(station) {
-  const brief = (state.gradesBrief || {})[station.id] || {};
+  const brief = briefFor(station.id);
   const grades = Object.keys(GRADE_LABELS).map((grade) => {
     const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
     const tone = (GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA).tone;
@@ -4676,6 +4763,9 @@ function pinLabel(station) {
   return `<span class="pin-label"><b>${escapeHtml(shortNetwork(station.network))}</b><span class="pin-grades">${grades}</span>${eye || queue}</span>`;
 }
 
+// With fewer stations answering than this, the map screen shows every station from afar.
+const MAP_ANSWERED_ENOUGH = 150;
+
 function renderMarkers() {
   if (!state.map || !state.markers) return;
   renderMe();
@@ -4686,7 +4776,19 @@ function renderMarkers() {
   }
   const labelled = state.map.getZoom() >= LABEL_ZOOM;
   const bounds = labelled ? state.map.getBounds().pad(0.3) : null;
-  state.stations.forEach((station) => {
+  // The map screen has the whole city for the grade, not the list's page of it.
+  // Every pin is drawn anew on each move, so closer in the stations in sight, and
+  // from afar the stations with an answer, unless a snapshot left without update
+  // has too few of those to show the city by.
+  const whole = mapScreenOn() && state.mapStationsGrade === state.grade;
+  let stations = state.stations;
+  if (whole && labelled) {
+    stations = state.mapStations.filter((station) => bounds.contains([station.location.lat, station.location.lon]));
+  } else if (whole) {
+    const answered = state.mapStations.filter((station) => station.grade.status !== 'NO_FRESH_DATA');
+    stations = answered.length >= MAP_ANSWERED_ENOUGH ? answered : state.mapStations;
+  }
+  stations.forEach((station) => {
     const status = STATUS[station.grade.status];
     const withLabel = labelled && bounds.contains([station.location.lat, station.location.lon]);
     const icon = L.divIcon({
@@ -5130,10 +5232,16 @@ function loosenDriveMap() {
 }
 
 function driveStartsFirst() {
+  return startScreen() === 'drive';
+}
+
+// The first screen on a phone: 'drive', 'map' or 'app' (the list).
+function startScreen() {
   try {
-    return localStorage.getItem(DRIVE_START_KEY) !== 'app';
+    const value = localStorage.getItem(DRIVE_START_KEY);
+    return value === 'map' || value === 'app' ? value : 'drive';
   } catch {
-    return true;
+    return 'drive';
   }
 }
 
@@ -5409,7 +5517,7 @@ function driveInitial(stationId) {
 }
 
 function driveChips(station) {
-  const brief = (state.gradesBrief || {})[station.id] || {};
+  const brief = briefFor(station.id);
   return Object.keys(GRADE_LABELS).map((grade) => {
     const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
     const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
@@ -5448,7 +5556,7 @@ function drivePanels(view) {
   if (view.kind === 'wait') {
     // Without a location this screen shows nothing, so the way out is on it.
     return { sheet: `<p class="drive-line">Ищем, где вы…</p>${meta('Разрешите приложению геопозицию: без неё не видно ни дороги, ни заправок впереди.')}
-      <button type="button" class="drive-btn skip" data-drive="close">Показать список заправок</button>` };
+      <button type="button" class="drive-btn skip" data-drive="list">Показать список заправок</button>` };
   }
   if (view.kind === 'rough') {
     return { sheet: `${where('Место приблизительное')}<p class="drive-line">Телефон даёт место ±${escapeHtml(formatMeters(state.accuracy || 0))}</p>${meta('Заправки впереди могут быть не те, а отметки заработают, когда место станет точным.')}` };
@@ -5578,13 +5686,13 @@ function driveGradesPick() {
 function driveThemePick() {
   const modes = [['auto', 'Авто'], ['day', '☀️ День'], ['night', '🌙 Ночь']]
     .map(([mode, word]) => `<button type="button" data-drive="theme-mode" data-mode="${mode}" aria-pressed="${drive.theme === mode}">${word}</button>`).join('');
-  const first = driveStartsFirst();
-  const starts = [['drive', 'Навигатор', first], ['app', 'Карта и список', !first]]
-    .map(([mode, word, on]) => `<button type="button" data-drive="start-mode" data-mode="${mode}" aria-pressed="${on}">${word}</button>`).join('');
+  const start = startScreen();
+  const starts = [['drive', 'Навигатор'], ['map', 'Карта'], ['app', 'Список']]
+    .map(([mode, word]) => `<button type="button" data-drive="start-mode" data-mode="${mode}" aria-pressed="${start === mode}">${word}</button>`).join('');
   return `<span class="drive-where">Тема экрана</span><div class="drive-switch">${modes}</div>
     <p class="drive-meta" data-drive-theme-note>${escapeHtml(driveThemeNote(driveDaylight()))}</p>
     <span class="drive-where">Первый экран на телефоне</span><div class="drive-switch">${starts}</div>
-    <p class="drive-meta">${first ? 'Приложение открывается сразу с навигатора.' : 'Приложение открывается с карты и списка. Навигатор — кнопка «🚗 За рулём».'}</p>
+    <p class="drive-meta">${start === 'drive' ? 'Приложение открывается сразу с навигатора.' : `Приложение открывается ${start === 'map' ? 'с обычной карты' : 'со списка'}. Навигатор — кнопка «🚗 Навигатор» внизу.`}</p>
     <button type="button" class="drive-pick-close" data-drive="pick-close">Готово</button>`;
 }
 
@@ -5964,7 +6072,13 @@ function onDriveTap(event) {
   if (sliding && button.closest('.drive-sheet, .drive-full, .drive-pick')) return;
   const { drive: action, station } = button.dataset;
   if (action === 'close') {
+    // The navigator's own way out is the ordinary map (15 Sep 2026: the map is
+    // the second screen, and the list only helps).
     closeDrive();
+    showScreen('map');
+  } else if (action === 'list') {
+    closeDrive();
+    showScreen('list');
   } else if (action === 'recenter') {
     followDriveMap();
   } else if (action === 'card') {
@@ -5982,19 +6096,20 @@ function onDriveTap(event) {
     }
     renderDrive({ force: true });
   } else if (action === 'start-mode') {
-    const app = button.dataset.mode === 'app';
+    const mode = ['map', 'app'].includes(button.dataset.mode) ? button.dataset.mode : 'drive';
     try {
-      localStorage.setItem(DRIVE_START_KEY, app ? 'app' : 'drive');
+      localStorage.setItem(DRIVE_START_KEY, mode);
     } catch {
       // Without storage the navigator stays first.
     }
-    // «Карта и список» chosen on the navigator is shown at once: a switch that
-    // only told about the next start looked dead (15 Sep 2026).
-    if (app) {
-      closeDrive();
-      showToast('Первый экран — карта и список', 'Навигатор — кнопка «🚗 За рулём».', null, { key: 'start-mode' });
-    } else {
+    // The map or the list chosen on the navigator is shown at once: a switch
+    // that only told about the next start looked dead (15 Sep 2026).
+    if (mode === 'drive') {
       renderDrive({ force: true });
+    } else {
+      closeDrive();
+      showScreen(mode === 'map' ? 'map' : 'list');
+      showToast(mode === 'map' ? 'Первый экран — карта' : 'Первый экран — список', 'Навигатор — кнопка «🚗 Навигатор» внизу.', null, { key: 'start-mode' });
     }
   } else if (action === 'passenger') {
     // A passenger may mark on the move: the lock lifts for this drive.

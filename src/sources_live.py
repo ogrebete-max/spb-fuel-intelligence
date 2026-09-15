@@ -24,14 +24,27 @@ def _parse_utc(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+# tofuel sends some brands with the first letter broken into U+FFFD («Пропан 24»,
+# «АГЗС», «Митекс» on 12 Sep 2026); every such row then was a gas pump.
+TOFUEL_GAS_FUELS = {"GAS", "LPG", "METHANE", "CNG"}
+
+
 def normalize_tofuel(station: dict[str, Any]) -> list[dict[str, Any]]:
     """tofuel.ru publishes a per-grade verdict with votes and a report time."""
     point = (station.get("location") or {}).get("coordinates") or [None, None]
     if point[0] is None or point[1] is None:
         return []
+    brand = station.get("brand")
+    if brand and "�" in str(brand):
+        # The gas filter cannot find «АГЗС» or «Пропан» in a broken brand, and
+        # nobody here refuels with gas: a row that sells gas goes. Any other
+        # row keeps its own name, which the feed sends intact.
+        if any(str(fuel.get("type") or "").upper() in TOFUEL_GAS_FUELS for fuel in station.get("fuels") or []):
+            return []
+        brand = None
     rec = _station(
         "tofuel", station.get("_id") or station.get("id"),
-        station.get("brand") or station.get("name"), station.get("address"),
+        brand or station.get("name"), station.get("address"),
         point[1], point[0],
     )
     status_map = {

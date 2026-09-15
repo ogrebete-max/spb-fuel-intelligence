@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import unittest
 
-from src.station_filters import is_gas_only, is_not_a_station
+from src.station_filters import drop_broken_names, has_broken_name, is_gas_only, is_not_a_station
+
+
+class BrokenNames(unittest.TestCase):
+    def test_a_name_broken_into_replacement_characters_is_dropped(self):
+        self.assertTrue(has_broken_name({"network": "��итекс"}))
+
+    def test_readable_and_missing_names_stay(self):
+        kept = drop_broken_names([{"network": "Лукойл"}, {"network": None}, {"network": "��гзс"}])
+        self.assertEqual([station["network"] for station in kept], ["Лукойл", None])
 
 
 def refs(*pairs):

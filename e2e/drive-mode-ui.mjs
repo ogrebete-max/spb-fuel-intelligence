@@ -556,11 +556,10 @@ async function run(label, browserType, device) {
   check('after all of it the top bar and the sheet are still on screen', await framed(page));
   await shot(page, { path: path.join(OUT, `drive-${label}-9-night.png`) });
 
-  // 11. ✕: the app as it was; the button on the map opens the screen again.
-  check('✕ leaves the drive screen', await tap(page, '#drive [data-drive="close"]') && await becomes(page, () => !drive.open && document.querySelector('#drive').hidden && !document.body.classList.contains('driving'), null, 5000));
+  // 11. 🗺: the ordinary map over the whole screen; the bar opens the navigator again.
+  check('🗺 leaves the drive screen for the ordinary map', await tap(page, '#drive [data-drive="close"]') && await becomes(page, () => !drive.open && document.querySelector('#drive').hidden && !document.body.classList.contains('driving') && document.body.classList.contains('map-screen'), null, 5000));
   check('the screen lock is let go and the list and the map are intact', await page.evaluate(() => drive.wakeLock === null && !!state.map && document.querySelectorAll('#stationList .station-card').length > 0 && !!document.querySelector('#map .leaflet-tile-pane')));
-  await tap(page, '[data-view="map"]');
-  check('«🚗 За рулём» on the map opens it', await tap(page, '#driveButton') && await becomes(page, () => drive.open, null, 5000));
+  check('«🚗 Навигатор» in the bar opens it again', await tap(page, '#modeBar [data-screen="drive"]') && await becomes(page, () => drive.open, null, 5000));
   await tap(page, '#drive [data-drive="close"]');
   const events = await page.evaluate(() => window.driveEvents.map((item) => `${item.event}${item.reason ? `:${item.reason}` : ''}`));
   const expected = ['drive_open:suggestion', 'drive_mark:at_station', 'drive_undo', 'drive_mark:vote', 'drive_stop_question:shown', 'drive_close', 'drive_open:button'].concat(neighbour ? ['drive_not_this'] : []);

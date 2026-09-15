@@ -121,10 +121,10 @@ async function run(label, browserType, device) {
   await page.click('[data-own]');
   check('«Свои» list shows the station as fresh', await waitFor(page, () => document.querySelector('.own-card.fresh .own-age')?.textContent.includes('свежая'), null, 8000));
   await page.screenshot({ path: path.join(OUT, `${label}-f3-own.png`) });
-  await page.click('[data-view="map"]');
+  await page.click('#modeBar [data-screen="map"]');
   check('map shows the group\'s station pin', await waitFor(page, () => document.querySelectorAll('.own-pin').length === 1, null, 8000));
   await page.screenshot({ path: path.join(OUT, `${label}-f4-own-map.png`) });
-  await page.click('[data-view="list"]');
+  await page.click('#modeBar [data-screen="list"]');
   await page.click('[data-own]');
 
   // 6. Drive on past a second station: it is offered afterwards.

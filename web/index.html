@@ -117,6 +117,16 @@
         <div class="map-wrap" id="mapWrap">
           <div id="map" aria-label="Карта АЗС"></div>
           <button id="mapAreaButton" class="map-area-button">Искать в этой области</button>
+          <div class="map-top" id="mapTop">
+            <div class="map-grades" role="radiogroup" aria-label="Марка топлива">
+              <button type="button" data-map-grade="AI92" role="radio" aria-checked="false">92</button>
+              <button type="button" class="active" data-map-grade="AI95" role="radio" aria-checked="true">95</button>
+              <button type="button" data-map-grade="AI98" role="radio" aria-checked="false">98</button>
+              <button type="button" data-map-grade="AI100" role="radio" aria-checked="false">100</button>
+              <button type="button" data-map-grade="DT" role="radio" aria-checked="false">ДТ</button>
+            </div>
+            <button type="button" class="map-round" id="mapLocate" aria-label="Где я">⌖</button>
+          </div>
           <button id="driveButton" class="drive-button" type="button">🚗 За рулём</button>
           <div class="map-fallback" id="mapFallback" hidden>Карта не загрузилась. Список АЗС продолжает работать.</div>
         </div>
@@ -131,6 +141,13 @@
       <small class="build-stamp" id="buildStamp"></small>
     </footer>
   </div>
+
+  <!-- A phone's three screens (15 Sep 2026): the navigator, the ordinary map and the list. -->
+  <nav class="mode-bar" id="modeBar" aria-label="Экран">
+    <button type="button" data-screen="drive"><span aria-hidden="true">🚗</span>Навигатор</button>
+    <button type="button" data-screen="map" aria-pressed="false"><span aria-hidden="true">🗺</span>Карта</button>
+    <button type="button" data-screen="list" aria-pressed="true"><span aria-hidden="true">☰</span>Список</button>
+  </nav>
 
   <!-- «За рулём»: a screen of its own over the app for the minutes of looking
        for fuel on the road. The ordinary page stays as it was underneath. -->
@@ -148,7 +165,7 @@
         <button type="button" class="drive-glass drive-round drive-recenter" data-drive="recenter" aria-label="Вернуть карту к машине">⌖</button>
         <button type="button" class="drive-glass drive-round drive-route-toggle" data-drive="route-toggle" aria-pressed="true" aria-label="Линия маршрута на карте">🛣</button>
         <button type="button" class="drive-glass drive-round" data-drive="theme" aria-haspopup="dialog" aria-label="Тема экрана">◐</button>
-        <button type="button" class="drive-glass drive-round" data-drive="close" aria-label="Карта и список заправок">☰</button>
+        <button type="button" class="drive-glass drive-round" data-drive="close" aria-label="Обычная карта">🗺</button>
       </span>
     </div>
     <div class="drive-glass drive-speed"><span id="driveSpeed">—</span><small>км/ч</small></div>

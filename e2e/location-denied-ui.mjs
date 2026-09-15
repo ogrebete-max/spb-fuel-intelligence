@@ -164,6 +164,20 @@ async function refused(label, browserType, device, options, expect) {
     }
     check(`no box for notifications either (${dialogs.length})`, dialogs.length === 0);
   }
+  // The ordinary map over the whole screen works without a place.
+  await page.evaluate(() => closeDrawer());
+  await page.click('#modeBar [data-screen="map"]');
+  check('«Карта» in the bar opens the map over the whole screen', await becomes(page, () => {
+    const box = document.querySelector('#mapWrap').getBoundingClientRect();
+    return document.body.classList.contains('map-screen') && box.top <= 1 && box.height > innerHeight * 0.8;
+  }, null, 5000));
+  check('with the whole city on it', await becomes(page, () => state.mapStationsGrade === state.grade && document.querySelectorAll('#map .fuel-pin').length > 100, null, 15000));
+  await page.click('#mapTop [data-map-grade="DT"]');
+  check('a grade on the map switches the map to it', await becomes(page, () => state.grade === 'DT' && state.mapStationsGrade === 'DT'
+    && document.querySelector('#mapTop [data-map-grade="DT"]').classList.contains('active'), null, 15000));
+  await page.screenshot({ path: path.join(OUT, `denied-${label}-3-map.png`) });
+  await page.click('#modeBar [data-screen="list"]');
+  check('«Список» brings the list back', await becomes(page, () => !document.body.classList.contains('map-screen') && !!document.querySelector('#stationList .station-card'), null, 10000));
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
   await browser.close();
@@ -195,7 +209,7 @@ async function granted() {
   const tapDrive = (selector) => page.evaluate((s) => document.querySelector(s).click(), selector);
   const pushable = await page.evaluate(() => pushState() === 'off');
   await tapDrive('#drive [data-drive="theme"]');
-  check('the settings offer both first screens', await becomes(page, () => document.querySelectorAll('#drivePick [data-drive="start-mode"]').length === 2, null, 5000));
+  check('the settings offer both first screens', await becomes(page, () => document.querySelectorAll('#drivePick [data-drive="start-mode"]').length === 3, null, 5000));
   if (pushable) check('the first tap brings the phone\'s notification question', await becomes(page, () => window.__asks === 1, null, 5000));
   else console.log('     (this browser cannot take notifications here)');
   // A panel sliding in holds taps back for a moment.
@@ -215,6 +229,16 @@ async function granted() {
   check('«Навигатор» is chosen back, and the words say what it does', await becomes(page, () => drive.open && localStorage.getItem('spbfi-start-v1') === 'drive'
     && document.querySelector('#drivePick [data-mode="drive"]')?.getAttribute('aria-pressed') === 'true'
     && document.querySelector('#drivePick').textContent.includes('сразу с навигатора'), null, 5000));
+  await page.waitForTimeout(700);
+  await tapDrive('#drivePick [data-drive="start-mode"][data-mode="map"]');
+  check('«Карта» chosen on the navigator shows the ordinary map at once', await becomes(page, () => !drive.open && document.body.classList.contains('map-screen')
+    && localStorage.getItem('spbfi-start-v1') === 'map', null, 5000));
+  await page.reload({ waitUntil: 'load' });
+  check('and the next start is the map', await becomes(page, () => document.body.classList.contains('map-screen') && !drive.open, null, 30000));
+  await tapDrive('#modeBar [data-screen="drive"]');
+  check('«🚗 Навигатор» in the bar opens the navigator', await becomes(page, () => drive.open, null, 5000));
+  await tapDrive('#drive [data-drive="close"]');
+  check('and its 🗺 comes back to the map', await becomes(page, () => !drive.open && document.body.classList.contains('map-screen'), null, 5000));
   check(`no box (${dialogs.length})`, dialogs.length === 0);
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));

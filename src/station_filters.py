@@ -79,6 +79,16 @@ def drop_gas_only(stations: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [station for station in stations if not is_gas_only(station)]
 
 
+# A name a feed broke into U+FFFD (12 Sep 2026: tofuel's «Пропан 24» without its
+# first letter) can be read neither on the map nor by the gas filter above.
+def has_broken_name(station: dict[str, Any]) -> bool:
+    return "�" in str(station.get("network") or "")
+
+
+def drop_broken_names(stations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [station for station in stations if not has_broken_name(station)]
+
+
 # Catalogue rows that are no forecourt at all.  15 Sep 2026: gdebenzin24 lists a
 # «Татнефт» at the General Staff building on Palace Square; built from that row
 # alone, it was offered as «Вы у АЗС» to anyone in the centre.  The point also
