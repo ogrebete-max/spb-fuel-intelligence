@@ -411,6 +411,7 @@ function bindControls() {
     if (button) chooseGrade(button.dataset.grade);
   });
   $('#driveButton')?.addEventListener('click', () => openDrive('button'));
+  $('#driveListButton')?.addEventListener('click', () => openDrive('button'));
   $('#driveOfferYes')?.addEventListener('click', () => openDrive('suggestion'));
   $('#driveOfferNo')?.addEventListener('click', silenceDriveOffer);
   bindDrive();
@@ -4853,6 +4854,7 @@ function initDriveMap() {
     zoomControl: false, attributionControl: false, boxZoom: false, keyboard: false,
   }).setView([DRIVE_FALLBACK_PLACE.lat, DRIVE_FALLBACK_PLACE.lon], DRIVE_ZOOM);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(drive.map);
+  drive.line = L.polyline([], { className: 'drive-route', weight: 5, opacity: 0.95, dashArray: '1 12', lineCap: 'round', interactive: false }).addTo(drive.map);
   drive.map.on('dragstart', loosenDriveMap);
   drive.map.on('dragend zoomend', () => { if (drive.free) drive.freeUntil = Date.now() + DRIVE_FREE_MS; });
   drive.map.on('move zoom', placeDriveCar);
@@ -5187,6 +5189,9 @@ function drivePanels(view) {
   const title = station ? `${escapeHtml(displayNetwork(station.network))}${place ? `, ${escapeHtml(place)}` : ''}` : '';
   const meta = (text) => (text ? `<p class="drive-meta">${escapeHtml(text)}</p>` : '');
   const where = (text) => `<span class="drive-where">${escapeHtml(text)}</span>`;
+  // «🧭 Маршрут» and the road's length only while the car stands: on the move
+  // the sheet stays one glance and no buttons, and the line on the map shows the way.
+  const still = !movingNow(view.now);
   if (view.kind === 'wait') {
     return { sheet: `<p class="drive-line">Ищем, где вы…</p>${meta('Разрешите приложению геопозицию: без неё не видно ни дороги, ни заправок впереди.')}` };
   }
@@ -5197,26 +5202,27 @@ function drivePanels(view) {
   if (view.kind === 'empty') return { sheet: `${where(`В ${DRIVE_RADIUS_METRES / 1000} км заправок нет`)}${meta('Приложение знает заправки Петербурга и области.')}` };
   if (view.kind === 'line') {
     const says = driveSays(station);
-    return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}
-      <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>${meta(driveMeta(station))}` };
+    return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
+      <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}` };
   }
   if (view.kind === 'near') {
     const witness = eyewitnessLine(station.grade, station.id, { brief: true });
     const mine = markedRecently(station.id) ? markLine(station.id, state.grade) : null;
-    const actions = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>`
+    const actions = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>${driveDelete(station.id)}`
       : movingNow(view.now) ? '<p class="drive-lock">🔒 Отметить — на остановке</p>'
         : driveMarkButtons(station.id);
-    return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}
+    return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
       <p class="drive-line drive-name">${title}</p>
       <div class="drive-chips">${driveChips(station)}</div>
       ${meta(driveMeta(station, { witness: false }))}
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
+      ${still ? meta(driveRouteNote(station.id)) : ''}
       ${actions}` };
   }
   if (view.kind === 'none') {
     if (!focus) return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}<p class="drive-line">Рядом ${label} нет ни на одной заправке</p>` };
-    return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}
-      <p class="drive-line">Ближайшая с ${label} — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}` };
+    return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}${still ? driveGo(station) : ''}
+      <p class="drive-line">Ближайшая с ${label} — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}` };
   }
   if (view.kind === 'question') {
     const name = shortNetwork(drive.question.network);
@@ -5230,11 +5236,13 @@ function drivePanels(view) {
   }
   if (view.kind === 'tapped') {
     const witness = eyewitnessLine(station.grade, station.id, { brief: true });
-    return { sheet: `${where(`${driveDistance(focus.metres)}${driveSide(focus)}`)}
+    return { sheet: `${where(`${driveDistance(focus.metres)}${driveSide(focus)}`)}${driveGo(station)}
       <p class="drive-line drive-name">${title}</p>
       <div class="drive-chips">${driveChips(station)}</div>
       ${meta(driveMeta(station, { witness: false }))}
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
+      ${meta(driveRouteNote(station.id))}
+      ${driveDelete(station.id)}
       <div class="drive-row">
         <button type="button" class="drive-btn skip" data-drive="card" data-station="${escapeHtml(station.id)}">Подробнее</button>
         <button type="button" class="drive-btn skip" data-drive="untap">Скрыть</button>
@@ -5337,6 +5345,7 @@ function renderDrive({ force = false } = {}) {
   } else {
     paintDrivePanels(view);
   }
+  drive.headingKnown = view.heading != null;
   layoutDrive();
   paintDriveMap(view);
 }
@@ -5408,7 +5417,9 @@ function layoutDrive() {
   }
   const top = Math.min(118, height * 0.25);
   const x = Math.round(right / 2);
-  const y = Math.round(top + (bottom - top) * 0.72);
+  // Low on the screen when driving, so more road ahead shows; in the middle
+  // while the heading is unknown, since the station may lie any way round.
+  const y = Math.round(top + (bottom - top) * (drive.headingKnown ? 0.72 : 0.5));
   const side = Math.max(drive.side, 2 * Math.ceil(Math.hypot(Math.max(x, width - x), Math.max(y, height - y))) + 64);
   if (side !== drive.side) {
     drive.side = side;
@@ -5433,7 +5444,7 @@ function layoutDrive() {
 function driveZoom(view) {
   const { focus, phone } = view;
   const car = drive.car;
-  if (!['line', 'near', 'tapped'].includes(view.kind) || !focus || !car) return ['at', 'sent'].includes(view.kind) ? DRIVE_CLOSE_ZOOM : DRIVE_ZOOM;
+  if (!['line', 'near', 'tapped', 'none'].includes(view.kind) || !focus || !car) return ['at', 'sent'].includes(view.kind) ? DRIVE_CLOSE_ZOOM : DRIVE_ZOOM;
   const angle = ((bearingDegrees(phone, focus.station.location) - drive.rotation) * Math.PI) / 180;
   const ahead = focus.metres * Math.cos(angle);
   const aside = Math.abs(focus.metres * Math.sin(angle));
@@ -5445,7 +5456,9 @@ function driveZoom(view) {
   };
   const needed = Math.max(ahead > 0 ? ahead / room.up : -ahead / room.down, aside / room.side, 0.3);
   const exact = Math.log2((156543.03 * Math.cos((phone.lat * Math.PI) / 180)) / needed);
-  const fit = Math.max(12, Math.min(DRIVE_CLOSE_ZOOM, Math.floor(exact)));
+  // Far enough out for a station 5 km off (15 Sep 2026: at 12 «Роснефть · 95
+  // есть» 4,7 km away was off a phone's screen).
+  const fit = Math.max(10, Math.min(DRIVE_CLOSE_ZOOM, Math.floor(exact)));
   if (fit < drive.zoom) return fit;
   return fit > drive.zoom && exact - drive.zoom >= 1.25 ? drive.zoom + 1 : drive.zoom;
 }
@@ -5461,6 +5474,7 @@ function paintDriveMap(view) {
     car.classList.toggle('unknown', view.heading == null);
     car.style.rotate = view.heading == null ? '' : `${Math.round(view.heading)}deg`;
     placeDriveCar();
+    paintDriveLine(view);
     paintDrivePins(view);
     return;
   }
@@ -5483,8 +5497,86 @@ function paintDriveMap(view) {
     holder.style.setProperty('--drive-turn', `${drive.rotation}deg`);
   }
   $('#driveCar').classList.toggle('unknown', view.heading == null);
+  paintDriveLine(view);
   paintDrivePins(view);
   paintDriveEdge(view);
+}
+
+// A dotted line from the car to the station the panel talks about, so where
+// «Роснефть · 95 есть» is shows at a glance (15 Sep 2026: it took a while to find).
+function paintDriveLine(view) {
+  if (!drive.line) return;
+  const target = ['line', 'near', 'tapped', 'none'].includes(view.kind) ? view.focus : null;
+  if (!target || !view.phone) {
+    drive.line.setLatLngs([]);
+    return;
+  }
+  const route = wantDriveRoute(view, target);
+  const road = Boolean(route?.points);
+  drive.line.setLatLngs(road
+    ? [[view.phone.lat, view.phone.lon], ...route.points]
+    : [[view.phone.lat, view.phone.lon], [target.station.location.lat, target.station.location.lon]]);
+  drive.line.getElement()?.classList.toggle('road', road);
+}
+
+// The road to that station, from the public OSRM server: drawn on the map
+// with its length and time, while «🧭 Маршрут» hands the drive itself, with
+// traffic, to Yandex. OSRM knows no traffic and may not answer; then the
+// dotted straight line stays.
+const DRIVE_ROUTE_REFRESH_MS = 60000;
+const DRIVE_ROUTE_MOVE_METRES = 300;
+
+function wantDriveRoute(view, target) {
+  const route = drive.route;
+  if (route && route.stationId === target.station.id
+    && (route.pending || (Date.now() - route.at < DRIVE_ROUTE_REFRESH_MS && haversineKm(view.phone, route.from) * 1000 < DRIVE_ROUTE_MOVE_METRES))) {
+    return route;
+  }
+  const from = { lat: view.phone.lat, lon: view.phone.lon };
+  const to = target.station.location;
+  const next = { stationId: target.station.id, from, at: Date.now(), pending: true, points: null, metres: null, seconds: null };
+  drive.route = next;
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 8000);
+  fetch(`https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${Number(to.lon)},${Number(to.lat)}?overview=full&geometries=geojson`, { signal: controller.signal })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((data) => {
+      next.pending = false;
+      const best = data?.routes?.[0];
+      if (drive.route !== next || !best?.geometry?.coordinates?.length) return;
+      next.points = best.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+      next.metres = best.distance;
+      next.seconds = best.duration;
+      if (drive.open) renderDrive();
+    })
+    .catch(() => { next.pending = false; });
+  return next;
+}
+
+function driveRouteNote(stationId) {
+  const route = drive.route;
+  if (!route?.points || route.stationId !== stationId) return '';
+  return `По дороге ${driveDistance(route.metres)} · ${Math.max(1, Math.round(route.seconds / 60))} мин`;
+}
+
+// A mark sent by mistake can go from the drive screen too, not only in its
+// first five seconds (15 Sep 2026: «I can't see a delete button»).
+function driveDelete(stationId) {
+  const look = stationLooks(stationId, DELETE_WINDOW_MS).find((item) => item.mine);
+  return look ? deleteButton(look, '🗑 Удалить мою отметку') : '';
+}
+
+// The road itself, with its traffic, is a navigator's job: the route opens in
+// Yandex Maps, the app when it is installed and the site when not.
+function openDriveRoute(id) {
+  const place = state.stations.find((item) => item.id === id)?.location;
+  if (!place) return;
+  track('route_open', { station: id });
+  window.open(`https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`, '_blank', 'noopener');
+}
+
+function driveGo(station) {
+  return station?.location ? `<button type="button" class="drive-go" data-drive="route" data-station="${escapeHtml(station.id)}">🧭 Маршрут</button>` : '';
 }
 
 // Pins change on the elements Leaflet already drew, as on the ordinary map: a
@@ -5507,7 +5599,7 @@ function paintDrivePins(view) {
     let marker = drive.markers.get(id);
     if (!marker) {
       marker = L.marker([item.station.location.lat, item.station.location.lon], {
-        icon: L.divIcon({ className: 'dpin', html: '<span class="dpin-turn"><span class="dpin-body"><b></b><i hidden></i></span></span>', iconSize: [0, 0], iconAnchor: [0, 0] }),
+        icon: L.divIcon({ className: 'dpin', html: '<span class="dpin-turn"><span class="dpin-body"><b></b><small></small><i hidden></i></span></span>', iconSize: [0, 0], iconAnchor: [0, 0] }),
         interactive: true, keyboard: false,
       }).addTo(map);
       // A tap on a pin tells about that station (15 Sep 2026: pins took no taps).
@@ -5525,6 +5617,10 @@ function paintDrivePins(view) {
     if (element.dataset.station !== id) element.dataset.station = id;
     const number = element.querySelector('b');
     if (number.textContent !== label) number.textContent = label;
+    // The station the panel talks about carries its name on the map.
+    const name = element.querySelector('small');
+    const called = id === focusId ? shortNetwork(item.station.network) : '';
+    if (name && name.textContent !== called) name.textContent = called;
     const badge = element.querySelector('i');
     const initial = isBig ? driveInitial(id) : '';
     if (badge.textContent !== initial) badge.textContent = initial;
@@ -5581,6 +5677,11 @@ function onDriveTap(event) {
     followDriveMap();
     return;
   }
+  const removal = event.target.closest('.look-delete');
+  if (removal) {
+    deleteLook({ station: removal.dataset.deleteStation, author: removal.dataset.deleteAuthor, at: Number(removal.dataset.deleteAt) }, removal);
+    return;
+  }
   const button = event.target.closest('[data-drive]');
   if (!button || button.disabled) return;
   // A panel sliding in moves its buttons under the finger: a tap in those few
@@ -5594,6 +5695,8 @@ function onDriveTap(event) {
     followDriveMap();
   } else if (action === 'card') {
     openStation(station);
+  } else if (action === 'route') {
+    openDriveRoute(station);
   } else if (action === 'untap') {
     drive.tapped = null;
     renderDrive({ force: true });

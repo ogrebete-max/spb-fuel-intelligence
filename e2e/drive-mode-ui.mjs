@@ -531,7 +531,9 @@ async function run(label, browserType, device) {
   check('and lies on screen', await framed(page));
   const none = await text(page, '#driveSheet');
   check(`«${none}»`, none.startsWith('Впереди 98 нет') && new RegExp(`Ближайшая с 98 — ${withName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}, \\d+(,\\d)? км (налево|направо)`).test(none));
-  check('a marker on the edge of the map points to it', await page.evaluate(() => !document.querySelector('#driveEdge').hidden && document.querySelector('#driveEdge b').textContent === '98'));
+  // The map zooms out to show that station (15 Sep 2026); the edge marker is
+  // left for when it still does not fit.
+  check('the station is on screen, or a marker on the edge points to it', await focusShown(page) || await page.evaluate(() => !document.querySelector('#driveEdge').hidden && document.querySelector('#driveEdge b').textContent === '98'));
   const bigPins = await page.evaluate(() => [...document.querySelectorAll('.dpin.big')].map((pin) => ({ number: pin.querySelector('b').textContent, no: pin.classList.contains('no'), struck: getComputedStyle(pin.querySelector('b')).textDecorationLine.includes('line-through') })));
   check(`big pins read 98, those without it struck through (${bigPins.filter((pin) => pin.no).length} of ${bigPins.length})`, bigPins.length > 0 && bigPins.every((pin) => pin.number === '98' && pin.no === pin.struck));
   await shot(page, { path: path.join(OUT, `drive-${label}-8-none.png`) });
