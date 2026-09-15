@@ -254,6 +254,8 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 
 .install-steps { margin: 12px 0 18px; padding-left: 22px; display: grid; gap: 10px; }
 .install-steps li { line-height: 1.5; }
+/* «Открыть в Safari»: a link dressed as the drawer's main button. */
+.location-open { display: flex; align-items: center; justify-content: center; margin: 16px 0 4px; text-decoration: none; }
 
 .status-chip[disabled] { opacity: .42; cursor: default; }
 

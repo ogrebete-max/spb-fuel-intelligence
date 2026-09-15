@@ -305,6 +305,8 @@ async function bootstrap() {
     // navigator with no location and a «доступ запрещён» box, and had no idea
     // what to do). Everyone else starts on the ordinary screen.
     if (touchDevice && !wanted && !navigator.webdriver && driveStartsFirst() && await locationGranted()) openDrive('start');
+    // The automated checks tap through screens of their own, without the phone's notification question.
+    if (!navigator.webdriver) switchPushOnByDefault();
     const health = state.meta?.collectors || {};
     track('app_open', {
       installed: platformInfo().installed,
@@ -635,6 +637,92 @@ function showLocationHelp() {
     const status = $('#locationHelpStatus');
     if (status) status.textContent = '◌ Проверяем место…';
     refreshLocation({ manual: true, quiet: true });
+  });
+  $('#locationByAddress').addEventListener('click', () => {
+    closeDrawer();
+    const input = $('#searchInput');
+    input?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    input?.focus();
+  });
+}
+
+// Telegram, VK and other apps open a link in a browser of their own: on an
+// iPhone a WKWebView (see platformInfo), on Android a WebView with «wv» in its
+// user agent. Such a browser seldom passes a site the phone's location.
+function messengerBrowser() {
+  if (platformInfo().inAppBrowser) return 'ios';
+  const ua = navigator.userAgent;
+  return /Android/i.test(ua) && /; wv\)|Telegram|FBAN|FBAV|Instagram|VKClient/i.test(ua) ? 'android' : null;
+}
+
+// iOS 17 and later hand a page to Safari from any app through this scheme.
+function safariLink() {
+  return `<a class="gate-submit location-open" id="openInSafari" href="x-safari-${escapeHtml(location.href.split(/[?#]/)[0])}">Открыть в Safari</a>`;
+}
+
+// A refused or silent location in words, with a way forward for the browser
+// in hand (15 Sep 2026: people opened the link inside Telegram, got a bare
+// «Доступ к геолокации запрещён» box and closed the app). The list and the
+// map of the whole city work either way, and the search finds a place.
+function showLocationBlocked(error = null) {
+  const { iOS, installed } = platformInfo();
+  const android = /Android/i.test(navigator.userAgent);
+  const messenger = messengerBrowser();
+  const refused = !error || error.code === 1;
+  let title = 'Разрешите геопозицию';
+  let lead = 'Телефон не даёт этому сайту знать, где вы, поэтому «Рядом со мной» и «За рулём» не работают.';
+  let steps;
+  if (messenger) {
+    title = messenger === 'ios' ? 'Откройте в Safari' : 'Откройте в браузере';
+    lead = `Ссылка открылась внутри Telegram или другого приложения. Его встроенный браузер не сообщает сайтам, где вы, поэтому «Рядом со мной» и «За рулём» здесь не работают. В ${messenger === 'ios' ? 'Safari' : 'обычном браузере'} работает всё.`;
+    steps = messenger === 'ios'
+      ? ['Нажмите «Открыть в Safari».',
+         'Не открылось — нажмите три точки «⋯» в углу экрана и выберите <b>«Открыть в Safari»</b>.',
+         'Или скопируйте ссылку кнопкой ниже и вставьте её в адресную строку Safari.']
+      : ['Нажмите три точки «⋮» в углу экрана и выберите <b>«Открыть в браузере»</b> (или «в Chrome»).',
+         'Или скопируйте ссылку кнопкой ниже и вставьте её в адресную строку Chrome.'];
+  } else if (!refused) {
+    title = 'Телефон не сообщает место';
+    lead = 'Геопозиция разрешена, но место пока не пришло. Так бывает в помещении, на подземной парковке и при помехах GPS.';
+    steps = [
+      iOS ? 'Настройки → Конфиденциальность и безопасность → <b>Службы геолокации</b> — должны быть включены.' : 'Смахните шторку сверху вниз: <b>«Местоположение»</b> должно быть включено.',
+      '<b>Wi-Fi включён</b>, даже без подключения к сети: по сетям вокруг телефон находит место, когда GPS ловит плохо.',
+      'Подождите минуту или выйдите на улицу и нажмите «Попробовать ещё раз».',
+    ];
+  } else if (iOS) {
+    steps = installed
+      ? ['Настройки → Конфиденциальность и безопасность → <b>Службы геолокации</b> — включите.',
+         'Там же ниже: <b>«Сайты Safari»</b> → «При использовании».',
+         'Закройте приложение полностью (смахните вверх), откройте снова и нажмите «Рядом со мной».']
+      : ['В Safari нажмите значок <b>«аА»</b> (или «⋯») у адресной строки → <b>«Настройки веб-сайта»</b> → «Геопозиция» → <b>«Разрешить»</b>.',
+         'Не помогло: Настройки → Конфиденциальность и безопасность → <b>Службы геолокации</b> — включите; ниже <b>«Сайты Safari»</b> → «При использовании».',
+         'Вернитесь сюда и нажмите «Попробовать ещё раз».'];
+  } else if (android) {
+    steps = installed
+      ? ['Откройте Chrome → «⋮» → Настройки → <b>Настройки сайтов</b> → «Местоположение» и разрешите этот сайт.',
+         'Смахните шторку сверху вниз: <b>«Местоположение»</b> должно быть включено.',
+         'Закройте приложение, откройте снова и нажмите «Рядом со мной».']
+      : ['Нажмите значок слева от адреса сайта → <b>«Разрешения»</b> и включите <b>«Местоположение»</b>.',
+         'Смахните шторку сверху вниз: <b>«Местоположение»</b> на телефоне должно быть включено.',
+         'Вернитесь сюда и нажмите «Попробовать ещё раз».'];
+  } else {
+    lead = 'Браузер не даёт этому сайту знать, где вы.';
+    steps = ['Нажмите значок замка или настроек слева от адреса сайта → «Местоположение» → «Разрешить», затем обновите страницу.',
+      'Компьютер без GPS определяет место примерно — заправки у нужного места удобнее искать по адресу.'];
+  }
+  openDrawer(`<h2>${title}</h2>
+    <p class="drawer-address">${lead}</p>
+    <div class="drawer-status" style="--status-color:#0d5a43"><strong>Без геопозиции тоже работает</strong><p>Список и карта всего города — на месте. Заправки у нужного места найдёт поиск: введите улицу, район или посёлок.</p></div>
+    ${messenger === 'ios' ? safariLink() : ''}
+    <ol class="install-steps">${steps.map((step) => `<li>${step}</li>`).join('')}</ol>
+    ${messenger
+    ? '<button type="button" class="list-more" id="locationCopyLink">Скопировать ссылку</button>'
+    : '<button type="button" class="list-more" id="locationRetry">📍 Попробовать ещё раз</button>'}
+    <button type="button" class="list-more" id="locationByAddress">⌕ Искать АЗС по адресу</button>`);
+  $('#locationCopyLink')?.addEventListener('click', (event) => copyPageLink(event.currentTarget));
+  $('#locationRetry')?.addEventListener('click', () => {
+    closeDrawer();
+    startFollowing({ manual: true });
   });
   $('#locationByAddress').addEventListener('click', () => {
     closeDrawer();
@@ -1069,9 +1157,12 @@ function refreshLocation({ manual = false, quiet = false } = {}) {
     if (quiet) {
       renderLocationHelpStatus(error);
     } else if (manual) {
+      // With no place at all, the drawer says what to check in this browser.
+      const help = error.code === 1 || !state.location;
       showToast('Не удалось обновить место', error.code === 1
-        ? 'Геолокация запрещена для этого сайта в настройках телефона.'
-        : 'Нет сигнала. Попробуйте ещё раз через несколько секунд.', null, { key: 'location' });
+        ? 'Геолокация запрещена для этого сайта. Нажмите — покажу, как включить.'
+        : help ? 'Телефон не сообщает место. Нажмите — покажу, что проверить.' : 'Нет сигнала. Попробуйте ещё раз через несколько секунд.',
+      null, { key: 'location', onClick: help ? () => showLocationBlocked(error) : null });
     }
   };
   navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: false, maximumAge: 30000, timeout: 6000 });
@@ -1090,20 +1181,48 @@ function startFollowing({ manual = false } = {}) {
   document.body.classList.add('following');
   renderLocateButton();
   // A fix's own time tells a new fix from the same one handed out again.
-  const onFix = ({ coords, timestamp }) => applyFix(coords, { stamp: timestamp });
+  let located = false;
+  const onFix = ({ coords, timestamp }) => {
+    if (!located) {
+      located = true;
+      rememberLocated();
+    }
+    applyFix(coords, { stamp: timestamp });
+  };
+  let refused = false;
+  let silenceSaid = false;
   const onError = (error) => {
     // Only a refusal ends following. A timeout or a moment without signal is
     // ordinary on the road, and switching the mode off then left people with
     // a list for a place they had long since left.
     if (error.code !== 1) {
       renderLocateButton();
+      // Pressed, and the phone never answered: the button would say
+      // «Определяем место…» for good with nothing else on the screen.
+      if (manual && !state.location && !state.pendingFix && !silenceSaid && !drive.open) {
+        silenceSaid = true;
+        showToast('Телефон пока не сообщает место', 'Нажмите — покажу, что проверить.', null, { key: 'location', onClick: () => showLocationBlocked(error) });
+      }
       return;
     }
+    // The one-off request and the watch both refuse; one answer is enough.
+    if (refused) return;
+    refused = true;
     state.follow = false;
     document.body.classList.remove('following');
     renderLocateButton();
+    // The navigator shows nothing without a place; it steps aside for the city
+    // list and the map, which work without one.
+    if (drive.open) closeDrive();
+    // A bare «Доступ к геолокации запрещён» box sent people away (15 Sep 2026:
+    // the link opened inside Telegram, whose browser tells no site where the
+    // phone is). The drawer says why and what to do in the browser in hand.
     if (manual) {
-      alert('Доступ к геолокации запрещён. Разрешите его для этого сайта в настройках телефона, иначе «рядом» работать не будет.');
+      showLocationBlocked(error);
+    } else if (messengerBrowser() && !navigator.webdriver) {
+      // Nobody pressed anything yet, so a banner, not a drawer. The automated
+      // checks look like a messenger to platformInfo and walk on without it.
+      showToast('📍 Открыто внутри мессенджера', `Весь город — ниже. «Рядом» и «За рулём» работают в ${messengerBrowser() === 'ios' ? 'Safari' : 'браузере'}: нажмите, покажу как.`, null, { key: 'location', onClick: () => showLocationBlocked(error) });
     }
     track('locate_result', { success: false, reason: 'denied' });
   };
@@ -1889,12 +2008,35 @@ function standalone() {
   return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 }
 
-// Whether location was already allowed. A browser that cannot tell (or an
-// in-app browser that never asks) counts as not allowed.
+// Whether the navigator may open by itself. Safari forgets an «allow» after a
+// day and asks again, so a phone that has given this app a place before counts
+// too, unless the browser has already said no; a newcomer from a link starts
+// on the ordinary screen.
 async function locationGranted() {
+  let status = null;
   try {
-    const status = await navigator.permissions?.query({ name: 'geolocation' });
-    return status?.state === 'granted';
+    status = (await navigator.permissions?.query({ name: 'geolocation' }))?.state || null;
+  } catch {
+    // Not every browser answers; the past decides.
+  }
+  if (status === 'granted') return true;
+  if (status === 'denied' || !state.follow) return false;
+  return locatedBefore();
+}
+
+const LOCATED_KEY = 'spbfi-located-v1';
+
+function rememberLocated() {
+  try {
+    localStorage.setItem(LOCATED_KEY, String(Date.now()));
+  } catch {
+    // Only whether the navigator opens by itself depends on it.
+  }
+}
+
+function locatedBefore() {
+  try {
+    return Boolean(localStorage.getItem(LOCATED_KEY));
   } catch {
     return false;
   }
@@ -1907,7 +2049,7 @@ function pushState() {
   return localStorage.getItem(PUSH_FLAG) === 'on' && Notification.permission === 'granted' ? 'on' : 'off';
 }
 
-async function postSubscription(subscription) {
+async function postSubscription(subscription, { quiet = false } = {}) {
   const endpoint = window.SPBFI_REPORT_ENDPOINT.replace(/\/$/, '');
   const response = await fetch(`${endpoint}/subscribe`, {
     method: 'POST',
@@ -1917,7 +2059,8 @@ async function postSubscription(subscription) {
   if (response.status === 401 || response.status === 403) {
     let data = {};
     try { data = await response.json(); } catch { /* not JSON */ }
-    handleClubRejection({ status: response.status, data });
+    // Switched on by the app itself, a refusal is no reason to show the club's door.
+    if (!quiet) handleClubRejection({ status: response.status, data });
     throw new Error('уведомления получают только участники клуба');
   }
   if (!response.ok) throw new Error(`приёмник ответил ${response.status}`);
@@ -1925,10 +2068,14 @@ async function postSubscription(subscription) {
   pushLocationSentFrom = state.location ? { ...state.location } : null;
 }
 
-async function enablePush() {
+async function enablePush({ quiet = false } = {}) {
   const status = pushState();
+  // Switched on by the app itself: a browser that cannot is no news to anyone.
+  if (quiet && status !== 'off') return;
   if (status === 'install-first') {
-    alert('На iPhone уведомления работают только у приложения на главном экране: Поделиться → «На экран „Домой“», затем откройте его оттуда и нажмите эту кнопку снова.');
+    // Inside Telegram there is no «На экран „Домой“» at all (15 Sep 2026): the
+    // install help says to open Safari first, and in Safari how to install.
+    showInstallHelp({ why: 'На iPhone уведомления приходят только приложению, открытому с экрана «Домой».' });
     return;
   }
   if (status === 'unavailable') {
@@ -1947,11 +2094,12 @@ async function enablePush() {
     const raw = atob(String(vapid.publicKey).replace(/-/g, '+').replace(/_/g, '/'));
     const applicationServerKey = Uint8Array.from(raw, (char) => char.charCodeAt(0));
     const subscription = (await registration.pushManager.getSubscription()) || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
-    await postSubscription(subscription);
+    await postSubscription(subscription, { quiet });
     localStorage.setItem(PUSH_FLAG, 'on');
-    showToast('🔔 Уведомления включены', 'Когда свой отметит АЗС в 7 км от вас, телефон сообщит — даже с закрытым приложением.');
+    setPushWanted(true);
+    showToast('🔔 Уведомления включены', 'Когда свой отметит АЗС в 7 км от вас, телефон сообщит — даже с закрытым приложением. Выключить — кнопкой в «Свои сообщают».');
   } catch (error) {
-    alert(`Не удалось включить уведомления: ${error.message}`);
+    if (!quiet) alert(`Не удалось включить уведомления: ${error.message}`);
   }
   renderGroupFeed();
 }
@@ -1983,6 +2131,44 @@ async function refreshPushLocation() {
   } catch { /* next fix tries again */ }
 }
 
+// Notifications are on unless switched off (15 Sep 2026: the app opens on the
+// navigator, which has no «Уведомлять» button). The phone still asks its own
+// question, and only after a tap: where it already allows, the app subscribes
+// at once; otherwise the first tap anywhere brings the question.
+const PUSH_OFF_KEY = 'spbfi-push-off-v1';
+
+function pushWanted() {
+  try {
+    return localStorage.getItem(PUSH_OFF_KEY) !== '1';
+  } catch {
+    return true;
+  }
+}
+
+function setPushWanted(wanted) {
+  try {
+    if (wanted) localStorage.removeItem(PUSH_OFF_KEY);
+    else localStorage.setItem(PUSH_OFF_KEY, '1');
+  } catch {
+    // This visit still knows.
+  }
+}
+
+function switchPushOnByDefault() {
+  if (!pushWanted() || pushState() !== 'off') return;
+  if (Notification.permission === 'granted') {
+    enablePush({ quiet: true });
+    return;
+  }
+  const ask = (event) => {
+    // The notification button asks by itself.
+    if (event.target.closest?.('[data-push]')) return;
+    document.removeEventListener('click', ask, true);
+    if (pushWanted() && pushState() === 'off') enablePush({ quiet: true });
+  };
+  document.addEventListener('click', ask, true);
+}
+
 function pushButton() {
   const status = pushState();
   if (status === 'unavailable') return '';
@@ -1991,7 +2177,14 @@ function pushButton() {
 }
 
 function bindPushButton(root) {
-  root.querySelectorAll('[data-push]').forEach((button) => button.addEventListener('click', () => (button.dataset.push === 'on' ? enablePush() : disablePush())));
+  root.querySelectorAll('[data-push]').forEach((button) => button.addEventListener('click', () => {
+    if (button.dataset.push === 'on') {
+      enablePush();
+      return;
+    }
+    setPushWanted(false);
+    disablePush();
+  }));
 }
 
 // ---------------------------------------------------------------- club rewards
@@ -5391,6 +5584,7 @@ function driveThemePick() {
   return `<span class="drive-where">Тема экрана</span><div class="drive-switch">${modes}</div>
     <p class="drive-meta" data-drive-theme-note>${escapeHtml(driveThemeNote(driveDaylight()))}</p>
     <span class="drive-where">Первый экран на телефоне</span><div class="drive-switch">${starts}</div>
+    <p class="drive-meta">${first ? 'Приложение открывается сразу с навигатора.' : 'Приложение открывается с карты и списка. Навигатор — кнопка «🚗 За рулём».'}</p>
     <button type="button" class="drive-pick-close" data-drive="pick-close">Готово</button>`;
 }
 
@@ -5788,12 +5982,20 @@ function onDriveTap(event) {
     }
     renderDrive({ force: true });
   } else if (action === 'start-mode') {
+    const app = button.dataset.mode === 'app';
     try {
-      localStorage.setItem(DRIVE_START_KEY, button.dataset.mode === 'app' ? 'app' : 'drive');
+      localStorage.setItem(DRIVE_START_KEY, app ? 'app' : 'drive');
     } catch {
       // Without storage the navigator stays first.
     }
-    renderDrive({ force: true });
+    // «Карта и список» chosen on the navigator is shown at once: a switch that
+    // only told about the next start looked dead (15 Sep 2026).
+    if (app) {
+      closeDrive();
+      showToast('Первый экран — карта и список', 'Навигатор — кнопка «🚗 За рулём».', null, { key: 'start-mode' });
+    } else {
+      renderDrive({ force: true });
+    }
   } else if (action === 'passenger') {
     // A passenger may mark on the move: the lock lifts for this drive.
     drive.passenger = true;
@@ -6053,11 +6255,10 @@ async function copyPageLink(button) {
   }
 }
 
-function showInstallHelp() {
+function showInstallHelp({ why = '' } = {}) {
   const { iOS, inAppBrowser } = platformInfo();
   const steps = inAppBrowser
-    ? ['Нажмите кнопку «Скопировать ссылку» ниже.',
-       'Откройте <b>Safari</b> и вставьте ссылку в адресную строку.',
+    ? ['Нажмите «Открыть в Safari». Не открылось — скопируйте ссылку кнопкой ниже и вставьте её в адресную строку <b>Safari</b>.',
        'Нажмите «Поделиться» — квадрат со стрелкой вверх внизу экрана.',
        'Выберите <b>«На экран “Домой”»</b> и нажмите «Добавить».']
     : iOS
@@ -6072,7 +6273,9 @@ function showInstallHelp() {
     : '';
   openDrawer(`<h2>Установить на телефон</h2>
     <p class="drawer-address">После установки приложение открывается без адресной строки, а интерфейс и последний загруженный снимок работают без сети.</p>
+    ${why ? `<div class="drawer-status" style="--status-color:#0d5a43"><strong>${escapeHtml(why)}</strong></div>` : ''}
     ${warning}
+    ${inAppBrowser ? safariLink() : ''}
     <ol class="install-steps">${steps.map((step) => `<li>${step}</li>`).join('')}</ol>
     <button type="button" class="list-more" id="copyLink">Скопировать ссылку</button>`);
   $('#copyLink').addEventListener('click', (event) => copyPageLink(event.currentTarget));
