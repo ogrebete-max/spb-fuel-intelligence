@@ -212,7 +212,10 @@ function expireGrade(grade, elapsed) {
   if (grade.timeline?.duration_seconds != null) grade.timeline.duration_seconds = Math.round(grade.timeline.duration_seconds + elapsed);
   const ttl = grade.ttl_seconds;
   if (grade.status === 'NO_FRESH_DATA' || ttl == null) return grade;
-  if (grade.age_seconds != null && grade.age_seconds > ttl) {
+  // The build says when the answer runs out, undated signals included; a build
+  // from before that gave only the age of dated ones.
+  const ranOut = grade.expires_at ? Date.now() >= Date.parse(grade.expires_at) : grade.age_seconds != null && grade.age_seconds > ttl;
+  if (ranOut) {
     grade.status = 'NO_FRESH_DATA';
     grade.label = 'НЕТ СВЕЖИХ ДАННЫХ';
     grade.reason = 'Сигнал, на котором держался ответ, устарел уже после публикации снимка.';
@@ -245,6 +248,21 @@ function briefFor(stationId) {
   const elapsed = state.staticMode ? staticElapsedSeconds() : 0;
   if (!elapsed) return row;
   return Object.fromEntries(Object.entries(row).map(([grade, entry]) => [grade, entry.x != null && elapsed > entry.x ? { ...entry, s: 'NO_FRESH_DATA' } : entry]));
+}
+
+// An open app ages its answers without waiting for a new snapshot (15 Sep 2026
+// review: a phone left open, or offline, kept a station's colour after its
+// signal had run out). Once a minute the list, the pins and the navigator are
+// drawn again if an answer on them has run out since they were drawn.
+let answersAgedAt = Date.now();
+
+function answersRanOut(since, now = Date.now()) {
+  const ran = (at) => Number.isFinite(at) && at > since && at <= now;
+  const stations = mapScreenOn() && state.mapStations ? [...state.stations, ...state.mapStations] : state.stations;
+  if (stations.some((station) => station.grade?.status !== 'NO_FRESH_DATA' && ran(Date.parse(station.grade?.expires_at)))) return true;
+  const base = Date.parse(state.meta?.snapshot_at);
+  if (!Number.isFinite(base)) return false;
+  return Object.values(state.gradesBrief || {}).some((row) => Object.values(row).some((entry) => entry.x != null && ran(base + entry.x * 1000)));
 }
 
 function formatQueue(queue) {
@@ -6489,6 +6507,11 @@ async function pollForNewSnapshot() {
 
 setInterval(pollForNewSnapshot, SNAPSHOT_POLL_MS);
 setInterval(pollGroupMarks, 60000);
+setInterval(() => {
+  if (!state.staticMode || document.hidden || !answersRanOut(answersAgedAt)) return;
+  answersAgedAt = Date.now();
+  loadStations({ silent: true });
+}, 60000);
 pollGroupMarks();
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) { pollForNewSnapshot(); pollGroupMarks(); }

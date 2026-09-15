@@ -273,11 +273,11 @@ class StationRepository:
                 # Short keys and no nulls: this file is downloaded by a phone.
                 entry: dict[str, Any] = {"s": summary["status"]}
                 # The seconds this answer had left at the snapshot: the phone ages
-                # the brief as it ages the list (expireGrade in web/app.js).
-                ttl = summary.get("ttl_seconds")
-                age = summary.get("age_seconds")
-                if summary["status"] != "NO_FRESH_DATA" and ttl is not None and age is not None:
-                    entry["x"] = max(0, round(float(ttl) - float(age)))
+                # the brief as it ages the list (expireGrade in web/app.js),
+                # undated answers included.
+                expires = parse_time(summary.get("expires_at"))
+                if expires is not None:
+                    entry["x"] = max(0, round((expires - now).total_seconds()))
                 if summary["price_rub"] is not None:
                     entry["p"] = round(float(summary["price_rub"]), 2)
                     entry["n"] = summary["price_sources"]
