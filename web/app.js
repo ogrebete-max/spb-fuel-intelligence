@@ -3277,6 +3277,7 @@ function showClubGate({ notice = '', banned = null, bannedBy = 'owner', mode = '
         : 'Вход только по приглашению участника. Отметки здесь ставят люди, за которых кто-то поручился, — поэтому им можно верить.'}</p>
       ${alertBox}${install}${form}
     </div>`;
+  showGateAsk(mode);
   gate.hidden = false;
   gate.scrollTop = 0;
   document.body.classList.add('club-locked');
@@ -3458,16 +3459,33 @@ function askInvitesButton(askedAt) {
   return `<button type="button" class="list-more" id="clubAskInvites"${waiting ? ' disabled' : ''}>${waiting ? '🎟 Запрос отправлен владельцу' : '🎟 Попросить ещё приглашений у владельца'}</button>`;
 }
 
-function chatSettings(url) {
+function chatSettings(url, requestUrl) {
   return `<div class="drawer-status club-chat-settings" style="--status-color:#229ed9">
       <strong>💬 Чат клуба</strong>
       <p>${url
         ? 'Кнопку «Чат клуба в Telegram» видят только участники.'
         : 'Создайте закрытую группу в Telegram, в её настройках откройте «Пригласительные ссылки», скопируйте ссылку и вставьте сюда. Кнопку «Чат клуба» увидят только участники.'}</p>
       <input id="clubChatUrl" class="club-chat-input" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://t.me/+..." value="${escapeHtml(url || '')}">
+      ${state.club.features?.request_link ? `<p>Ссылка «Попросить код» — её увидят все на экране входа в клуб. Лучше ссылка на группу с включёнными заявками на вступление.</p>
+      <input id="clubRequestUrl" class="club-chat-input" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://t.me/+..." value="${escapeHtml(requestUrl || '')}">` : ''}
       <button type="button" class="list-more" id="clubChatSave">Сохранить ссылку</button>
       <small class="remember-note" id="clubChatNote" role="status"></small>
     </div>`;
+}
+
+// Without a code the entry screen offers the club's request link (15 Sep 2026:
+// the club opens to all for a few days, then closes, and whoever wants in asks
+// for a code): a join request to the owner's Telegram group, who sends a code back.
+async function showGateAsk(mode) {
+  if (mode === 'owner' || !state.club.features?.request_link) return;
+  const result = await clubCall('/club/request-link').catch(() => null);
+  const url = result?.ok ? result.data.request_url : null;
+  const card = $('#clubGate .gate-card');
+  if (!url || !card || card.querySelector('.gate-ask')) return;
+  card.insertAdjacentHTML('beforeend', `<div class="gate-ask">
+      <a class="gate-submit secondary" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">📨 Нет кода? Попросить в Telegram</a>
+      <small>Отправьте заявку в группу клуба — владелец одобрит её и пришлёт код.</small>
+    </div>`);
 }
 
 async function showClub() {
@@ -3508,7 +3526,7 @@ async function showClub() {
       ${!owner && !left && state.club.features?.invites_more ? askInvitesButton(me.data.invites_asked) : ''}
       <div id="clubInviteResult"></div>
     </div>
-    ${owner && state.club.features?.chat ? chatSettings(me.data.chat_url) : ''}
+    ${owner && state.club.features?.chat ? chatSettings(me.data.chat_url, me.data.request_url) : ''}
     <h3 class="section-title">Мои приглашения</h3>
     <div class="source-list">${inviteRows}</div>
     ${owner ? '<h3 class="section-title">Участники</h3><div id="clubMembers" class="source-list"><div class="loading-state">Загружаем участников…</div></div>' : ''}
@@ -3550,7 +3568,7 @@ async function showClub() {
     const button = event.currentTarget;
     const note = $('#clubChatNote');
     button.disabled = true;
-    const result = await clubCall('/club/settings', { method: 'POST', body: { chat_url: $('#clubChatUrl').value } }).catch(() => null);
+    const result = await clubCall('/club/settings', { method: 'POST', body: { chat_url: $('#clubChatUrl').value, ...($('#clubRequestUrl') ? { request_url: $('#clubRequestUrl').value } : {}) } }).catch(() => null);
     button.disabled = false;
     if (result && handleClubRejection(result)) return;
     if (!result?.ok) {
@@ -3558,6 +3576,7 @@ async function showClub() {
       return;
     }
     $('#clubChatUrl').value = result.data.chat_url || '';
+    if ($('#clubRequestUrl')) $('#clubRequestUrl').value = result.data.request_url || '';
     note.textContent = result.data.chat_url ? '✅ Сохранено: участники видят кнопку «💬 Чат клуба в Telegram».' : 'Ссылка убрана.';
   });
   loadLeaderboard();

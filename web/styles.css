@@ -965,6 +965,8 @@ body.driving .toast-stack { display: none; }
 .drive-route-toggle[aria-pressed="false"] { opacity: .6; }
 /* «⌖» takes its place while the map is moved by hand, so the bar still fits a narrow phone. */
 .drive.free .drive-route-toggle { display: none; }
+.gate-ask { display: grid; gap: 6px; margin-top: 14px; text-align: center; }
+.gate-ask a { display: block; text-decoration: none; }
 .drive-list-button { border: 0; border-radius: 999px; padding: 9px 14px; background: #0d3328; color: #c9f169; font: inherit; font-size: 14px; font-weight: 800; white-space: nowrap; cursor: pointer; box-shadow: 0 0 0 3px rgba(201, 241, 105, .45); touch-action: manipulation; }
 .drive .dpin.leaflet-interactive { cursor: pointer; }
 .drive.free :is(.drive-sheet, .drive-full) { cursor: pointer; }

@@ -115,5 +115,13 @@ assert.equal((await me(boss)).chat_url, 'https://t.me/+AbCd_ef-12');
 assert.equal((await call(env, '/club/me')).status, 401, 'nobody outside does');
 assert.equal((await call(env, '/club/settings', { method: 'POST', token: boss.token, body: { chat_url: '' } })).data.chat_url, null, 'an empty link removes it');
 assert.equal((await me(sasha)).chat_url, null);
+// The request link for the entry screen: set beside the chat link, read by anyone.
+assert.equal((await call(env, '/club/request-link')).data.request_url, null, 'no request link until the owner sets one');
+assert.equal((await call(env, '/club/settings', { method: 'POST', token: boss.token, body: { request_url: ' t.me/+Ask_Me-1 ' } })).data.request_url, 'https://t.me/+Ask_Me-1', 'the owner sets the request link');
+assert.equal((await me(boss)).chat_url, null, 'saving the request link leaves the chat link alone');
+assert.equal((await me(boss)).request_url, 'https://t.me/+Ask_Me-1');
+assert.equal((await call(env, '/club/request-link')).data.request_url, 'https://t.me/+Ask_Me-1', 'anyone reads it, with no code yet');
+assert.equal((await call(env, '/club/settings', { method: 'POST', token: boss.token, body: { request_url: 'https://example.com/x' } })).data.error, 'bad_chat_url', 'only a Telegram link');
+assert.equal((await call(env, '/club/settings', { method: 'POST', token: sasha.token, body: { request_url: 'https://t.me/+x1' } })).status, 403, 'only the owner sets it');
 
 console.log(`worker club invites (${useD1 ? 'd1' : 'kv'}): OK`);

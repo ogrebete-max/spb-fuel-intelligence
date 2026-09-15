@@ -1374,9 +1374,16 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
+
+  // The entry screen's «Попросить код»: public, since whoever sees the gate has
+  // no code yet. The owner sets the link beside the chat link.
+  if (request.method === 'GET' && path === '/club/request-link') {
+    const settings = await readDoc(env, 'club:settings', {});
+    return json({ request_url: settings.request_url || null }, request, env);
+  }
 
   if (request.method === 'POST' && path === '/club/owner') {
     if (limited(request, 'club-owner', 5)) return json({ error: 'too_many_attempts' }, request, env, 429);
@@ -1531,6 +1538,7 @@ async function clubRoutes(request, env, url, ctx) {
       invites_asked: member.invites_asked || null,
       // The club's chat link reaches members only, from here.
       chat_url: settings.chat_url || null,
+      request_url: settings.request_url || null,
       profile: profileOf(stats), news, now: Date.now(),
     }, request, env);
   }
@@ -1936,18 +1944,27 @@ async function clubRoutes(request, env, url, ctx) {
   }
 
   // The club's chat lives in a Telegram group; the owner pastes its invite link.
+  // Beside it, the request link the entry screen shows everyone once the door
+  // is closed. Each changes only when it is sent, so saving one keeps the other.
   if (request.method === 'POST' && path === '/club/settings') {
     const body = (await readJson(request)) || {};
-    let link = String(body.chat_url ?? '').trim();
-    // Copied from Telegram the link often comes without its scheme.
-    if (/^(t\.me|telegram\.me)\//i.test(link)) link = `https://${link}`;
-    if (link && !/^https:\/\/(t\.me|telegram\.me)\/[A-Za-z0-9_+\-/]{2,160}$/.test(link)) return json({ error: 'bad_chat_url' }, request, env, 400);
+    const links = {};
+    for (const key of ['chat_url', 'request_url']) {
+      if (!(key in body)) continue;
+      let link = String(body[key] ?? '').trim();
+      // Copied from Telegram the link often comes without its scheme.
+      if (/^(t\.me|telegram\.me)\//i.test(link)) link = `https://${link}`;
+      if (link && !/^https:\/\/(t\.me|telegram\.me)\/[A-Za-z0-9_+\-/]{2,160}$/.test(link)) return json({ error: 'bad_chat_url' }, request, env, 400);
+      links[key] = link;
+    }
     const saved = await transact(env, { 'club:settings': {} }, (docs) => {
-      if (link) docs['club:settings'].chat_url = link;
-      else delete docs['club:settings'].chat_url;
-      return docs['club:settings'].chat_url || null;
+      for (const [key, link] of Object.entries(links)) {
+        if (link) docs['club:settings'][key] = link;
+        else delete docs['club:settings'][key];
+      }
+      return { chat_url: docs['club:settings'].chat_url || null, request_url: docs['club:settings'].request_url || null };
     });
-    return json({ ok: true, chat_url: saved }, request, env);
+    return json({ ok: true, ...saved }, request, env);
   }
 
   if (request.method === 'GET' && path === '/club/members') {
