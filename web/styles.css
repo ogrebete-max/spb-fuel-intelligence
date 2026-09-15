@@ -828,7 +828,7 @@ body.driving .toast-stack { display: none; }
 .drive-map { position: absolute; left: 0; top: 0; width: 200vmax; height: 200vmax; transform-origin: 50% 50%; background: var(--scr); }
 .drive .leaflet-container { background: var(--scr); }
 /* Night: the same OpenStreetMap tiles, turned dark. */
-.drive:not(.is-day) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.88) saturate(.5); }
+.drive:not(.is-day) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.97) contrast(.9) saturate(.6); }
 
 .drive-car { position: absolute; z-index: 3; left: 50%; top: 70%; width: 38px; height: 38px; translate: -50% -50%; pointer-events: none; }
 .drive-car svg { display: block; width: 100%; height: 100%; }
@@ -877,10 +877,12 @@ body.driving .toast-stack { display: none; }
 .dpin.big.focus .dpin-body small { display: block; margin-top: 1px; font-size: 11px; font-weight: 800; line-height: 1.1; white-space: nowrap; }
 .dpin.focus .dpin-turn::before { content: ""; position: absolute; left: 0; top: 0; width: 58px; height: 58px; translate: -50% -50%; border-radius: 50%; border: 4px solid var(--mine); box-shadow: 0 0 18px var(--glow2); pointer-events: none; }
 .drive .drive-route { stroke: var(--mine); }
-.drive .drive-route.road { stroke-dasharray: none; stroke-width: 7; opacity: .85; animation: none; }
+.drive .drive-route.road { stroke-dasharray: none; stroke-width: 5; opacity: .85; animation: none; }
+.drive button.drive-lock { width: 100%; border: 0; text-align: left; cursor: pointer; }
+.drive-lock u { text-underline-offset: 3px; }
 .drive .look-delete { justify-self: start; min-height: 48px; border: 0; border-radius: 14px; padding: 10px 16px; background: var(--badbg); color: var(--badink); font-size: 16px; font-weight: 800; }
 .drive-go { position: absolute; top: 8px; right: calc(14px + env(safe-area-inset-right, 0px)); min-height: 40px; border: 0; border-radius: 999px; padding: 0 14px; background: var(--plate); color: var(--plateink); font-size: 15px; font-weight: 800; box-shadow: 0 2px 8px var(--shade); }
-.drive-sheet:has(.drive-go) .drive-where { padding-right: 132px; }
+.drive-sheet:has(.drive-go) .drive-where { padding-right: 220px; }
 
 .drive-edge { position: absolute; z-index: 4; display: flex; align-items: center; gap: 5px; translate: -50% -50%; padding: 7px 12px; border-radius: 14px; background: var(--pin-CAN_REFUEL); color: var(--pin-ink); font-size: 17px; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 14px var(--shade); pointer-events: none; }
 .drive-edge small { font-size: 12px; font-weight: 700; }

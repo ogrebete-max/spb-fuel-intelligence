@@ -296,6 +296,11 @@ async function bootstrap() {
       .catch(() => { state.gradesBrief = {}; });
     initMap();
     await loadStations();
+    // On a phone the navigator is the first screen (15 Sep 2026: drivers skip
+    // the cards); «☰» opens the map and the list, and the theme sheet can make
+    // them the first screen instead. An automated browser starts on the
+    // ordinary screen, which most of the browser checks walk through.
+    if (touchDevice && !wanted && !navigator.webdriver && driveStartsFirst()) openDrive('start');
     const health = state.meta?.collectors || {};
     track('app_open', {
       installed: platformInfo().installed,
@@ -4599,6 +4604,8 @@ const DRIVE_FREE_MS = 8000;
 const DRIVE_TAPPED_MS = 30000;
 // Whether the way to the station is drawn: «🛣» switches it, and it stays so.
 const DRIVE_ROUTE_KEY = 'spbfi-drive-route-v1';
+// The first screen on a phone: the navigator, unless «Карта и список» was chosen.
+const DRIVE_START_KEY = 'spbfi-start-v1';
 const DRIVE_ZOOM = 15;
 const DRIVE_CLOSE_ZOOM = 16;
 const DRIVE_THEME_KEY = 'spbfi-drive-theme-v1';
@@ -4609,7 +4616,7 @@ const DRIVE_QUEUE = [[0, 'нет'], [3, 'мало'], [35, 'много']];
 const DRIVE_FALLBACK_PLACE = { lat: 59.94, lon: 30.31 };
 const drive = {
   open: false, map: null, markers: new Map(), side: 0, car: null, center: null, zoom: DRIVE_ZOOM, rotation: 0, turned: null,
-  free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null, routeOn: true,
+  free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null, routeOn: true, passenger: false,
   ticker: null, heldTimer: null, wakeLock: null, theme: 'auto', themeAt: 0, pick: null, pinnedId: null,
   question: null, asked: new Set(), sent: null, touchAt: 0, kind: '', offered: false, offerOff: false,
   // Stations where a 👍 confirmed someone's mark: that was the look at the pumps.
@@ -4806,7 +4813,7 @@ function bindDrive() {
 function openDrive(reason = 'button') {
   const root = $('#drive');
   if (drive.open || !root) return;
-  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null, routeOn: loadDriveRouteOn() });
+  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null, routeOn: loadDriveRouteOn(), passenger: false });
   hideDriveOffer();
   closeDrawer();
   document.body.classList.add('driving');
@@ -4856,7 +4863,7 @@ function initDriveMap() {
     zoomControl: false, attributionControl: false, boxZoom: false, keyboard: false,
   }).setView([DRIVE_FALLBACK_PLACE.lat, DRIVE_FALLBACK_PLACE.lon], DRIVE_ZOOM);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(drive.map);
-  drive.line = L.polyline([], { className: 'drive-route', weight: 5, opacity: 0.95, dashArray: '1 12', lineCap: 'round', interactive: false }).addTo(drive.map);
+  drive.line = L.polyline([], { className: 'drive-route', weight: 4, opacity: 0.95, dashArray: '1 10', lineCap: 'round', interactive: false }).addTo(drive.map);
   drive.map.on('dragstart', loosenDriveMap);
   drive.map.on('dragend zoomend', () => { if (drive.free) drive.freeUntil = Date.now() + DRIVE_FREE_MS; });
   drive.map.on('move zoom', placeDriveCar);
@@ -4892,6 +4899,14 @@ function loosenDriveMap() {
   drive.turned = straight;
   $('#driveEdge').hidden = true;
   placeDriveCar();
+}
+
+function driveStartsFirst() {
+  try {
+    return localStorage.getItem(DRIVE_START_KEY) !== 'app';
+  } catch {
+    return true;
+  }
 }
 
 function loadDriveRouteOn() {
@@ -5219,7 +5234,7 @@ function drivePanels(view) {
     const witness = eyewitnessLine(station.grade, station.id, { brief: true });
     const mine = markedRecently(station.id) ? markLine(station.id, state.grade) : null;
     const actions = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>${driveDelete(station.id)}`
-      : movingNow(view.now) ? '<p class="drive-lock">🔒 Отметить — на остановке</p>'
+      : movingNow(view.now) && !drive.passenger ? '<button type="button" class="drive-lock" data-drive="passenger">🔒 Отметить — на остановке · <u>я пассажир</u></button>'
         : driveMarkButtons(station.id);
     return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
       <p class="drive-line drive-name">${title}</p>
@@ -5333,8 +5348,12 @@ function driveGradesPick() {
 function driveThemePick() {
   const modes = [['auto', 'Авто'], ['day', '☀️ День'], ['night', '🌙 Ночь']]
     .map(([mode, word]) => `<button type="button" data-drive="theme-mode" data-mode="${mode}" aria-pressed="${drive.theme === mode}">${word}</button>`).join('');
+  const first = driveStartsFirst();
+  const starts = [['drive', 'Навигатор', first], ['app', 'Карта и список', !first]]
+    .map(([mode, word, on]) => `<button type="button" data-drive="start-mode" data-mode="${mode}" aria-pressed="${on}">${word}</button>`).join('');
   return `<span class="drive-where">Тема экрана</span><div class="drive-switch">${modes}</div>
     <p class="drive-meta" data-drive-theme-note>${escapeHtml(driveThemeNote(driveDaylight()))}</p>
+    <span class="drive-where">Первый экран на телефоне</span><div class="drive-switch">${starts}</div>
     <button type="button" class="drive-pick-close" data-drive="pick-close">Готово</button>`;
 }
 
@@ -5600,7 +5619,7 @@ function openDriveYandex(id) {
 }
 
 function driveGo(station) {
-  return station?.location ? `<button type="button" class="drive-go" data-drive="route" data-station="${escapeHtml(station.id)}">🧭 Маршрут</button>` : '';
+  return station?.location ? `<button type="button" class="drive-go" data-drive="route" data-station="${escapeHtml(station.id)}">🧭 Маршрут в Яндексе</button>` : '';
 }
 
 // Pins change on the elements Leaflet already drew, as on the ordinary map: a
@@ -5730,6 +5749,17 @@ function onDriveTap(event) {
     } catch {
       // The switch still holds for this visit.
     }
+    renderDrive({ force: true });
+  } else if (action === 'start-mode') {
+    try {
+      localStorage.setItem(DRIVE_START_KEY, button.dataset.mode === 'app' ? 'app' : 'drive');
+    } catch {
+      // Without storage the navigator stays first.
+    }
+    renderDrive({ force: true });
+  } else if (action === 'passenger') {
+    // A passenger may mark on the move: the lock lifts for this drive.
+    drive.passenger = true;
     renderDrive({ force: true });
   } else if (action === 'untap') {
     drive.tapped = null;
