@@ -1750,7 +1750,7 @@ async function renderGroupFeed() {
     return { stationId, items, latest, queue, people, names };
   }).filter(Boolean).sort((a, b) => b.latest - a.latest).slice(0, 8);
   if (!entries.length) {
-    box.innerHTML = `${clubJoinLine()}${outboxNote()}<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за последние 45 минут отметок нет. Видите АЗС — откройте её карточку и отметьте, что на колонках.${pushButton()}</div>${ownLink()}${scoutHint()}`;
+    box.innerHTML = `${clubJoinLine()}${outboxNote()}<div class="feed-empty">👁 <strong>Свои сообщают:</strong> за 45 минут отметок нет. Видите АЗС — отметьте в её карточке.${pushButton()}</div>${ownLink()}${scoutHint()}`;
     bindPushButton(box);
     bindScout(box);
     bindOwnLink(box);
@@ -2169,7 +2169,8 @@ function ownEntries() {
 
 function ownChip() {
   const count = ownEntries().length;
-  if (!count && !state.ownOnly) return '';
+  // Always there, even at nought (15 Sep 2026: a chip that vanished when
+  // nobody had marked for three hours read as a lost tab).
   return `<button class="status-chip own-filter ${state.ownOnly ? 'active' : ''}" style="--status-color:#1f7a4d" data-own="1">👁 Свои · ${count}</button>`;
 }
 
@@ -4591,6 +4592,10 @@ const DRIVE_ASK_WITHIN_METRES = 3000;
 const DRIVE_NEIGHBOUR_METRES = 250;
 const DRIVE_OFFER_MS = 30000;
 const DRIVE_UNDO_MS = 5000;
+// A map moved by hand comes back to the car this long after the last touch.
+const DRIVE_FREE_MS = 8000;
+// A station tapped on the map is what the panel talks about this long.
+const DRIVE_TAPPED_MS = 30000;
 const DRIVE_ZOOM = 15;
 const DRIVE_CLOSE_ZOOM = 16;
 const DRIVE_THEME_KEY = 'spbfi-drive-theme-v1';
@@ -4601,6 +4606,7 @@ const DRIVE_QUEUE = [[0, 'нет'], [3, 'мало'], [35, 'много']];
 const DRIVE_FALLBACK_PLACE = { lat: 59.94, lon: 30.31 };
 const drive = {
   open: false, map: null, markers: new Map(), side: 0, car: null, center: null, zoom: DRIVE_ZOOM, rotation: 0, turned: null,
+  free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null,
   ticker: null, heldTimer: null, wakeLock: null, theme: 'auto', themeAt: 0, pick: null, pinnedId: null,
   question: null, asked: new Set(), sent: null, touchAt: 0, kind: '', offered: false, offerOff: false,
   // Stations where a 👍 confirmed someone's mark: that was the look at the pumps.
@@ -4797,7 +4803,7 @@ function bindDrive() {
 function openDrive(reason = 'button') {
   const root = $('#drive');
   if (drive.open || !root) return;
-  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0 });
+  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null });
   hideDriveOffer();
   closeDrawer();
   document.body.classList.add('driving');
@@ -4821,6 +4827,8 @@ function closeDrive() {
   drive.ticker = null;
   releaseScreen();
   root.hidden = true;
+  root.classList.remove('free');
+  drive.free = false;
   document.body.classList.remove('driving');
   track('drive_close');
   // The ordinary map lay covered and measures itself again.
@@ -4832,18 +4840,94 @@ function closeDrive() {
 function tickDrive() {
   if (!drive.open) return;
   if (Date.now() - drive.themeAt > 60000) applyDriveTheme();
-  renderDrive();
+  if (drive.free && !drive.pressed && Date.now() > drive.freeUntil) followDriveMap();
+  else renderDrive();
 }
 
 function initDriveMap() {
   if (drive.map || typeof L === 'undefined') return;
-  // No gestures at all: the map follows the car and turns with the road.
+  // The map follows the car and turns with the road, yet a finger or a mouse
+  // can move and zoom it as in a navigator (15 Sep 2026: a map that did not
+  // move under the finger read as a screenshot); see loosenDriveMap.
   drive.map = L.map('driveMap', {
-    zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false,
-    doubleClickZoom: false, boxZoom: false, keyboard: false, inertia: false,
-    zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false,
+    zoomControl: false, attributionControl: false, boxZoom: false, keyboard: false,
   }).setView([DRIVE_FALLBACK_PLACE.lat, DRIVE_FALLBACK_PLACE.lon], DRIVE_ZOOM);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(drive.map);
+  drive.map.on('dragstart', loosenDriveMap);
+  drive.map.on('dragend zoomend', () => { if (drive.free) drive.freeUntil = Date.now() + DRIVE_FREE_MS; });
+  drive.map.on('move zoom', placeDriveCar);
+  const holder = drive.map.getContainer();
+  // Straightened before Leaflet reads the wheel or the second finger.
+  holder.addEventListener('wheel', loosenDriveMap, { capture: true, passive: true });
+  holder.addEventListener('dblclick', loosenDriveMap, true);
+  holder.addEventListener('touchstart', (event) => { if (event.touches.length > 1) loosenDriveMap(); }, { capture: true, passive: true });
+  holder.addEventListener('pointerdown', () => { drive.pressed = true; }, true);
+  window.addEventListener('pointerup', () => {
+    if (!drive.pressed) return;
+    drive.pressed = false;
+    if (drive.free) drive.freeUntil = Date.now() + DRIVE_FREE_MS;
+  });
+  window.addEventListener('pointercancel', () => { drive.pressed = false; });
+}
+
+// A finger or a mouse took the map off the car. It stays where it was put and
+// turns north up, since Leaflet measures a drag in the map's own axes and a
+// turned map would slide askew under the finger. The panel keeps its first
+// lines; «⌖», a tap on the panel or DRIVE_FREE_MS without a touch bring it back.
+function loosenDriveMap() {
+  if (!drive.open || !drive.map) return;
+  drive.freeUntil = Date.now() + DRIVE_FREE_MS;
+  if (drive.free) return;
+  drive.free = true;
+  $('#drive').classList.add('free');
+  // The nearest whole turn: north up without a spin back the long way later.
+  const straight = Math.round(drive.rotation / 360) * 360;
+  const holder = $('#driveMap');
+  holder.style.transform = `rotate(${-straight}deg)`;
+  holder.style.setProperty('--drive-turn', `${straight}deg`);
+  drive.turned = straight;
+  $('#driveEdge').hidden = true;
+  placeDriveCar();
+}
+
+function tapDriveStation(id) {
+  if (!drive.open) return;
+  drive.tapped = { id, until: Date.now() + DRIVE_TAPPED_MS };
+  // Reading about a station on a map moved by hand keeps the map there.
+  if (drive.free) drive.freeUntil = Date.now() + DRIVE_TAPPED_MS;
+  renderDrive({ force: true });
+}
+
+function followDriveMap() {
+  if (!drive.free) return;
+  drive.free = false;
+  drive.pressed = false;
+  $('#drive').classList.remove('free');
+  $('#driveCar').style.rotate = '';
+  const place = drive.place;
+  if (drive.map && place) {
+    drive.map.stop();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      drive.map.setView([place.lat, place.lon], drive.zoom, { animate: false });
+    } else {
+      drive.map.flyTo([place.lat, place.lon], drive.zoom, { duration: 0.8 });
+      drive.flyingUntil = Date.now() + 900;
+    }
+    drive.center = { lat: place.lat, lon: place.lon };
+  }
+  renderDrive({ force: true });
+}
+
+// On a map moved by hand the car is where the phone is on that map, not the
+// fixed point low on the screen it keeps while following.
+function placeDriveCar() {
+  const place = drive.place;
+  const car = $('#driveCar');
+  const holder = $('#driveMap');
+  if (!drive.free || !place || !drive.map || !car || !holder) return;
+  const point = drive.map.latLngToContainerPoint([place.lat, place.lon]);
+  car.style.left = `${Math.round(holder.offsetLeft + point.x)}px`;
+  car.style.top = `${Math.round(holder.offsetTop + point.y)}px`;
 }
 
 function driveItem(phone, station, heading) {
@@ -4886,6 +4970,15 @@ function stepDrive(now = Date.now()) {
   if (drive.sent) {
     view.kind = 'sent';
     view.focus = itemFor(drive.sent.stationId);
+    return view;
+  }
+  // A station tapped on the map is what the panel talks about for a while,
+  // wherever it is.
+  if (drive.tapped && now > drive.tapped.until) drive.tapped = null;
+  const tapped = drive.tapped ? itemFor(drive.tapped.id) : null;
+  if (tapped) {
+    view.kind = 'tapped';
+    view.focus = tapped;
     return view;
   }
   const rough = effectiveAccuracy() > ROUGH_METRES;
@@ -5135,6 +5228,18 @@ function drivePanels(view) {
         <button type="button" class="drive-btn skip" data-drive="skip">не видел</button>
       </div>${meta('Тронетесь — вопрос исчезнет сам')}` };
   }
+  if (view.kind === 'tapped') {
+    const witness = eyewitnessLine(station.grade, station.id, { brief: true });
+    return { sheet: `${where(`${driveDistance(focus.metres)}${driveSide(focus)}`)}
+      <p class="drive-line drive-name">${title}</p>
+      <div class="drive-chips">${driveChips(station)}</div>
+      ${meta(driveMeta(station, { witness: false }))}
+      ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
+      <div class="drive-row">
+        <button type="button" class="drive-btn skip" data-drive="card" data-station="${escapeHtml(station.id)}">Подробнее</button>
+        <button type="button" class="drive-btn skip" data-drive="untap">Скрыть</button>
+      </div>` };
+  }
   if (view.kind === 'at') return { full: driveAtPanel(view, title) };
   if (view.kind === 'sent') return { full: driveSentPanel(title) };
   return {};
@@ -5312,10 +5417,13 @@ function layoutDrive() {
     drive.map?.invalidateSize({ pan: false });
     drive.center = null;
   }
-  holder.style.left = `${x - side / 2}px`;
-  holder.style.top = `${y - side / 2}px`;
-  car.style.left = `${x}px`;
-  car.style.top = `${y}px`;
+  // A map moved by hand stays where the finger left it.
+  if (!drive.free) {
+    holder.style.left = `${x - side / 2}px`;
+    holder.style.top = `${y - side / 2}px`;
+    car.style.left = `${x}px`;
+    car.style.top = `${y}px`;
+  }
   drive.car = { x, y, width, height, top, right, bottom };
 }
 
@@ -5325,7 +5433,7 @@ function layoutDrive() {
 function driveZoom(view) {
   const { focus, phone } = view;
   const car = drive.car;
-  if (!['line', 'near'].includes(view.kind) || !focus || !car) return ['at', 'sent'].includes(view.kind) ? DRIVE_CLOSE_ZOOM : DRIVE_ZOOM;
+  if (!['line', 'near', 'tapped'].includes(view.kind) || !focus || !car) return ['at', 'sent'].includes(view.kind) ? DRIVE_CLOSE_ZOOM : DRIVE_ZOOM;
   const angle = ((bearingDegrees(phone, focus.station.location) - drive.rotation) * Math.PI) / 180;
   const ahead = focus.metres * Math.cos(angle);
   const aside = Math.abs(focus.metres * Math.sin(angle));
@@ -5345,15 +5453,29 @@ function driveZoom(view) {
 function paintDriveMap(view) {
   const map = drive.map;
   if (!map || !view.phone || !drive.car) return;
+  drive.place = view.phone;
+  if (drive.free) {
+    // Moved by hand: the map stays put and the car and pins move on it, the
+    // arrow turned to the heading on a map that now has north up.
+    const car = $('#driveCar');
+    car.classList.toggle('unknown', view.heading == null);
+    car.style.rotate = view.heading == null ? '' : `${Math.round(view.heading)}deg`;
+    placeDriveCar();
+    paintDrivePins(view);
+    return;
+  }
   drive.zoom = driveZoom(view);
   const moved = !drive.center || drive.center.lat !== view.phone.lat || drive.center.lon !== view.phone.lon;
-  if (moved || map.getZoom() !== drive.zoom) {
-    map.setView([view.phone.lat, view.phone.lon], drive.zoom, { animate: false });
+  if ((moved || map.getZoom() !== drive.zoom) && Date.now() >= drive.flyingUntil) {
+    // From fix to fix the map glides, as in a navigator, rather than jumping.
+    const glide = drive.center && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    map.setView([view.phone.lat, view.phone.lon], drive.zoom, glide ? { animate: true, duration: 0.9, pan: { easeLinearity: 1 } } : { animate: false });
     drive.center = { lat: view.phone.lat, lon: view.phone.lon };
   }
   // Heading up: the map turns so that the road ahead points up. The heading
-  // changes only above 10 km/h, so a car that stops keeps the last turn.
-  if (view.heading != null) drive.rotation = view.heading;
+  // changes only above 10 km/h, so a car that stops keeps the last turn. The
+  // turn is kept unwrapped, so 359° to 1° is a small step, not a spin.
+  if (view.heading != null) drive.rotation += ((((view.heading - drive.rotation) % 360) + 540) % 360) - 180;
   if (drive.turned !== drive.rotation) {
     drive.turned = drive.rotation;
     const holder = $('#driveMap');
@@ -5386,8 +5508,10 @@ function paintDrivePins(view) {
     if (!marker) {
       marker = L.marker([item.station.location.lat, item.station.location.lon], {
         icon: L.divIcon({ className: 'dpin', html: '<span class="dpin-turn"><span class="dpin-body"><b></b><i hidden></i></span></span>', iconSize: [0, 0], iconAnchor: [0, 0] }),
-        interactive: false, keyboard: false,
+        interactive: true, keyboard: false,
       }).addTo(map);
+      // A tap on a pin tells about that station (15 Sep 2026: pins took no taps).
+      marker.on('click', () => tapDriveStation(id));
       drive.markers.set(id, marker);
     }
     const element = marker.getElement();
@@ -5451,6 +5575,12 @@ function paintDriveEdge(view) {
 }
 
 function onDriveTap(event) {
+  // While the map is moved by hand the panel shows only its first lines: a
+  // tap on it brings the car and the whole panel back.
+  if (drive.free && drive.kind !== 'tapped' && event.target.closest('.drive-sheet, .drive-full') && !event.target.closest('[data-drive]')) {
+    followDriveMap();
+    return;
+  }
   const button = event.target.closest('[data-drive]');
   if (!button || button.disabled) return;
   // A panel sliding in moves its buttons under the finger: a tap in those few
@@ -5460,6 +5590,13 @@ function onDriveTap(event) {
   const { drive: action, station } = button.dataset;
   if (action === 'close') {
     closeDrive();
+  } else if (action === 'recenter') {
+    followDriveMap();
+  } else if (action === 'card') {
+    openStation(station);
+  } else if (action === 'untap') {
+    drive.tapped = null;
+    renderDrive({ force: true });
   } else if (action === 'grades' || action === 'theme') {
     drive.pick = drive.pick === action ? null : action;
     renderDrive({ force: true });

@@ -299,13 +299,21 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
   .hero { padding: 10px 0 12px; gap: 12px; }
   .hero .eyebrow, .hero .hero-copy { display: none; }
   h1 { font-size: 27px; line-height: 1.08; letter-spacing: -.02em; }
-  .snapshot-stack { grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
-  .snapshot-card { width: auto; min-width: 0; padding: 9px 11px; }
+  /* 15 Sep 2026: the block under «Где заправиться сейчас» took most of the
+     first screen and said little, so the snapshot is one line and the panel tight. */
+  .hero { padding: 4px 0 8px; gap: 6px; }
+  h1 { font-size: 24px; }
+  .snapshot-stack { grid-template-columns: 1fr auto; align-items: center; gap: 6px; }
+  .snapshot-card { width: auto; min-width: 0; padding: 6px 10px; gap: 8px; border-radius: 12px; }
+  .snapshot-card > span:last-child { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
   .snapshot-card strong { font-size: 12px; }
-  .snapshot-card small { font-size: 10px; }
-  .refresh-button { margin: 0; white-space: nowrap; font-size: 12px; }
+  .snapshot-card small { font-size: 11px; margin-top: 0; }
+  .refresh-button { margin: 0; padding: 3px 4px; white-space: nowrap; font-size: 11px; }
+  .group-feed { margin: 8px 0 4px; }
+  .feed-empty { padding: 8px 12px; font-size: 13px; line-height: 1.4; }
+  .feed-empty .push-button { margin: 6px 0 0; }
 
-  .control-panel { padding: 12px; border-radius: 18px; }
+  .control-panel { padding: 10px; border-radius: 18px; }
   .location-row, .search-row { flex-direction: row; flex-wrap: wrap; gap: 8px; }
   .location-row { align-items: center; }
   .compact { width: auto; flex: 1 1 100%; min-width: 0; }
@@ -870,7 +878,8 @@ body.driving .toast-stack { display: none; }
 
 .drive-sheet, .drive-full, .drive-pick { position: fixed; z-index: 7; left: 0; right: 0; bottom: 0; display: grid; gap: 10px; align-content: start; max-height: calc(100% - 120px); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 10px calc(18px + env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) calc(18px + env(safe-area-inset-left, 0px)); border-radius: 24px 24px 0 0; background: var(--sheet); color: var(--ink); box-shadow: 0 -10px 30px var(--shade); }
 .drive-sheet::before, .drive-pick::before { content: ""; justify-self: center; width: 42px; height: 4px; border-radius: 2px; background: var(--grab); }
-.drive-full { top: calc(env(safe-area-inset-top, 0px) + 66px); max-height: none; padding-top: 18px; gap: 14px; }
+/* As tall as what it says, so the map stays in sight above it. */
+.drive-full { max-height: calc(100% - 66px - env(safe-area-inset-top, 0px)); padding-top: 18px; gap: 14px; }
 .drive-where { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
 .drive-line { margin: 0; font-size: 21px; font-weight: 800; line-height: 1.22; }
 .drive-title { margin: 0; font-size: 24px; font-weight: 900; line-height: 1.15; }
@@ -925,15 +934,28 @@ body.driving .toast-stack { display: none; }
 @media (prefers-reduced-motion: no-preference) {
   .drive-sheet.rise, .drive-full.rise, .drive-pick.rise { animation: drive-rise .45s cubic-bezier(.2, .8, .2, 1); }
   .dpin.big.focus .dpin-body { animation: drive-glow 2.6s ease-in-out infinite; }
+  /* Between fixes the map turns smoothly with the road, the pins turning back with it. */
+  .drive-map, .dpin-turn { transition: transform .9s linear; }
+  .drive.free .drive-map, .drive.free .dpin-turn { transition: none; }
 }
 @keyframes drive-rise { from { transform: translateY(40px); opacity: 0; } }
+/* Moved by hand: the panel keeps its first lines so the map can be looked at;
+   «⌖» or a tap on the panel brings the car back. */
+.drive-recenter { display: none; font-size: 24px; }
+.drive.free .drive-recenter { display: grid; }
+.drive.free:not([data-kind="tapped"]) :is(.drive-sheet, .drive-full) > :not(.drive-where, .drive-line, .drive-title) { display: none; }
+.drive .dpin.leaflet-interactive { cursor: pointer; }
+.drive.free :is(.drive-sheet, .drive-full) { cursor: pointer; }
+.drive.free .drive-edge { display: none; }
 @keyframes drive-glow { 50% { box-shadow: 0 0 0 3px var(--mine), 0 0 40px var(--glow2); } }
-/* Sideways the panels move to the right and the map keeps the left; the full
-   layout for a phone on its side comes with the next step. */
+/* Sideways a panel is a card at the bottom right, as tall as what it says
+   (15 Sep 2026: a panel down the whole right side was mostly empty black), and
+   the map keeps the rest of the screen. */
 @media (orientation: landscape) and (max-height: 540px) {
-  .drive-sheet, .drive-full, .drive-pick { left: auto; top: calc(env(safe-area-inset-top, 0px) + 66px); width: min(46%, 440px); max-height: none; border-radius: 24px 0 0 0; }
+  .drive-sheet, .drive-full, .drive-pick { left: auto; top: auto; right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: min(44%, 400px); max-height: calc(100% - 82px - env(safe-area-inset-top, 0px)); padding: 12px 16px 14px; border-radius: 22px; }
   .drive-sheet::before, .drive-pick::before { display: none; }
-  .drive-btn.huge { min-height: 72px; font-size: 21px; }
+  .drive-row.huge { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .drive-btn.huge { min-height: 64px; font-size: 20px; }
 }
 
 .drive-button { position: absolute; z-index: 500; right: 12px; bottom: 96px; border: 0; border-radius: 18px; padding: 12px 16px; background: #0d3328; color: #c9f169; font: inherit; font-size: 15px; font-weight: 800; box-shadow: 0 0 0 4px rgba(201, 241, 105, .45), 0 10px 24px rgba(13, 51, 40, .35); cursor: pointer; touch-action: manipulation; }
@@ -943,3 +965,21 @@ body.driving .toast-stack { display: none; }
 .drive-offer-row button { flex: 1; min-height: 48px; border: 0; border-radius: 12px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
 .drive-offer-on { background: #0d3328; color: #c9f169; }
 .drive-offer-off { background: #e1e9d9; color: #10231d; }
+
+/* A tighter first screen on a phone: the search field and its button share a
+   line, the grade row and the hints take less height. */
+@media (max-width: 620px) {
+  .locate-button { padding: 7px 11px; }
+  .grade-row { margin-top: 8px; padding-top: 8px; }
+  .grade-picker button { padding: 8px 2px; }
+  .search-row { margin-top: 8px; gap: 6px; }
+  .search-row .search-box { flex: 1 1 0; min-width: 0; }
+  .search-row .search-box input { padding: 9px 0; }
+  .search-row .nearby-search-button { flex: 0 0 auto; width: auto; min-height: 38px; padding: 7px 10px; }
+  .search-row select { flex: 1 1 100%; padding-block: 7px; }
+  .search-context { min-height: 0; margin-top: 6px; font-size: 11px; }
+  /* Here, after the feed's own rules further up, or they win. */
+  .group-feed { margin: 8px 0 4px; }
+  .feed-empty { padding: 8px 12px; font-size: 13px; line-height: 1.4; }
+  .feed-empty .push-button { margin: 6px 0 0; }
+}
