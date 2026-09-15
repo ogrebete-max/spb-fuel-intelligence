@@ -798,6 +798,13 @@ def evaluate_grade(
         (TTL_SECONDS.get(str(item.row.get("kind") or ""), 2 * 60 * 60) for item in fresh),
         default=None,
     )
+    # And the moment it runs out, for a page left open or offline to stop
+    # showing it while no new snapshot comes. An undated answer counts from when
+    # we polled it: the card still says the source gives no time, but the
+    # answer does not stay current for ever (15 Sep 2026 review).
+    polled = max((item.observed_at for item in fresh if item.observed_at), default=None)
+    anchor = newest or polled
+    expires_at = anchor + timedelta(seconds=ttl_seconds) if status != "NO_FRESH_DATA" and anchor and ttl_seconds else None
     confidence = {
         "CAN_REFUEL": "high",
         "CONFIRMED_NO": "high",
@@ -825,6 +832,7 @@ def evaluate_grade(
         # "нет" must not be shown as fourteen confirmations of "есть".
         "confirmations": _confirmation_count(_supporting(status, positives, negatives, restricted, fresh)),
         "ttl_seconds": ttl_seconds,
+        "expires_at": expires_at.isoformat().replace("+00:00", "Z") if expires_at else None,
         "probability": round(probability, 3) if probability is not None else None,
         "probability_percent": round(probability * 100) if probability is not None else None,
         "votes": vote_breakdown,

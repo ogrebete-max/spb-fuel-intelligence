@@ -323,8 +323,7 @@ async function readAll(env) {
 // isolate's memory: crude, per edge location, and enough to stop a loop.
 const hits = new Map();
 
-function limited(request, scope, perMinute) {
-  const who = request.headers.get('CF-Connecting-IP') || 'unknown';
+function limited(request, scope, perMinute, who = request.headers.get('CF-Connecting-IP') || 'unknown') {
   const key = `${scope}:${who}:${Math.floor(Date.now() / 60000)}`;
   const used = (hits.get(key) || 0) + 1;
   if (hits.size > 5000) hits.clear();
@@ -335,6 +334,23 @@ function limited(request, scope, perMinute) {
 /** A crude per-address limit; enough to stop a loop, not a security boundary. */
 async function overRate(request, env, scope = 'reports') {
   return limited(request, scope, MAX_PER_MINUTE);
+}
+
+// A phone that names nobody is known by a short hash of its address, never by
+// the address itself: marks and their authors are read by anyone.
+async function anonymousId(request) {
+  const address = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`spbfi-anon:${address}`));
+  return `anon-${[...new Uint8Array(digest).slice(0, 5)].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+// Who a request without a member token may say it is (15 Sep 2026 review): its
+// own phone's id, but never a member's, which anyone can read in /reports. A
+// phone's id is plain letters and digits, so no address passes for one either.
+async function outsiderId(request, env, claimed) {
+  const id = String(claimed || '').slice(0, 32);
+  if (/^[A-Za-z0-9_-]+$/.test(id) && !(clubEnabled(env) && (await readDoc(env, 'club:members', {}))[id])) return id;
+  return anonymousId(request);
 }
 
 // ---------------------------------------------------------------- analytics
@@ -1374,7 +1390,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -2305,6 +2321,7 @@ async function route(request, env, ctx) {
     if (!clubWho && secretSet(env, 'GROUP_KEY') && !(await secretMatches(request, env, 'GROUP_KEY', request.headers.get('X-Group-Key')))) {
       return json({ error: 'wrong group key' }, request, env, 403);
     }
+    if (limited(request, 'subscribe', 6)) return json({ error: 'too many requests, try again in a minute' }, request, env, 429);
     let body;
     try {
       body = await request.json();
@@ -2317,23 +2334,33 @@ async function route(request, env, ctx) {
     }
     const lat = Number(body.lat);
     const lon = Number(body.lon);
+    const who = clubWho || await outsiderId(request, env, body.who);
+    const members = clubEnabled(env) ? await readDoc(env, 'club:members', {}) : {};
     const count = await transact(env, { subscriptions: [] }, (docs) => {
       const kept = docs.subscriptions.filter((item) => item.endpoint !== sub.endpoint);
       kept.push({
         endpoint: sub.endpoint,
         keys: { p256dh: String(sub.keys.p256dh), auth: String(sub.keys.auth) },
-        who: clubWho || String(body.who || '').slice(0, 32),
+        who,
+        ...(clubWho ? { member: true } : {}),
         lat: Number.isFinite(lat) ? Math.round(lat * 1e4) / 1e4 : null,
         lon: Number.isFinite(lon) ? Math.round(lon * 1e4) / 1e4 : null,
         at: Date.now(),
       });
-      docs.subscriptions = kept.slice(-MAX_SUBSCRIPTIONS);
-      return kept.length;
+      // Anyone may subscribe while the door is open, so phones outside the club
+      // share what the cap leaves and never push a member's phone out (15 Sep
+      // 2026 review). Rows from before the flag are told by their author.
+      const inside = kept.filter((item) => item.member || members[item.who]);
+      const outside = kept.filter((item) => !(item.member || members[item.who]));
+      const room = Math.max(0, MAX_SUBSCRIPTIONS - inside.length);
+      docs.subscriptions = [...inside.slice(-MAX_SUBSCRIPTIONS), ...(room ? outside.slice(-room) : [])];
+      return docs.subscriptions.length;
     });
     return json({ ok: true, count }, request, env);
   }
 
   if (request.method === 'POST' && url.pathname === '/unsubscribe') {
+    if (limited(request, 'unsubscribe', 12)) return json({ error: 'too many requests, try again in a minute' }, request, env, 429);
     let body;
     try {
       body = await request.json();
@@ -2368,6 +2395,13 @@ async function route(request, env, ctx) {
       return json({ error: 'expected JSON' }, request, env, 400);
     }
     const station = String(body.station || '').slice(0, 64);
+    // A station id is short and plain, and every station of ours stands in
+    // Petersburg or the region; the snapshot itself is not on this server.
+    const place = body.lat != null && body.lon != null ? [Number(body.lat), Number(body.lon)] : null;
+    if (station && !/^[A-Za-z0-9][A-Za-z0-9:_.-]{0,63}$/.test(station)) return json({ error: 'bad_station' }, request, env, 400);
+    if (place && !(place[0] >= 58.4 && place[0] <= 61.9 && place[1] >= 27.5 && place[1] <= 35.9)) {
+      return json({ error: 'outside_area' }, request, env, 400);
+    }
     // One look at a station can list several grades, and they arrive in one
     // request. Separate requests each rewrote the same list and raced: on 13
     // Sep 2026 a member marked 92, 95 and 98 and only 98 survived.
@@ -2388,7 +2422,11 @@ async function route(request, env, ctx) {
     if (now - at > LATE_MARK_MS) {
       return json({ error: 'too_late', minutes: Math.round((now - at) / 60000) }, request, env, 410);
     }
-    const who = clubMemberRecord?.id || String(body.who || '').slice(0, 32) || (request.headers.get('CF-Connecting-IP') || 'anon');
+    const who = clubMemberRecord?.id || await outsiderId(request, env, body.who);
+    // A phone outside the club has a limit of its own, whatever address it comes from.
+    if (!clubMemberRecord && limited(request, 'reports-device', MAX_PER_MINUTE, who)) {
+      return json({ error: 'too many reports, try again in a minute' }, request, env, 429);
+    }
     // Coordinates travel with the report: our canonical station id is derived
     // from the snapshot and can change when matching improves, but the
     // forecourt does not move.

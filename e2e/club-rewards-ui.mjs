@@ -112,16 +112,24 @@ async function run(label, browserType, device) {
   await sashaPage.waitForSelector('.station-card .card-main', { timeout: 30000 });
   check('member skips the gate', await sashaPage.isHidden('#clubGate'));
 
-  // Sasha marks a station: +1 🤝 and the first badge are celebrated.
+  // Sasha marks a station: +1 🤝 and the first badge are celebrated, and +2 🤝
+  // more when the app had nothing fresh there. Since answers from sources that
+  // give no time run out too (15 Sep 2026), every station of a local snapshot
+  // days old is such a blind spot.
   await sashaPage.click('.station-card .card-main');
   await sashaPage.waitForSelector('.mark-composer');
   const stationId = await sashaPage.getAttribute('.mark-composer', 'data-compose-station');
+  const blindSpot = await sashaPage.evaluate((id) => ['AI95', 'DT'].some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(state.stationDetails[id]?.grades?.[grade]?.status || briefFor(id)[grade]?.s)), stationId);
+  const markPaid = blindSpot ? 3 : 1;
+  const celebration = `+${markPaid} 🤝 спасибо за отметку`;
+  // The mark, the owner's confirmation (+3) and the owner's thanks (+2).
+  const total = markPaid + 3 + 2;
   await sashaPage.click('[data-compose-grade="AI95"][data-compose-seen="1"]');
   await sashaPage.click('[data-compose-grade="DT"][data-compose-seen="0"]');
   await sashaPage.click('[data-compose-queue="3"]');
   await sashaPage.click('.compose-send');
-  await sashaPage.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('+1 🤝')), null, { timeout: 8000 });
-  check('a mark celebrates +1 🤝 once, not per grade', (await sashaPage.$$eval('.toast', (ts) => ts.filter((t) => t.textContent.includes('+1 🤝')).length)) === 1);
+  await sashaPage.waitForFunction((text) => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes(text)), celebration, { timeout: 8000 });
+  check(`a mark celebrates +${markPaid} 🤝 once, not per grade${blindSpot ? ' (nothing fresh was known there)' : ''}`, (await sashaPage.$$eval('.toast', (ts, text) => ts.filter((t) => t.textContent.includes(text)).length, celebration)) === 1);
   await sashaPage.waitForFunction(() => [...document.querySelectorAll('.toast')].some((t) => t.textContent.includes('Первая отметка')), null, { timeout: 8000 });
   check('the first badge pops up', true);
   await sashaPage.screenshot({ path: path.join(OUT, `${label}-r1-celebrate.png`) });
@@ -158,13 +166,13 @@ async function run(label, browserType, device) {
   check('author gets the confirmation', true);
   await sashaPage.screenshot({ path: path.join(OUT, `${label}-r3-news.png`) });
   const clubLabel = await sashaPage.textContent('#clubButton');
-  check(`club button shows handshakes (${clubLabel.trim()})`, /6 🤝/.test(clubLabel));
+  check(`club button shows ${total} handshakes (${clubLabel.trim()})`, new RegExp(`(^|[^0-9])${total} 🤝`).test(clubLabel));
 
   // Sasha opens the club: tank, badges, weekly board.
   await sashaPage.click('#clubButton');
   await sashaPage.waitForSelector('.tank-card');
   await sashaPage.waitForSelector('.board-row', { timeout: 8000 });
-  check('tank shows 6 litres', (await sashaPage.textContent('.tank-liters b')).trim() === '6');
+  check(`tank shows ${total} handshakes`, (await sashaPage.textContent('.tank-liters b')).trim() === String(total));
   check('earned badges are lit', (await sashaPage.$$('.badge.earned')).length >= 1);
   check('weekly board lists both members', (await sashaPage.$$('.board-row')).length === 2);
   await sashaPage.screenshot({ path: path.join(OUT, `${label}-r4-tank.png`) });

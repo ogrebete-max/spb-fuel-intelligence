@@ -104,10 +104,14 @@ async function staticJson(relativePath) {
     // A new build announced in meta.json then went unseen for those minutes,
     // and fresh data sat next to a stale list. «no-cache» asks every time and
     // costs a 304 when nothing changed.
-    staticCache.set(relativePath, fetch(relativePath, { cache: 'no-cache', headers: { Accept: 'application/json' } }).then(async (response) => {
+    const loading = fetch(relativePath, { cache: 'no-cache', headers: { Accept: 'application/json' } }).then(async (response) => {
       if (!response.ok) throw new Error(`Не найден статический файл ${relativePath}`);
       return response.json();
-    }));
+    });
+    staticCache.set(relativePath, loading);
+    // A file that failed, with no network at the pump say, is asked for again
+    // next time instead of failing until the next snapshot.
+    loading.catch(() => { if (staticCache.get(relativePath) === loading) staticCache.delete(relativePath); });
   }
   return staticCache.get(relativePath);
 }
@@ -212,7 +216,10 @@ function expireGrade(grade, elapsed) {
   if (grade.timeline?.duration_seconds != null) grade.timeline.duration_seconds = Math.round(grade.timeline.duration_seconds + elapsed);
   const ttl = grade.ttl_seconds;
   if (grade.status === 'NO_FRESH_DATA' || ttl == null) return grade;
-  if (grade.age_seconds != null && grade.age_seconds > ttl) {
+  // The build says when the answer runs out, undated signals included; a build
+  // from before that gave only the age of dated ones.
+  const ranOut = grade.expires_at ? Date.now() >= Date.parse(grade.expires_at) : grade.age_seconds != null && grade.age_seconds > ttl;
+  if (ranOut) {
     grade.status = 'NO_FRESH_DATA';
     grade.label = 'НЕТ СВЕЖИХ ДАННЫХ';
     grade.reason = 'Сигнал, на котором держался ответ, устарел уже после публикации снимка.';
@@ -245,6 +252,21 @@ function briefFor(stationId) {
   const elapsed = state.staticMode ? staticElapsedSeconds() : 0;
   if (!elapsed) return row;
   return Object.fromEntries(Object.entries(row).map(([grade, entry]) => [grade, entry.x != null && elapsed > entry.x ? { ...entry, s: 'NO_FRESH_DATA' } : entry]));
+}
+
+// An open app ages its answers without waiting for a new snapshot (15 Sep 2026
+// review: a phone left open, or offline, kept a station's colour after its
+// signal had run out). Once a minute the list, the pins and the navigator are
+// drawn again if an answer on them has run out since they were drawn.
+let answersAgedAt = Date.now();
+
+function answersRanOut(since, now = Date.now()) {
+  const ran = (at) => Number.isFinite(at) && at > since && at <= now;
+  const stations = mapScreenOn() && state.mapStations ? [...state.stations, ...state.mapStations] : state.stations;
+  if (stations.some((station) => station.grade?.status !== 'NO_FRESH_DATA' && ran(Date.parse(station.grade?.expires_at)))) return true;
+  const base = Date.parse(state.meta?.snapshot_at);
+  if (!Number.isFinite(base)) return false;
+  return Object.values(state.gradesBrief || {}).some((row) => Object.values(row).some((entry) => entry.x != null && ran(base + entry.x * 1000)));
 }
 
 function formatQueue(queue) {
@@ -2312,7 +2334,9 @@ function handleNews(news = [], now = Date.now()) {
   const since = newsSince();
   try { localStorage.setItem(NEWS_KEY, String(now)); } catch { /* nothing to keep it in */ }
   if (!since) return;
-  const all = news.filter((item) => item.at > since && !['mark', 'first_seen'].includes(item.type));
+  // What a mark earned was celebrated when it was sent; replayed, a blind-spot
+  // bonus folded a thank-you and a confirmation into a summary.
+  const all = news.filter((item) => item.at > since && !['mark', 'first_seen', 'blind_spot'].includes(item.type));
   // A warning is never folded into a summary of good news.
   const warning = all.filter((item) => item.type === 'warning').pop();
   if (warning) {
@@ -5559,7 +5583,10 @@ function drivePanels(view) {
       <button type="button" class="drive-btn skip" data-drive="list">Показать список заправок</button>` };
   }
   if (view.kind === 'rough') {
-    return { sheet: `${where('Место приблизительное')}<p class="drive-line">Телефон даёт место ±${escapeHtml(formatMeters(state.accuracy || 0))}</p>${meta('Заправки впереди могут быть не те, а отметки заработают, когда место станет точным.')}` };
+    // What to switch on, as the list offers (15 Sep 2026: an Android phone showed
+    // ±2 km here and nothing to do about it).
+    return { sheet: `${where('Место приблизительное')}<p class="drive-line">Телефон даёт место ±${escapeHtml(formatMeters(state.accuracy || 0))}</p>${meta('Заправки впереди могут быть не те, а отметки заработают, когда место станет точным.')}
+      <button type="button" class="drive-btn skip" data-drive="location-help">Что делать</button>` };
   }
   if (view.kind === 'loading') return { sheet: '<p class="drive-line">Загружаем заправки рядом…</p>' };
   if (view.kind === 'empty') return { sheet: `${where(`В ${DRIVE_RADIUS_METRES / 1000} км заправок нет`)}${meta('Приложение знает заправки Петербурга и области.')}` };
@@ -6079,6 +6106,9 @@ function onDriveTap(event) {
   } else if (action === 'list') {
     closeDrive();
     showScreen('list');
+  } else if (action === 'location-help') {
+    // The list's «Что делать», over the navigator.
+    showLocationHelp();
   } else if (action === 'recenter') {
     followDriveMap();
   } else if (action === 'card') {
@@ -6489,6 +6519,11 @@ async function pollForNewSnapshot() {
 
 setInterval(pollForNewSnapshot, SNAPSHOT_POLL_MS);
 setInterval(pollGroupMarks, 60000);
+setInterval(() => {
+  if (!state.staticMode || document.hidden || !answersRanOut(answersAgedAt)) return;
+  answersAgedAt = Date.now();
+  loadStations({ silent: true });
+}, 60000);
 pollGroupMarks();
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) { pollForNewSnapshot(); pollGroupMarks(); }
@@ -6505,7 +6540,8 @@ if ('serviceWorker' in navigator) {
   });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then((registration) => {
-      setInterval(() => registration.update().catch(() => {}), 10 * 60 * 1000);
+      // A browser that blocks service workers may answer with no registration.
+      if (registration) setInterval(() => registration.update().catch(() => {}), 10 * 60 * 1000);
     }).catch(() => {});
   });
 }

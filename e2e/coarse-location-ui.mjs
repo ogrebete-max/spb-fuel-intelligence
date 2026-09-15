@@ -125,6 +125,24 @@ async function run(label, browserType, device, words) {
   check('a recheck shows when the place is precise', await becomes(page, () => document.querySelector('#locationHelpStatus')?.textContent.includes('±12 м')));
   check('and the button says where you are', await becomes(page, () => (document.querySelector('#locateButton')?.textContent || '').includes('Вы здесь · ±12 м')));
 
+  // The navigator says the place is rough and, like the list, offers what to
+  // do: a phone with a rough place opening the app afresh.
+  const fresh = await browser.newContext({ ...device, serviceWorkers: 'block', permissions: ['geolocation'], geolocation: ROUGH });
+  if (/iPhone/.test(device.userAgent || '')) await fresh.addInitScript(() => Object.defineProperty(navigator, 'standalone', { get: () => true }));
+  const driving = await fresh.newPage();
+  driving.on('pageerror', (error) => errors.push(error.message));
+  await driving.goto(siteUrl, { waitUntil: 'load' });
+  check('a fresh start follows the rough place', await becomes(driving, () => state.follow && state.accuracy === 884, null, 20000));
+  await driving.evaluate(() => { if (!drive.open) document.querySelector('#driveButton')?.click(); });
+  check('the navigator says the place is rough', await becomes(driving, () => drive.open && (document.querySelector('#drive')?.textContent || '').includes('Место приблизительное'), null, 15000));
+  // A panel sliding in holds taps back for a moment.
+  await driving.waitForTimeout(700);
+  await driving.evaluate(() => document.querySelector('#drive [data-drive="location-help"]')?.click());
+  check('«Что делать» there opens the same help over the navigator', await becomes(driving, () => document.querySelector('#detailDrawer').classList.contains('open')
+    && (document.querySelector('#drawerContent')?.textContent || '').includes('Где вы сейчас'), null, 10000));
+  await driving.screenshot({ path: path.join(OUT, `coarse-${label}-4-navigator-help.png`) });
+  await fresh.close();
+
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
   await browser.close();
