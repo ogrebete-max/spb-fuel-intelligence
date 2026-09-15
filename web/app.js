@@ -300,7 +300,11 @@ async function bootstrap() {
     // the cards); «☰» opens the map and the list, and the theme sheet can make
     // them the first screen instead. An automated browser starts on the
     // ordinary screen, which most of the browser checks walk through.
-    if (touchDevice && !wanted && !navigator.webdriver && driveStartsFirst()) openDrive('start');
+    // Only for a phone that already lets the app know where it is (15 Sep 2026:
+    // someone opening the link from Telegram for the first time landed on the
+    // navigator with no location and a «доступ запрещён» box, and had no idea
+    // what to do). Everyone else starts on the ordinary screen.
+    if (touchDevice && !wanted && !navigator.webdriver && driveStartsFirst() && await locationGranted()) openDrive('start');
     const health = state.meta?.collectors || {};
     track('app_open', {
       installed: platformInfo().installed,
@@ -1883,6 +1887,17 @@ function pushSupported() {
 
 function standalone() {
   return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+// Whether location was already allowed. A browser that cannot tell (or an
+// in-app browser that never asks) counts as not allowed.
+async function locationGranted() {
+  try {
+    const status = await navigator.permissions?.query({ name: 'geolocation' });
+    return status?.state === 'granted';
+  } catch {
+    return false;
+  }
 }
 
 function pushState() {
@@ -4790,10 +4805,11 @@ function driveAfterFix() {
 
 // The pins must stand around the car. A list for a typed address or an area
 // of the map goes back to «рядом», the way the first fix sets it.
-function followPhone() {
+function followPhone({ manual = true } = {}) {
   if (!navigator.geolocation) return;
   if (!state.follow) {
-    startFollowing({ manual: true });
+    // A screen that opened by itself does not scold about a location nobody asked for.
+    startFollowing({ manual });
     return;
   }
   if (!state.location || ['device', 'far'].includes(state.searchScope)) return;
@@ -4837,7 +4853,7 @@ function openDrive(reason = 'button') {
   closeDrawer();
   document.body.classList.add('driving');
   root.hidden = false;
-  followPhone();
+  followPhone({ manual: reason !== 'start' });
   layoutDrive();
   initDriveMap();
   applyDriveTheme();
@@ -5237,7 +5253,9 @@ function drivePanels(view) {
   // the sheet stays one glance and no buttons, and the line on the map shows the way.
   const still = !movingNow(view.now);
   if (view.kind === 'wait') {
-    return { sheet: `<p class="drive-line">Ищем, где вы…</p>${meta('Разрешите приложению геопозицию: без неё не видно ни дороги, ни заправок впереди.')}` };
+    // Without a location this screen shows nothing, so the way out is on it.
+    return { sheet: `<p class="drive-line">Ищем, где вы…</p>${meta('Разрешите приложению геопозицию: без неё не видно ни дороги, ни заправок впереди.')}
+      <button type="button" class="drive-btn skip" data-drive="close">Показать список заправок</button>` };
   }
   if (view.kind === 'rough') {
     return { sheet: `${where('Место приблизительное')}<p class="drive-line">Телефон даёт место ±${escapeHtml(formatMeters(state.accuracy || 0))}</p>${meta('Заправки впереди могут быть не те, а отметки заработают, когда место станет точным.')}` };
