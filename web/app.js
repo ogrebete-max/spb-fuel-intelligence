@@ -5938,6 +5938,10 @@ async function openStation(id) {
     $('#drawerContent').innerHTML = `
       <h2>${escapeHtml(displayNetwork(station.network))}</h2>
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
+      <!-- 15 Sep 2026: the answer came below the whole marking panel; drivers
+           read «есть или нет» first, as competitors put it on top. -->
+      <div class="drawer-status drawer-verdict" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}${Number.isFinite(selected.probability_percent) ? ` · ${selected.probability_percent}%` : ''}</strong><p>${escapeHtml(selected.reason)}</p></div>
+      <div class="grade-matrix">${gradeCells}</div>
       <div class="drawer-actions"><a id="routeLink" href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><a id="trafficLink" href="${trafficUrl}" target="_blank" rel="noopener noreferrer">Пробки у АЗС ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="here-panel drawer-mark">
         <span class="here-kicker">Для своих</span>
@@ -5950,12 +5954,10 @@ async function openStation(id) {
         ${markComposer(station.id)}
         <p class="here-note">Отметьте, что видите на колонках, и очередь. Отметка сразу появится у всех наверху в «Свои сообщают» и весит больше любой ленты. Живёт 45 минут.</p>
       </div>
-      <div class="drawer-status" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}</strong><p>${escapeHtml(selected.reason)}</p></div>
       ${yandexPanel(selected)}
       ${votePanel(selected)}
       ${trustPanel(selected)}
       ${timelinePanel}
-      <div class="grade-matrix">${gradeCells}</div>
       <h3 class="section-title">Почему такой результат по ${GRADE_LABELS[state.grade]}</h3>
       <div class="evidence-list">${evidence}</div>
       <h3 class="section-title">Связанные идентификаторы</h3>

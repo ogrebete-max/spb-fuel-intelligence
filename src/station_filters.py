@@ -16,6 +16,7 @@ statement.
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any
 
@@ -76,3 +77,41 @@ def is_gas_only(station: dict[str, Any]) -> bool:
 
 def drop_gas_only(stations: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [station for station in stations if not is_gas_only(station)]
+
+
+# Catalogue rows that are no forecourt at all.  15 Sep 2026: gdebenzin24 lists a
+# «Татнефт» at the General Staff building on Palace Square; built from that row
+# alone, it was offered as «Вы у АЗС» to anyone in the centre.  The point also
+# catches the same row should the feed give it a new id.
+NOT_STATIONS = (
+    {"source": "gdebenzin24", "station_id": "753179155", "lat": 59.93841, "lon": 30.31793},
+)
+NOT_STATION_METRES = 60
+
+
+def _metres(lat_a: float, lon_a: float, lat_b: float, lon_b: float) -> float:
+    # Flat is exact enough at a few dozen metres.
+    dy = (lat_a - lat_b) * 111_320
+    dx = (lon_a - lon_b) * 111_320 * math.cos(math.radians((lat_a + lat_b) / 2))
+    return math.hypot(dx, dy)
+
+
+def is_not_a_station(station: dict[str, Any]) -> bool:
+    """A listed row, or a lone feed's row on a listed point.
+
+    A station another feed confirms stays: two catalogues agreeing is not the
+    mistake this list is for.
+    """
+    refs = station.get("source_refs") or []
+    listed = {(entry["source"], entry["station_id"]) for entry in NOT_STATIONS}
+    if refs and all((ref.get("source"), str(ref.get("station_id"))) in listed for ref in refs):
+        return True
+    location = station.get("location") or {}
+    if location.get("lat") is None or location.get("lon") is None or len({ref.get("source") for ref in refs}) > 1:
+        return False
+    lat, lon = float(location["lat"]), float(location["lon"])
+    return any(_metres(lat, lon, entry["lat"], entry["lon"]) <= NOT_STATION_METRES for entry in NOT_STATIONS)
+
+
+def drop_not_stations(stations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [station for station in stations if not is_not_a_station(station)]

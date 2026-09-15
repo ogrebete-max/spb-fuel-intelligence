@@ -2,7 +2,37 @@ from __future__ import annotations
 
 import unittest
 
-from src.station_filters import is_gas_only
+from src.station_filters import is_gas_only, is_not_a_station
+
+
+def refs(*pairs):
+    return [{"source": source, "station_id": station_id} for source, station_id in pairs]
+
+
+class NotStations(unittest.TestCase):
+    def test_the_palace_square_row_is_dropped(self):
+        self.assertTrue(is_not_a_station({
+            "network": "Татнефт", "location": {"lat": 59.93841051, "lon": 30.31793157},
+            "source_refs": refs(("gdebenzin24", "753179155")),
+        }))
+
+    def test_the_same_point_under_a_new_id_is_dropped(self):
+        self.assertTrue(is_not_a_station({
+            "network": "Татнефть", "location": {"lat": 59.9385, "lon": 30.3181},
+            "source_refs": refs(("gdebenzin24", "999")),
+        }))
+
+    def test_a_row_another_feed_confirms_stays(self):
+        self.assertFalse(is_not_a_station({
+            "network": "Татнефть", "location": {"lat": 59.9384, "lon": 30.3179},
+            "source_refs": refs(("gdebenzin24", "753179155"), ("sber", "1")),
+        }))
+
+    def test_an_ordinary_station_stays(self):
+        self.assertFalse(is_not_a_station({
+            "network": "Роснефть", "location": {"lat": 59.7256, "lon": 30.3995},
+            "source_refs": refs(("gdebenzin24", "1")),
+        }))
 
 
 def station(network, *evidence):

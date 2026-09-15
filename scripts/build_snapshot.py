@@ -58,7 +58,7 @@ from src.sources_eyewitness import normalize_eyewitness  # noqa: E402
 from src.sources_gdebenzi import normalize_gdebenzi  # noqa: E402
 from src.sources_maps import normalize_2gis_benzin, normalize_azsmap, normalize_azsradar  # noqa: E402
 from src.sources_payments import normalize_alfa, normalize_transitcard  # noqa: E402
-from src.station_filters import drop_gas_only  # noqa: E402
+from src.station_filters import drop_gas_only, drop_not_stations  # noqa: E402
 from src.station_matcher import merge_stations  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -531,6 +531,8 @@ def build(raw_dir: Path, last_seen_path: Path | None = None) -> dict[str, Any]:
     ]
     # Gas pumps are not where anyone here is going to refuel.
     canonical = drop_gas_only(canonical)
+    # Nor catalogue rows that are no forecourt at all.
+    canonical = drop_not_stations(canonical)
     kept = 0
     if last_seen_path is not None:
         # After both filters: the catalogue holds only stations that were
@@ -540,7 +542,9 @@ def build(raw_dir: Path, last_seen_path: Path | None = None) -> dict[str, Any]:
             at=parse_time(snapshot_at) or datetime.now(timezone.utc),
         )
         save_catalogue(last_seen_path, catalogue)
-    evidence_count = sum(len(station.get("evidence", [])) for station in canonical)
+        # The catalogue kept such a row from before the list existed.
+        canonical = drop_not_stations(canonical)
+    evidence_count =sum(len(station.get("evidence", [])) for station in canonical)
     mode = "live_http_snapshot" if raw_dir.name.lower() == "live" else "phase0_snapshot"
     return {
         "schema_version": 1,
