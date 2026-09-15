@@ -4597,6 +4597,8 @@ const DRIVE_UNDO_MS = 5000;
 const DRIVE_FREE_MS = 8000;
 // A station tapped on the map is what the panel talks about this long.
 const DRIVE_TAPPED_MS = 30000;
+// Whether the way to the station is drawn: «🛣» switches it, and it stays so.
+const DRIVE_ROUTE_KEY = 'spbfi-drive-route-v1';
 const DRIVE_ZOOM = 15;
 const DRIVE_CLOSE_ZOOM = 16;
 const DRIVE_THEME_KEY = 'spbfi-drive-theme-v1';
@@ -4607,7 +4609,7 @@ const DRIVE_QUEUE = [[0, 'нет'], [3, 'мало'], [35, 'много']];
 const DRIVE_FALLBACK_PLACE = { lat: 59.94, lon: 30.31 };
 const drive = {
   open: false, map: null, markers: new Map(), side: 0, car: null, center: null, zoom: DRIVE_ZOOM, rotation: 0, turned: null,
-  free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null,
+  free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null, routeOn: true,
   ticker: null, heldTimer: null, wakeLock: null, theme: 'auto', themeAt: 0, pick: null, pinnedId: null,
   question: null, asked: new Set(), sent: null, touchAt: 0, kind: '', offered: false, offerOff: false,
   // Stations where a 👍 confirmed someone's mark: that was the look at the pumps.
@@ -4804,7 +4806,7 @@ function bindDrive() {
 function openDrive(reason = 'button') {
   const root = $('#drive');
   if (drive.open || !root) return;
-  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null });
+  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null, routeOn: loadDriveRouteOn() });
   hideDriveOffer();
   closeDrawer();
   document.body.classList.add('driving');
@@ -4890,6 +4892,14 @@ function loosenDriveMap() {
   drive.turned = straight;
   $('#driveEdge').hidden = true;
   placeDriveCar();
+}
+
+function loadDriveRouteOn() {
+  try {
+    return localStorage.getItem(DRIVE_ROUTE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
 }
 
 function tapDriveStation(id) {
@@ -5243,8 +5253,9 @@ function drivePanels(view) {
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
       ${meta(driveRouteNote(station.id))}
       ${driveDelete(station.id)}
-      <div class="drive-row">
+      <div class="drive-row three">
         <button type="button" class="drive-btn skip" data-drive="card" data-station="${escapeHtml(station.id)}">Подробнее</button>
+        <button type="button" class="drive-btn skip" data-drive="yandex" data-station="${escapeHtml(station.id)}">В Яндексе</button>
         <button type="button" class="drive-btn skip" data-drive="untap">Скрыть</button>
       </div>` };
   }
@@ -5336,6 +5347,8 @@ function renderDrive({ force = false } = {}) {
   const speed = $('#driveSpeed');
   const shown = view.speed == null ? '—' : String(Math.round(view.speed));
   if (speed && speed.textContent !== shown) speed.textContent = shown;
+  const routeSwitch = $('#drive [data-drive="route-toggle"]');
+  if (routeSwitch && routeSwitch.getAttribute('aria-pressed') !== String(drive.routeOn)) routeSwitch.setAttribute('aria-pressed', String(drive.routeOn));
   // A finger that has just landed keeps its button where it is: a redraw
   // before it lifts would lose the tap. The screen catches up a moment later;
   // a redraw asked for by a tap itself comes after that tap and goes ahead.
@@ -5507,7 +5520,7 @@ function paintDriveMap(view) {
 function paintDriveLine(view) {
   if (!drive.line) return;
   const target = ['line', 'near', 'tapped', 'none'].includes(view.kind) ? view.focus : null;
-  if (!target || !view.phone) {
+  if (!target || !view.phone || !drive.routeOn) {
     drive.line.setLatLngs([]);
     return;
   }
@@ -5555,7 +5568,7 @@ function wantDriveRoute(view, target) {
 
 function driveRouteNote(stationId) {
   const route = drive.route;
-  if (!route?.points || route.stationId !== stationId) return '';
+  if (!drive.routeOn || !route?.points || route.stationId !== stationId) return '';
   return `По дороге ${driveDistance(route.metres)} · ${Math.max(1, Math.round(route.seconds / 60))} мин`;
 }
 
@@ -5573,6 +5586,17 @@ function openDriveRoute(id) {
   if (!place) return;
   track('route_open', { station: id });
   window.open(`https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`, '_blank', 'noopener');
+}
+
+// The station itself in Yandex Maps: its card with what drivers write there,
+// and Yandex's own route button a tap away.
+function openDriveYandex(id) {
+  const station = state.stations.find((item) => item.id === id);
+  const place = station?.location;
+  if (!place) return;
+  const words = `${displayNetwork(station.network)} ${driveAddress(station.address) || ''}`.trim();
+  track('route_open', { station: id });
+  window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(words)}&ll=${Number(place.lon)},${Number(place.lat)}&z=17`, '_blank', 'noopener');
 }
 
 function driveGo(station) {
@@ -5697,6 +5721,16 @@ function onDriveTap(event) {
     openStation(station);
   } else if (action === 'route') {
     openDriveRoute(station);
+  } else if (action === 'yandex') {
+    openDriveYandex(station);
+  } else if (action === 'route-toggle') {
+    drive.routeOn = !drive.routeOn;
+    try {
+      localStorage.setItem(DRIVE_ROUTE_KEY, drive.routeOn ? 'on' : 'off');
+    } catch {
+      // The switch still holds for this visit.
+    }
+    renderDrive({ force: true });
   } else if (action === 'untap') {
     drive.tapped = null;
     renderDrive({ force: true });
