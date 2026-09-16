@@ -8,7 +8,7 @@ import { Buffer } from 'node:buffer';
 // environment reaches it: PATH, HOME and the rest are none of its business.
 const WORKER_SETTINGS = [
   'CLUB_OWNER_KEY', 'CLUB_OWNER_KEY_HASH', 'CLUB_GATE', 'CLUB_READER_KEY', 'CLUB_READER_KEY_HASH',
-  'GROUP_KEY', 'GROUP_KEY_HASH', 'ANALYTICS_ADMIN_KEY', 'ANALYTICS_ADMIN_KEY_HASH', 'ANALYTICS_SALT', 'ORIGIN',
+  'GROUP_KEY', 'GROUP_KEY_HASH', 'ANALYTICS', 'ANALYTICS_ADMIN_KEY', 'ANALYTICS_ADMIN_KEY_HASH', 'ANALYTICS_SALT', 'ORIGIN',
 ];
 
 // These describe the connection from Caddy, not the visitor's request.

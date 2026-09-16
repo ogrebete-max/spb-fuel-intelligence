@@ -40,7 +40,8 @@
  *   CLUB_GATE            optional: "invite" offers joining to everyone, "closed" requires it
  *   CLUB_READER_KEY      optional secret; when set, GET /reports needs it too
  *   GROUP_KEY            legacy shared passphrase, used only without the club
- *   ANALYTICS_ADMIN_KEY  optional secret; without it analytics store nothing
+ *   ANALYTICS_ADMIN_KEY  optional secret; collects analytics and opens their dashboard to its holder
+ *   ANALYTICS            optional: "on" collects analytics without that key, for the club's owner to read in the app
  *   ORIGIN               optional allowed origin; defaults to the GitHub Pages site
  *
  * On the club's own server a secret may be given as <NAME>_HASH instead
@@ -467,10 +468,23 @@ function applyAnalyticsEvent(day, event, userHash, sessionHash) {
   for (const source of fields.sources || []) addOutcome(outcomeSlot(day.outcomes.by_source, source), p, fields.seen);
 }
 
+// Collecting needs someone to read the numbers. On Cloudflare every batch was a
+// KV write out of a daily quota, so nothing was written until an admin key was
+// set. The club's own server has no such quota and its owner reads the numbers
+// in the app, so ANALYTICS=on is enough there (16 Sep 2026).
+function analyticsCollecting(env) {
+  return secretSet(env, 'ANALYTICS_ADMIN_KEY') || ['on', '1', 'true', 'yes'].includes(String(env.ANALYTICS || '').trim().toLowerCase());
+}
+
+// A day's numbers are kept for 180 days. KV forgets them by itself; a database
+// is told when a new day's record appears.
+async function forgetOldAnalytics(env) {
+  const cutoff = analyticsDay(Math.round(ANALYTICS_RETENTION_SECONDS / 86400));
+  await env.DB.prepare('DELETE FROM docs WHERE key LIKE ? AND key < ?').bind('analytics:%', `analytics:v${ANALYTICS_VERSION}:${cutoff}`).run();
+}
+
 async function storeAnalytics(request, env) {
-  // Every accepted batch is a KV write. Until the owner has set up the
-  // dashboard there is nobody to read the numbers, so nothing is written.
-  if (!secretSet(env, 'ANALYTICS_ADMIN_KEY')) return json({ ok: true, accepted: 0, disabled: true }, request, env, 202);
+  if (!analyticsCollecting(env)) return json({ ok: true, accepted: 0, disabled: true }, request, env, 202);
   if (await overRate(request, env, 'analytics')) return json({ error: 'too many events' }, request, env, 429);
   let body;
   try { body = await request.json(); } catch { return json({ error: 'expected JSON' }, request, env, 400); }
@@ -493,12 +507,15 @@ async function storeAnalytics(request, env) {
     hmacToken(secret, `${dayName}:session:${sessionId}`),
   ]);
   const key = `analytics:v${ANALYTICS_VERSION}:${dayName}`;
+  let newDay = false;
   await transact(env, { [key]: null }, (docs) => {
-    const day = docs[key] && typeof docs[key] === 'object' ? docs[key] : emptyAnalyticsDay(dayName);
+    newDay = !(docs[key] && typeof docs[key] === 'object');
+    const day = newDay ? emptyAnalyticsDay(dayName) : docs[key];
     for (const event of events) applyAnalyticsEvent(day, event, userHash, sessionHash);
     day.updated_at = Date.now();
     docs[key] = day;
   });
+  if (newDay && env.DB) await forgetOldAnalytics(env).catch(() => {});
   return json({ ok: true, accepted: events.length }, request, env, 202);
 }
 
@@ -521,8 +538,11 @@ function ranked(counter, minimum = 0) {
 }
 
 async function analyticsDashboard(request, env, url) {
-  if (!secretSet(env, 'ANALYTICS_ADMIN_KEY')) return json({ error: 'ANALYTICS_ADMIN_KEY is not configured' }, request, env, 503);
-  if (!(await secretMatches(request, env, 'ANALYTICS_ADMIN_KEY', request.headers.get('X-Analytics-Key')))) {
+  if (!analyticsCollecting(env)) return json({ error: 'analytics_off' }, request, env, 503);
+  const keyed = secretSet(env, 'ANALYTICS_ADMIN_KEY') && await secretMatches(request, env, 'ANALYTICS_ADMIN_KEY', request.headers.get('X-Analytics-Key'));
+  // The club's owner reads them in the app, with the pass it already holds.
+  const member = !keyed && clubEnabled(env) ? await clubMember(request, env) : null;
+  if (!keyed && !(member?.role === 'owner' && !member.banned && !member.pending)) {
     return json({ error: 'forbidden' }, request, env, 403);
   }
   const days = Math.round(finiteNumber(url.searchParams.get('days') || 7, 1, 30));
@@ -1390,7 +1410,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, owner_analytics: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -2279,7 +2299,7 @@ async function route(request, env, ctx) {
   }
 
   if (request.method === 'GET' && url.pathname === '/analytics/health') {
-    return json({ ok: true, version: ANALYTICS_VERSION, storage: 'aggregate-kv', retention_days: 180 }, request, env);
+    return json({ ok: true, version: ANALYTICS_VERSION, storage: 'aggregate-kv', retention_days: 180, collecting: analyticsCollecting(env), owner_dashboard: true }, request, env);
   }
 
   if (request.method === 'POST' && url.pathname === '/analytics/events') {

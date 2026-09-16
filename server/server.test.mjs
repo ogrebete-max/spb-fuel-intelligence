@@ -36,8 +36,8 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // ------------------------------------------------------------ what the worker is told about a request
 {
   assert.deepEqual(
-    workerEnv({ PATH: '/usr/bin', HOME: '/root', CLUB_GATE: 'closed', CLUB_OWNER_KEY_HASH: 'h', ANALYTICS_SALT: '' }, 'db'),
-    { DB: 'db', CLUB_GATE: 'closed', CLUB_OWNER_KEY_HASH: 'h' },
+    workerEnv({ PATH: '/usr/bin', HOME: '/root', CLUB_GATE: 'closed', CLUB_OWNER_KEY_HASH: 'h', ANALYTICS: 'on', ANALYTICS_SALT: '' }, 'db'),
+    { DB: 'db', CLUB_GATE: 'closed', CLUB_OWNER_KEY_HASH: 'h', ANALYTICS: 'on' },
     'the worker gets its own settings and nothing else from the environment',
   );
   assert.equal(clientAddress({ socket: { remoteAddress: '::ffff:127.0.0.1' }, headers: { 'x-forwarded-for': '10.0.0.1, 192.0.2.7' } }), '192.0.2.7', 'behind Caddy the last forwarded address is the visitor');
@@ -102,7 +102,7 @@ globalThis.fetch = async (input, init) => {
 `);
 
 // Settings from the shell running the test must not leak into the server.
-const inherited = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(CLUB_|GROUP_KEY|ANALYTICS_|ORIGIN$|SPBFI_|PORT$|HOST$|PUSH_DELAY_MS$)/i.test(name)));
+const inherited = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(CLUB_|GROUP_KEY|ANALYTICS|ORIGIN$|SPBFI_|PORT$|HOST$|PUSH_DELAY_MS$)/i.test(name)));
 const children = new Set();
 process.on('exit', () => {
   for (const child of children) child.kill();

@@ -3790,6 +3790,7 @@ async function showClub() {
     <h2>Клуб «Топливо СПб»</h2>
     <p class="drawer-address">Вы в клубе как <b>${escapeHtml(member.name)}</b>${owner ? ' · владелец' : ''}.</p>
     ${me.data.chat_url ? `<a class="list-more club-chat" href="${escapeHtml(me.data.chat_url)}" target="_blank" rel="noopener noreferrer">💬 Чат клуба в Telegram</a>` : ''}
+    ${owner && state.club.features?.owner_analytics ? '<a class="list-more club-analytics" href="analytics.html">📊 Аналитика: сколько людей открывают приложение</a>' : ''}
     ${profileCard(profile)}
     ${me.data.refuted_by ? `<div class="drawer-status" style="--status-color:#b8333a"><strong>👎 Ваши отметки опровергли: ${me.data.refuted_by} ${plural(me.data.refuted_by, 'человек', 'человека', 'человек')}${owner ? '' : ' из 5'}</strong><p>Так решили участники, которые сами были на тех заправках. ${owner ? 'Владельца из клуба не выводят, но это повод перепроверить.' : 'Отмечайте только то, что видите на колонках: после пяти разных людей — выбывание из клуба.'}</p></div>` : ''}
     <div class="drawer-status" style="--status-color:#0d5a43">
@@ -6432,7 +6433,7 @@ function showAbout() {
     <p class="drawer-address">Приложение не выдаёт отсутствие данных за отсутствие топлива и запоминает изменения по каждой марке.</p>
     <div class="drawer-status" style="--status-color:#0d5a43"><strong>История «не было → появилось»</strong><p>После каждого живого обновления сохраняется статус конкретной АЗС и марки. Переход показывается отдельно от обычного давнего наличия. «Возможное пополнение» — только осторожная интерпретация подтверждённого перехода, а не заявление о бензовозе или количестве литров.</p></div>
     <div class="drawer-status about-secondary" style="--status-color:#7856c7"><strong>Evidence-first</strong><p>Учитываются возраст, тип сигнала, независимость upstream, очередь, лимит и конфликт источников.</p></div>
-    <div class="drawer-status about-secondary" style="--status-color:#158257"><strong>Анонимная аналитика: ${statsOn ? 'включена' : 'выключена'}</strong><p>Считаем полезность поиска и точность прогнозов. Текст адреса, точные координаты, IP и рекламные идентификаторы не сохраняются. География — только крупная зона города.</p><button type="button" class="list-more" id="analyticsToggle">${statsOn ? 'Отключить статистику' : 'Включить статистику'}</button><p><a href="analytics.html" target="_blank" rel="noopener noreferrer">Закрытая панель владельца ↗</a></p></div>
+    <div class="drawer-status about-secondary" style="--status-color:#158257"><strong>Анонимная аналитика: ${statsOn ? 'включена' : 'выключена'}</strong><p>Считаем полезность поиска и точность прогнозов. Текст адреса, точные координаты, IP и рекламные идентификаторы не сохраняются. География — только крупная зона города.</p><button type="button" class="list-more" id="analyticsToggle">${statsOn ? 'Отключить статистику' : 'Включить статистику'}</button><p><a href="analytics.html">Панель владельца с аналитикой →</a></p></div>
     <h3 class="section-title">Семь честных состояний</h3><div class="source-list">${Object.values(STATUS).map((item) => `<div class="source-row"><strong style="color:${item.color}">${item.short}</strong></div>`).join('')}</div>`);
   $('#analyticsToggle')?.addEventListener('click', () => {
     analytics.setEnabled(!analytics.enabled());
