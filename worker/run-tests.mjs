@@ -30,6 +30,8 @@ const runs = [
   ['analytics-owner.test.mjs', 'd1'],
   ['club-return-ask.test.mjs', 'kv'],
   ['club-return-ask.test.mjs', 'd1'],
+  ['day-marks.test.mjs', 'kv'],
+  ['day-marks.test.mjs', 'd1'],
   ['storage.test.mjs', 'kv+d1'],
   ['migrate.test.mjs', 'd1'],
   ['club.test.mjs', 'd1-file'],

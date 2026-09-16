@@ -40,7 +40,7 @@ const state = {
   follow: false, watchId: null, accuracy: null,
   locationAt: 0, fixStartedAt: 0, pendingFix: null, locating: false, locationTimer: null, contextTimer: null,
   passed: {}, ownOnly: false, workerBatch: false,
-  groupMarks: {}, stationInfo: {}, stationDetails: {}, total: 0,
+  groupMarks: {}, dayMarks: {}, ownDay: false, ownMore: false, stationInfo: {}, stationDetails: {}, total: 0,
   club: { enabled: false, mode: 'off', member: null, profile: null, newsTimer: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
@@ -1615,9 +1615,12 @@ function saveMark(stationId, grade, seen, queue = null, { render = true, notify 
     // Private mode or a full quota: the mark simply is not kept.
   }
   state.marks = marks;
-  state.groupMarks = state.groupMarks || {};
-  state.groupMarks[stationId] = state.groupMarks[stationId] || {};
-  state.groupMarks[stationId][grade] = { seen, at: Date.now(), queue, people: [myId()], names: state.club.member?.name ? [state.club.member.name] : [] };
+  // The three hours and the day of «👁 Свои» both show it before the next read.
+  for (const key of ['groupMarks', 'dayMarks']) {
+    state[key] = state[key] || {};
+    state[key][stationId] = state[key][stationId] || {};
+    state[key][stationId][grade] = { seen, at: Date.now(), queue, people: [myId()], names: state.club.member?.name ? [state.club.member.name] : [] };
+  }
   if (render) {
     renderStations();
     renderHerePanel();
@@ -1843,6 +1846,42 @@ function outboxNote() {
 
 window.addEventListener('online', () => flushOutbox());
 
+// The latest mark of each grade at each station since `cutoff`, with everyone
+// who marked it; what this device filed stays in even before the worker echoes
+// it back (or if the shared word was wrong and it never will).
+function foldMarks(reports, cutoff) {
+  const marks = {};
+  for (const report of reports) {
+    if (!report || report.at < cutoff || !report.station || !report.grade) continue;
+    const slot = (marks[report.station] = marks[report.station] || {});
+    const current = slot[report.grade];
+    const people = new Set(current?.people || []);
+    people.add(report.who || '?');
+    const names = new Set(current?.names || []);
+    if (report.name) names.add(`${report.level_icon ? `${report.level_icon} ` : ''}${report.name}`);
+    if (!current || report.at > current.at) {
+      slot[report.grade] = {
+        seen: !!report.seen, at: report.at, queue: report.queue, people: [...people], names: [...names],
+        who: report.who, authorName: report.name || '', thanks: report.thanks || 0, thanked: !!report.thanked,
+        up: report.up || 0, down: report.down || 0, myVote: report.my_vote || null,
+      };
+    } else {
+      current.people = [...people];
+      current.names = [...names];
+    }
+  }
+  for (const [stationId, grades] of Object.entries(loadMarks())) {
+    for (const [grade, mine] of Object.entries(grades)) {
+      if (mine.at < cutoff) continue;
+      const slot = (marks[stationId] = marks[stationId] || {});
+      if (!slot[grade] || slot[grade].at < mine.at) {
+        slot[grade] = { seen: mine.seen, at: mine.at, queue: mine.queue ?? null, people: [myId()], names: state.club.member?.name ? [state.club.member.name] : [] };
+      }
+    }
+  }
+  return marks;
+}
+
 // Marks the group filed in the last 45 minutes, read straight from the
 // worker. The pipeline folds the same reports into the vote ten minutes
 // later; reading them here means a mark is visible to everyone at once.
@@ -1854,7 +1893,8 @@ async function pollGroupMarks() {
   try {
     // Members read the club's copy, with names; anyone else the anonymous one.
     const inside = state.club.enabled && !!clubToken();
-    const response = await fetch(`${endpoint.replace(/\/$/, '')}${inside ? '/club/reports' : '/reports'}`, { cache: 'no-store', headers: inside ? memberHeaders() : {} });
+    // A day of marks for «👁 Свои»; everything else below keeps to three hours.
+    const response = await fetch(`${endpoint.replace(/\/$/, '')}${inside ? '/club/reports' : '/reports'}?hours=24`, { cache: 'no-store', headers: inside ? memberHeaders() : {} });
     if (!response.ok) {
       if (inside && (response.status === 401 || response.status === 403)) {
         let data = {};
@@ -1867,45 +1907,20 @@ async function pollGroupMarks() {
     state.workerBatch = payload.batch === true;
     state.workerLateMarks = payload.late_marks === true;
     flushOutbox();
-    const cutoff = Date.now() - OWN_WINDOW_MS;
-    const marks = {};
-    for (const report of payload.reports || []) {
-      if (!report || report.at < cutoff || !report.station || !report.grade) continue;
-      const slot = (marks[report.station] = marks[report.station] || {});
-      const current = slot[report.grade];
-      const people = new Set(current?.people || []);
-      people.add(report.who || '?');
-      const names = new Set(current?.names || []);
-      if (report.name) names.add(`${report.level_icon ? `${report.level_icon} ` : ''}${report.name}`);
-      if (!current || report.at > current.at) {
-        slot[report.grade] = {
-          seen: !!report.seen, at: report.at, queue: report.queue, people: [...people], names: [...names],
-          who: report.who, authorName: report.name || '', thanks: report.thanks || 0, thanked: !!report.thanked,
-          up: report.up || 0, down: report.down || 0, myVote: report.my_vote || null,
-        };
-      } else {
-        current.people = [...people];
-        current.names = [...names];
-      }
-    }
-    // What this device filed stays visible even before the worker echoes it
-    // back (or if the shared word was wrong and it never will).
-    for (const [stationId, grades] of Object.entries(loadMarks())) {
-      for (const [grade, mine] of Object.entries(grades)) {
-        if (mine.at < cutoff) continue;
-        const slot = (marks[stationId] = marks[stationId] || {});
-        if (!slot[grade] || slot[grade].at < mine.at) {
-          slot[grade] = { seen: mine.seen, at: mine.at, queue: mine.queue ?? null, people: [myId()], names: state.club.member?.name ? [state.club.member.name] : [] };
-        }
-      }
-    }
+    const now = Date.now();
+    const marks = foldMarks(payload.reports || [], now - OWN_WINDOW_MS);
+    // A server from before the day was kept answers with its three hours.
+    state.ownDay = Number(payload.window_hours) >= 24;
+    const dayMarks = foldMarks(payload.reports || [], now - OWN_DAY_MS);
     const changed = JSON.stringify(marks) !== JSON.stringify(state.groupMarks || {});
+    const dayChanged = JSON.stringify(dayMarks) !== JSON.stringify(state.dayMarks || {});
     const previous = state.groupMarks || {};
     state.groupMarks = marks;
-    if (changed && state.stations.length) renderStations();
+    state.dayMarks = dayMarks;
+    if ((changed || (dayChanged && state.ownOnly)) && state.stations.length) renderStations();
     renderGroupFeed();
     updateOwnChip();
-    if (state.ownOnly && changed) renderMarkers();
+    if (state.ownOnly && (changed || dayChanged)) renderMarkers();
     if (changed) announceNewMarks(previous, marks);
     if (changed) renderDrive();
   } catch {
@@ -1919,7 +1934,18 @@ async function pollGroupMarks() {
 // reported station is enough.
 async function stationInfo(id) {
   if (state.stationInfo[id]) return state.stationInfo[id];
-  const local = state.stations.find((item) => item.id === id);
+  let local = state.stations.find((item) => item.id === id);
+  // The whole grade is already in memory once the list has loaded: «👁 Свои»
+  // for a day names stations far outside the list, and a card each would cost
+  // a download per station.
+  const bundle = `static-data/stations-${state.grade}.json`;
+  if (!local && state.staticMode && staticCache.has(bundle)) {
+    try {
+      local = (await staticJson(bundle)).stations.find((item) => item.id === id && item.location);
+    } catch {
+      // The card below still names it.
+    }
+  }
   if (local) {
     state.stationInfo[id] = { network: local.network, address: local.address, lat: local.location.lat, lon: local.location.lon };
     return state.stationInfo[id];
@@ -2423,14 +2449,21 @@ function bindScout(root) {
 
 // ---------------------------------------------------------------- «Свои» tab
 
-// Everything the group marked in the worker's three-hour window, in one list
-// and on the map, ordered fresh first and then by distance, with how stale
-// each mark has become said in words.
+// Everything the group marked in the last day, in one list and on the map.
+// Marks up to an hour and a half old come first, nearest first; the rest of the
+// day waits behind a button (16 Sep 2026: people saw three marks and took them
+// for the whole day). How old a mark is shows in its colour, its time and the
+// heading above it, never as a word beside a name: «Ирина · протухает» read as
+// if it were said about Ирина.
 const OWN_WINDOW_MS = 3 * 60 * 60 * 1000;
+const OWN_DAY_MS = 24 * 60 * 60 * 1000;
+const OWN_FRESH_MS = 90 * 60 * 1000;
+// The grades of one look at a station: marked within this long of its latest mark.
+const OWN_LOOK_MS = 60 * 60 * 1000;
 const OWN_TIERS = [
-  { max: 45, key: 'fresh', icon: '🟢', label: 'свежая' },
-  { max: 90, key: 'aging', icon: '🟡', label: 'протухает' },
-  { max: 180, key: 'stale', icon: '⚪', label: 'устарела — нужна новая отметка' },
+  { max: 45, key: 'fresh', icon: '🟢' },
+  { max: 90, key: 'aging', icon: '🟡' },
+  { max: Infinity, key: 'stale', icon: '⚪' },
 ];
 
 function ownTier(ageMinutes) {
@@ -2440,12 +2473,15 @@ function ownTier(ageMinutes) {
 function ownEntries() {
   const now = Date.now();
   const order = Object.keys(GRADE_LABELS);
-  return Object.entries(state.groupMarks || {}).map(([stationId, grades]) => {
-    const items = Object.entries(grades)
-      .filter(([grade, mark]) => GRADE_LABELS[grade] && now - mark.at <= OWN_WINDOW_MS)
+  return Object.entries(state.dayMarks || {}).map(([stationId, grades]) => {
+    const marked = Object.entries(grades).filter(([grade, mark]) => GRADE_LABELS[grade] && now - mark.at <= OWN_DAY_MS);
+    if (!marked.length) return null;
+    const latest = Math.max(...marked.map(([, mark]) => mark.at));
+    // Only the latest look: 95 seen in the morning beside 92 seen ten minutes
+    // ago would read as both seen now.
+    const items = marked
+      .filter(([, mark]) => (now - latest <= OWN_FRESH_MS ? now - mark.at <= OWN_FRESH_MS : latest - mark.at <= OWN_LOOK_MS))
       .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
-    if (!items.length) return null;
-    const latest = Math.max(...items.map(([, mark]) => mark.at));
     return {
       stationId,
       items,
@@ -2455,6 +2491,21 @@ function ownEntries() {
       names: [...new Set(items.flatMap(([, mark]) => mark.names || []))].filter(Boolean),
     };
   }).filter(Boolean);
+}
+
+// «за сутки», or the three hours a server from before the day still gives.
+function ownSpan() {
+  return state.ownDay ? 'за сутки' : 'за 3 часа';
+}
+
+// When, as a person would say it: minutes and hours while it is recent, then
+// the clock time; `short` for a pin.
+function ownWhen(at, now = Date.now(), { short = false } = {}) {
+  if (now - at < OWN_WINDOW_MS) return formatAge((now - at) / 1000);
+  const time = new Date(at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const today = new Date(at).toDateString() === new Date(now).toDateString();
+  if (short) return today ? time : `вчера ${time}`;
+  return today ? `сегодня в ${time}` : `вчера в ${time}`;
 }
 
 function ownChip() {
@@ -2476,7 +2527,7 @@ function updateOwnChip() {
 
 function ownLink() {
   const count = ownEntries().length;
-  return count ? `<button type="button" class="feed-all" data-own-open>Все отметки своих за 3 часа · ${count} →</button>` : '';
+  return count ? `<button type="button" class="feed-all" data-own-open>Все отметки своих ${ownSpan()} · ${count} →</button>` : '';
 }
 
 function bindOwnLink(root) {
@@ -2494,6 +2545,8 @@ function toggleOwnOnly() {
     // and did nothing.
     state.status = null;
     state.timeline = null;
+    // The older marks of the day open again only when asked for.
+    state.ownMore = false;
     $$('#statusStrip .status-chip.active:not([data-own])').forEach((chip) => chip.classList.remove('active'));
     updateOwnChip();
     renderOwnList();
@@ -2521,6 +2574,21 @@ function leaveOwnView() {
   if (leaveOwnOnly()) loadStations();
 }
 
+function ownCard(entry, now) {
+  const grades = entry.items.map(([grade, mark]) => `<span class="feed-grade ${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))} ${mark.seen ? '✓' : '✗'}</span>`).join('');
+  const queue = queueWords(entry.queue);
+  const said = [entry.names.join(', '), ownWhen(entry.latest, now)].filter(Boolean).join(' · ');
+  return `<article class="station-card own-card ${entry.tier.key}" data-nearby-station="${escapeHtml(entry.stationId)}">
+      <button type="button" class="card-main own-main" data-own-station="${escapeHtml(entry.stationId)}">
+        <span class="card-topline"><strong class="network">${escapeHtml(displayNetwork(entry.info.network))}</strong><span class="distance">${escapeHtml(formatDistance(entry.km))}</span></span>
+        <span class="address">${escapeHtml(shortAddress(entry.info.address || ''))}</span>
+        <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
+        <span class="own-age ${entry.tier.key}">${escapeHtml(said)}</span>
+      </button>
+      <div class="card-actions">${thanksButton(entry.stationId)}${verdictButtons(entry.stationId)}${ownerDeleteButtons(entry.stationId)}</div>
+    </article>`;
+}
+
 async function renderOwnList() {
   const list = $('#stationList');
   if (!list) return;
@@ -2528,40 +2596,43 @@ async function renderOwnList() {
   $('#resultCount').textContent = entries.length.toLocaleString('ru-RU');
   $('#resultNoun').textContent = `${plural(entries.length, 'АЗС', 'АЗС', 'АЗС')} с отметками своих`;
   if (!entries.length) {
-    list.innerHTML = `<div class="empty-state"><strong>За три часа свои ничего не отмечали</strong><br>Как только кто-то отметит АЗС, она появится здесь.<br><button type="button" class="list-more" id="ownBack">Показать все АЗС</button></div>`;
+    list.innerHTML = `<div class="empty-state"><strong>${state.ownDay ? 'За сутки' : 'За три часа'} свои ничего не отмечали</strong><br>Как только кто-то отметит АЗС, она появится здесь.<br><button type="button" class="list-more" id="ownBack">Показать все АЗС</button></div>`;
     $('#ownBack').addEventListener('click', leaveOwnView);
     return;
   }
   await Promise.all(entries.map((entry) => stationInfo(entry.stationId)));
   if (!state.ownOnly) return;
   const now = Date.now();
-  const withDistance = entries.map((entry) => {
+  const placed = entries.map((entry) => {
     const info = state.stationInfo[entry.stationId] || {};
     const km = state.location && info.lat != null ? haversineKm(state.location, { lat: info.lat, lon: info.lon }) : null;
     return { ...entry, info, km };
-  }).sort((a, b) => {
+  });
+  const recent = placed.filter((entry) => entry.tier.key !== 'stale').sort((a, b) => {
     const tiers = OWN_TIERS.indexOf(a.tier) - OWN_TIERS.indexOf(b.tier);
     if (tiers) return tiers;
     if (a.km != null && b.km != null && Math.abs(a.km - b.km) > 0.3) return a.km - b.km;
     return b.latest - a.latest;
   });
-  const back = '<div class="own-bar"><span>Только отметки своих за 3 часа</span><button type="button" class="own-back" data-own-back>Показать все АЗС</button></div>';
-  list.innerHTML = back + withDistance.map((entry) => {
-    const grades = entry.items.map(([grade, mark]) => `<span class="feed-grade ${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))} ${mark.seen ? '✓' : '✗'}</span>`).join('');
-    const queue = queueWords(entry.queue);
-    const who = entry.names.length ? ` · ${escapeHtml(entry.names.join(', '))}` : '';
-    return `<article class="station-card own-card ${entry.tier.key}" data-nearby-station="${escapeHtml(entry.stationId)}">
-      <button type="button" class="card-main own-main" data-own-station="${escapeHtml(entry.stationId)}">
-        <span class="card-topline"><strong class="network">${escapeHtml(displayNetwork(entry.info.network))}</strong><span class="distance">${escapeHtml(formatDistance(entry.km))}</span></span>
-        <span class="address">${escapeHtml(shortAddress(entry.info.address || ''))}</span>
-        <span class="feed-grades">${grades}${queue ? `<span class="feed-queue">очередь: ${escapeHtml(queue)}</span>` : ''}</span>
-        <span class="own-age ${entry.tier.key}">${entry.tier.icon} ${escapeHtml(entry.tier.label)} · ${escapeHtml(formatAge((now - entry.latest) / 1000))}${who}</span>
-      </button>
-      <div class="card-actions">${thanksButton(entry.stationId)}${verdictButtons(entry.stationId)}${ownerDeleteButtons(entry.stationId)}</div>
-    </article>`;
-  }).join('');
+  const earlier = placed.filter((entry) => entry.tier.key === 'stale').sort((a, b) => b.latest - a.latest);
+  const stations = (count) => `${count} ${plural(count, 'АЗС', 'АЗС', 'АЗС')}`;
+  const back = `<div class="own-bar"><span>Отметки своих ${ownSpan()}</span><button type="button" class="own-back" data-own-back>Показать все АЗС</button></div>`;
+  const head = recent.length
+    ? '<p class="own-head">Свежие — до полутора часов</p>'
+    : '<p class="own-head quiet">Свежих отметок нет: за полтора часа свои ничего не отмечали</p>';
+  const more = earlier.length
+    ? `<button type="button" class="own-more" data-own-more aria-expanded="${state.ownMore}">${state.ownMore ? 'Скрыть отметки постарше ▴' : `Ещё ${stations(earlier.length)} ${ownSpan()} ▾`}</button>`
+    : '';
+  const older = state.ownMore && earlier.length
+    ? `<p class="own-head quiet">Старше полутора часов — на месте всё могло измениться</p>${earlier.map((entry) => ownCard(entry, now)).join('')}`
+    : '';
+  list.innerHTML = back + head + recent.map((entry) => ownCard(entry, now)).join('') + more + older;
   list.querySelectorAll('[data-own-station]').forEach((button) => button.addEventListener('click', () => openStation(button.dataset.ownStation)));
   list.querySelector('[data-own-back]').addEventListener('click', leaveOwnView);
+  list.querySelector('[data-own-more]')?.addEventListener('click', () => {
+    state.ownMore = !state.ownMore;
+    renderOwnList();
+  });
   bindThanks(list);
   bindVerdicts(list);
   paintNearby();
@@ -2575,7 +2646,7 @@ function renderOwnMarkers() {
     const grades = entry.items.map(([grade, mark]) => `<i class="${mark.seen ? 'yes' : 'no'}">${escapeHtml(GRADE_LABELS[grade].replace('АИ-', ''))}</i>`).join('');
     const icon = L.divIcon({
       className: '',
-      html: `<div class="fuel-pin labelled own-pin ${entry.tier.key}"><span class="fuel-marker"></span><span class="pin-label"><b>${entry.tier.icon} ${escapeHtml(shortNetwork(info.network))}</b><span class="pin-grades">${grades}</span><em>${escapeHtml(formatAge((now - entry.latest) / 1000))}</em></span></div>`,
+      html: `<div class="fuel-pin labelled own-pin ${entry.tier.key}"><span class="fuel-marker"></span><span class="pin-label"><b>${entry.tier.icon} ${escapeHtml(shortNetwork(info.network))}</b><span class="pin-grades">${grades}</span><em>${escapeHtml(ownWhen(entry.latest, now, { short: true }))}</em></span></div>`,
       iconSize: [20, 20], iconAnchor: [10, 20],
     });
     const marker = L.marker([info.lat, info.lon], { icon, stationId: entry.stationId });
@@ -2870,8 +2941,9 @@ async function deleteLook(target, button) {
 function forgetLook({ station, author, at }) {
   const mine = author === myId();
   const sameLook = (mark) => (mark.who ? mark.who === author && mark.at === at : mine && Math.abs(mark.at - at) < OWN_COPY_SLACK_MS);
-  const shown = state.groupMarks?.[station] || {};
-  for (const [grade, mark] of Object.entries(shown)) if (sameLook(mark)) delete shown[grade];
+  for (const shown of [state.groupMarks?.[station] || {}, state.dayMarks?.[station] || {}]) {
+    for (const [grade, mark] of Object.entries(shown)) if (sameLook(mark)) delete shown[grade];
+  }
   if (!mine) return;
   const marks = loadMarks();
   for (const [grade, mark] of Object.entries(marks[station] || {})) if (sameLook(mark)) delete marks[station][grade];
@@ -5535,6 +5607,14 @@ function driveThin(station) {
   return (station.sources?.length ?? station.source_count ?? 0) <= 1 && station.grade?.status === 'NO_FRESH_DATA';
 }
 
+// «👁 Свои» on the navigator (16 Sep 2026): only the stations where someone of
+// ours saw one's grade on the pumps within the 45 minutes a mark lives, and
+// nobody has said since that it is gone.
+function driveOwnSeen(stationId) {
+  const mark = groupMarkFor(stationId, state.grade);
+  return !!mark && mark.seen && !((mark.down || 0) > (mark.up || 0));
+}
+
 function driveItem(phone, station, heading) {
   const metres = haversineKm(phone, station.location) * 1000;
   return { station, metres, turn: heading == null ? null : turnFrom(heading, bearingDegrees(phone, station.location)) };
@@ -5559,8 +5639,9 @@ function stepDrive(now = Date.now()) {
     return view;
   }
   const thin = new Set(state.stations.filter(driveThin).map((station) => station.id));
+  // A station ours saw lately stays in «👁 Свои» even while its only feed is quiet.
   view.around = state.stations
-    .filter((station) => station.location && !thin.has(station.id))
+    .filter((station) => station.location && (drive.ownOnly ? driveOwnSeen(station.id) : !thin.has(station.id)))
     .map((station) => driveItem(phone, station, heading))
     .filter((item) => item.metres <= DRIVE_RADIUS_METRES)
     .sort((a, b) => a.metres - b.metres);
@@ -5629,7 +5710,7 @@ function stepDrive(now = Date.now()) {
     view.kind = 'loading';
     return view;
   }
-  if (!view.around.length) {
+  if (!view.around.length && !drive.ownOnly) {
     view.kind = 'empty';
     return view;
   }
@@ -5646,7 +5727,7 @@ function stepDrive(now = Date.now()) {
     view.beside = true;
     return view;
   }
-  const serves = (station) => SERVES_NOW[station.grade?.status] === 0;
+  const serves = (station) => (drive.ownOnly ? driveOwnSeen(station.id) : SERVES_NOW[station.grade?.status] === 0);
   const target = view.ahead[0];
   if (target && target.metres <= NEARBY_REPORT_METRES) {
     view.kind = 'near';
@@ -5853,7 +5934,7 @@ function drivePanels(view) {
   if (view.kind === 'loading') return { sheet: '<p class="drive-line">Загружаем заправки рядом…</p>' };
   if (view.kind === 'empty') return { sheet: `${where(`В ${DRIVE_RADIUS_METRES / 1000} км заправок нет`)}${meta('Приложение знает заправки Петербурга и области.')}` };
   if (view.kind === 'line') {
-    const says = driveSays(station);
+    const says = drive.ownOnly ? { text: `${driveGradeLabel()} есть`, tone: 'yes' } : driveSays(station);
     return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
       <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}` };
   }
@@ -5873,6 +5954,14 @@ function drivePanels(view) {
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
       ${road ? meta(driveRouteNote(station.id)) : ''}
       ${actions}` };
+  }
+  if (view.kind === 'none' && drive.ownOnly) {
+    if (!focus) {
+      return { sheet: `${where(`Свои рядом ${driveGradeLabel()} не видели`)}<p class="drive-line">За 45 минут никто из своих не отметил здесь ${label}</p>
+      <button type="button" class="drive-btn skip" data-drive="own">Показать все заправки</button>` };
+    }
+    return { sheet: `${where(`Впереди свои ${driveGradeLabel()} не видели`)}${still ? driveGo(station) : ''}
+      <p class="drive-line">Ближайшая, где свои видели ${label}, — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}` };
   }
   if (view.kind === 'none') {
     if (!focus) return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}<p class="drive-line">Рядом ${label} нет ни на одной заправке</p>` };
@@ -5998,6 +6087,7 @@ function renderDrive({ force = false } = {}) {
   const speed = $('#driveSpeed');
   const shown = view.speed == null ? '—' : String(Math.round(view.speed));
   if (speed && speed.textContent !== shown) speed.textContent = shown;
+  paintDriveOwn();
   const routeSwitch = $('#drive [data-drive="route-toggle"]');
   if (routeSwitch && routeSwitch.getAttribute('aria-pressed') !== String(drive.routeOn)) routeSwitch.setAttribute('aria-pressed', String(drive.routeOn));
   // A finger that has just landed keeps its button where it is: a redraw
@@ -6012,6 +6102,17 @@ function renderDrive({ force = false } = {}) {
   drive.headingKnown = view.heading != null;
   layoutDrive();
   paintDriveMap(view);
+}
+
+// The «👁 Свои» switch says whether it is on and how many stations ours saw
+// one's grade at around here.
+function paintDriveOwn() {
+  const button = $('#drive [data-drive="own"].drive-own');
+  if (!button) return;
+  const seen = state.stations.filter((station) => station.location && driveOwnSeen(station.id)).length;
+  const words = drive.ownOnly ? '👁 Только свои' : `👁 Свои${seen ? ` · ${seen}` : ''}`;
+  if (button.textContent !== words) button.textContent = words;
+  if (button.getAttribute('aria-pressed') !== String(!!drive.ownOnly)) button.setAttribute('aria-pressed', String(!!drive.ownOnly));
 }
 
 function setDriveHtml(box, html) {
@@ -6239,12 +6340,14 @@ function openDriveRoute(id) {
   window.open(`https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`, '_blank', 'noopener');
 }
 
-// The station itself in Yandex Maps: its card with «Расскажите о заправке»
-// and what drivers write there, and Yandex's own route button a tap away.
-// When Yandex is one of the station's feeds the build carries its id and the
-// card opens straight away; otherwise a search by name and address finds it.
-function driveYandexUrl(station) {
-  const org = String(station?.yandex_org || '');
+// The station itself in Yandex Maps: its card with «Рассказать о ситуации»,
+// the drivers' «Разговорчики» on the map under it, and Yandex's own route
+// button a tap away. When Yandex is one of the station's feeds the list carries
+// its id (a card has it among its source ids) and the card opens straight away;
+// otherwise a search by name and address finds it.
+function yandexPlaceUrl(station) {
+  const ref = (station?.source_refs || []).find((item) => item.source === 'yandex-maps' && /^\d+$/.test(String(item.station_id)));
+  const org = String(station?.yandex_org || ref?.station_id || '');
   if (/^\d+$/.test(org)) return `https://yandex.ru/maps/org/${org}/`;
   const place = station?.location;
   if (!place) return null;
@@ -6253,7 +6356,7 @@ function driveYandexUrl(station) {
 }
 
 function openDriveYandex(id) {
-  const url = driveYandexUrl(state.stations.find((item) => item.id === id));
+  const url = yandexPlaceUrl(state.stations.find((item) => item.id === id));
   if (!url) return;
   track('route_open', { station: id });
   window.open(url, '_blank', 'noopener');
@@ -6292,7 +6395,7 @@ function paintDrivePins(view) {
     }
     const element = marker.getElement();
     if (!element) return;
-    const status = item.station.grade?.status || 'NO_FRESH_DATA';
+    const status = drive.ownOnly && driveOwnSeen(id) ? 'CAN_REFUEL' : item.station.grade?.status || 'NO_FRESH_DATA';
     const isBig = big.has(id);
     element.classList.toggle('big', isBig);
     element.classList.toggle('focus', id === focusId);
@@ -6392,6 +6495,11 @@ function onDriveTap(event) {
     openDriveRoute(station);
   } else if (action === 'yandex') {
     openDriveYandex(station);
+  } else if (action === 'own') {
+    drive.ownOnly = !drive.ownOnly;
+    drive.tapped = null;
+    track('status_filter', { filter: drive.ownOnly ? 'drive_own' : 'drive_all' });
+    renderDrive({ force: true });
   } else if (action === 'route-toggle') {
     drive.routeOn = !drive.routeOn;
     try {
@@ -6647,7 +6755,7 @@ async function openStation(id) {
            read «есть или нет» first, as competitors put it on top. -->
       <div class="drawer-status drawer-verdict" style="--status-color:${status.color}"><strong>${escapeHtml(selected.label)}${Number.isFinite(selected.probability_percent) ? ` · ${selected.probability_percent}%` : ''}</strong><p>${escapeHtml(selected.reason)}</p></div>
       <div class="grade-matrix">${gradeCells}</div>
-      <div class="drawer-actions"><a id="routeLink" href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><a id="trafficLink" href="${trafficUrl}" target="_blank" rel="noopener noreferrer">Пробки у АЗС ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
+      <div class="drawer-actions"><a id="routeLink" href="${routeUrl}" target="_blank" rel="noopener noreferrer">Маршрут в Яндекс Картах ↗</a><a id="trafficLink" href="${trafficUrl}" target="_blank" rel="noopener noreferrer">Пробки у АЗС ↗</a><a id="yandexLink" href="${escapeHtml(yandexPlaceUrl(station) || '')}" target="_blank" rel="noopener noreferrer">Карточка в Яндексе ↗</a><button id="copyCoords" type="button">Скопировать координаты</button></div>
       <div class="here-panel drawer-mark">
         <span class="here-kicker">Для своих</span>
         <strong>Видите эту АЗС своими глазами?</strong>
@@ -6673,6 +6781,7 @@ async function openStation(id) {
     bindVerdicts($('#drawerContent'));
     $('#routeLink').addEventListener('click', () => track('route_open', analytics.predictionFields(station, state.grade)));
     $('#trafficLink').addEventListener('click', () => track('traffic_open', analytics.predictionFields(station, state.grade)));
+    $('#yandexLink').addEventListener('click', () => track('route_open', { station: station.id }));
     $('#copyCoords').addEventListener('click', async (event) => {
       try {
         await navigator.clipboard.writeText(`${lat}, ${lon}`);

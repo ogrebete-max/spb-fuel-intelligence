@@ -784,6 +784,11 @@ body.club-locked { overflow: hidden; }
 .own-bar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 14px; background: rgba(31, 122, 77, .08); color: #1f5c3e; font-weight: 700; }
 .own-back { border: 1px solid #1f7a4d; background: #fff; color: #1f7a4d; border-radius: 99px; padding: 7px 14px; font: inherit; font-weight: 800; cursor: pointer; }
 .own-back:hover { background: #1f7a4d; color: #fff; }
+/* Fresh marks first, the rest of the day behind a button (16 Sep 2026). */
+.own-head { margin: 4px 2px 0; font-size: 13px; font-weight: 800; color: #1f5c3e; }
+.own-head.quiet { color: var(--muted); font-weight: 700; }
+.own-more { display: block; width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px dashed #1f7a4d; background: #fff; color: #1f7a4d; font: inherit; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.own-more[aria-expanded="true"] { border-style: solid; }
 
 /* ---- «За рулём» ----
    Night by default and day as a class, as in the approved concept: the tokens
@@ -854,7 +859,11 @@ body.driving .toast-stack { display: none; }
 .drive-glass { background: var(--glass); color: var(--glassink); box-shadow: 0 0 0 1px rgba(255, 255, 255, .2), 0 2px 10px var(--shade); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .drive.is-day .drive-glass { box-shadow: 0 0 0 1px rgba(16, 35, 29, .12), 0 2px 10px var(--shade); }
 .drive-round { width: 46px; height: 46px; border: 0; border-radius: 50%; display: grid; place-items: center; font-size: 20px; line-height: 1; }
-.drive-speed { position: fixed; z-index: 5; top: calc(env(safe-area-inset-top, 0px) + 66px); left: calc(env(safe-area-inset-left, 0px) + 12px); border-radius: 12px; padding: 5px 10px; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+/* The speed, and beside it «👁 Свои»: only the stations ours saw one's grade at. */
+.drive-second { position: fixed; z-index: 5; top: calc(env(safe-area-inset-top, 0px) + 66px); left: calc(env(safe-area-inset-left, 0px) + 12px); display: flex; align-items: center; gap: 8px; }
+.drive-own { min-height: 38px; border: 0; border-radius: 12px; padding: 6px 12px; font-size: 15px; font-weight: 800; white-space: nowrap; touch-action: manipulation; }
+.drive-own[aria-pressed="true"] { background: #1f7a4d; color: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, .55), 0 2px 10px var(--shade); }
+.drive-speed { border-radius: 12px; padding: 5px 10px; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .drive-speed small { margin-left: 3px; font-size: 11px; font-weight: 600; color: var(--sub); }
 .drive-credit { position: fixed; z-index: 2; right: 6px; bottom: 4px; font-size: 9px; color: var(--faint); pointer-events: none; }
 

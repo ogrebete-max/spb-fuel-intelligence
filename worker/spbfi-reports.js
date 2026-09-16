@@ -52,6 +52,11 @@
 const DEFAULT_ORIGIN = 'https://ogrebete-max.github.io';
 const APP_URL = 'https://ogrebete-max.github.io/spb-fuel-intelligence/';
 const WINDOW_MS = 3 * 60 * 60 * 1000;
+// «👁 Свои» lists a whole day of marks (16 Sep 2026: people saw three marks and
+// took them for the whole day). Marks are kept that long, and a read asks for
+// the day with ?hours=24; the vote, thanks, 👍/👎 and deleting still see only
+// the three hours above.
+const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_REPORTS = 4000;
 const MAX_PER_MINUTE = 20;
 const MAX_SUBSCRIPTIONS = 300;
@@ -314,9 +319,23 @@ function remembered(env, name, load) {
   return slot.get(name);
 }
 
-async function readAll(env) {
-  const cutoff = Date.now() - WINDOW_MS;
+async function readAll(env, span = WINDOW_MS) {
+  const cutoff = Date.now() - span;
   return (await readDoc(env, 'reports', [])).filter((item) => item && item.at > cutoff);
+}
+
+// The day only for a read that asks for it: the pipeline and apps from before
+// read the three hours as they always did.
+function readSpan(url) {
+  return Number(url.searchParams.get('hours')) >= 24 ? DAY_MS : WINDOW_MS;
+}
+
+// Where a phone stood is given only for the hours the vote uses; a list of the
+// day needs the station, not a trail of someone's stops.
+function listedReport(report, now = Date.now()) {
+  if (now - report.at <= WINDOW_MS) return report;
+  const { lat, lon, ...rest } = report;
+  return rest;
 }
 
 // The free KV plan allows 1,000 writes a day. A rate-limit counter kept in KV
@@ -1424,7 +1443,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, owner_analytics: true, return_asks: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, owner_analytics: true, return_asks: true, day_marks: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -2022,7 +2041,9 @@ async function clubRoutes(request, env, url, ctx) {
 
   if (request.method === 'GET' && path === '/club/reports') {
     const { 'club:stats': clubStats, reports: stored } = await loadDocs(env, { 'club:stats': {}, reports: [] });
-    const cutoff = Date.now() - WINDOW_MS;
+    const span = readSpan(url);
+    const now = Date.now();
+    const cutoff = now - span;
     const reports = stored
       .filter((report) => report && report.at > cutoff && !members[report.who]?.banned)
       .map((report) => {
@@ -2030,7 +2051,7 @@ async function clubRoutes(request, env, url, ctx) {
         const thankedBy = author.thanked?.[markKey(report)] || [];
         const votes = author.votes?.[lookKey(report)] || { up: [], down: [] };
         return {
-          ...report,
+          ...listedReport(report, now),
           name: members[report.who]?.name || '',
           level_icon: levelFor(author.liters || 0).icon,
           thanks: thankedBy.length,
@@ -2040,7 +2061,7 @@ async function clubRoutes(request, env, url, ctx) {
           my_vote: votes.up.includes(member.id) ? 'up' : votes.down.includes(member.id) ? 'down' : null,
         };
       });
-    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
+    return json({ window_hours: span / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
   }
 
   if (member.role !== 'owner') return json({ error: 'owner_only' }, request, env, 403);
@@ -2422,7 +2443,8 @@ async function route(request, env, ctx) {
   }
 
   if (request.method === 'GET' && (url.pathname === '/reports' || url.pathname === '/')) {
-    let reports = await readAll(env);
+    const span = readSpan(url);
+    let reports = (await readAll(env, span)).map((report) => listedReport(report));
     if (clubEnabled(env)) {
       const members = await readDoc(env, 'club:members', {});
       // Until the door is closed, phones outside the club read the marks too.
@@ -2433,7 +2455,7 @@ async function route(request, env, ctx) {
       // Names stay inside the club; the public read carries member ids only.
       reports = reports.filter((report) => !members[report.who]?.banned);
     }
-    return json({ window_hours: WINDOW_MS / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
+    return json({ window_hours: span / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
   }
 
   if (request.method === 'GET' && url.pathname === '/vapid') {
@@ -2574,7 +2596,7 @@ async function route(request, env, ctx) {
       queue: typeof body.queue === 'number' ? Math.max(0, Math.min(500, body.queue)) : null,
     }));
     const { before, accepted, count } = await transact(env, { reports: [] }, (docs) => {
-      const cutoff = Date.now() - WINDOW_MS;
+      const cutoff = Date.now() - DAY_MS;
       const current = docs.reports.filter((item) => item && item.at > cutoff);
       // A mark that arrives late never replaces what the same person has said
       // about the same grade since.

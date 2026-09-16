@@ -119,7 +119,8 @@ async function run(label, browserType, device) {
   await page.evaluate(() => pollGroupMarks());
   check('«👁 Свои» chip appears', await waitFor(page, () => document.querySelector('[data-own]')?.textContent.includes('Свои · 1'), null, 8000));
   await page.click('[data-own]');
-  check('«Свои» list shows the station as fresh', await waitFor(page, () => document.querySelector('.own-card.fresh .own-age')?.textContent.includes('свежая'), null, 8000));
+  // Freshness is its colour, its time and the heading, not a word beside a name.
+  check('«Свои» list shows the station among the fresh ones', await waitFor(page, () => document.querySelector('.own-head')?.textContent.startsWith('Свежие') && /только что|мин назад/.test(document.querySelector('.own-card.fresh .own-age')?.textContent || ''), null, 8000));
   await page.screenshot({ path: path.join(OUT, `${label}-f3-own.png`) });
   await page.click('#modeBar [data-screen="map"]');
   check('map shows the group\'s station pin', await waitFor(page, () => document.querySelectorAll('.own-pin').length === 1, null, 8000));
