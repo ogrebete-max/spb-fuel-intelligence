@@ -5150,6 +5150,9 @@ const DRIVE_LINE_METRES = 1200;
 const DRIVE_AT_METRES = 100;
 const DRIVE_STAND_MS = 20000;
 const DRIVE_PASS_METRES = 150;
+// Up to this speed a car within DRIVE_AT_METRES / 2 of a station is taken to
+// be pulling onto its forecourt, not driving past.
+const DRIVE_CRAWL_KMH = 20;
 const DRIVE_ASK_STILL_MS = 3000;
 const DRIVE_ASK_WITHIN_MS = 10 * 60 * 1000;
 const DRIVE_ASK_WITHIN_METRES = 3000;
@@ -5522,6 +5525,16 @@ function placeDriveCar() {
   car.style.top = `${Math.round(holder.offsetTop + point.y)}px`;
 }
 
+// A card only one feed lists, with nothing fresh to say for the grade. On
+// 16 Sep 2026 such cards were where the drive screen pointed at places that
+// are no station at all: in the centre, Gazprom Neft's office on the Moika, a
+// car air-conditioning shop, pins in a pedestrian street. The driver is not led
+// to them, told «Вы на АЗС» or asked about them; the map and the list still
+// show them.
+function driveThin(station) {
+  return (station.sources?.length ?? station.source_count ?? 0) <= 1 && station.grade?.status === 'NO_FRESH_DATA';
+}
+
 function driveItem(phone, station, heading) {
   const metres = haversineKm(phone, station.location) * 1000;
   return { station, metres, turn: heading == null ? null : turnFrom(heading, bearingDegrees(phone, station.location)) };
@@ -5533,7 +5546,7 @@ function driveItem(phone, station, heading) {
 function stepDrive(now = Date.now()) {
   const phone = drivePhone();
   const heading = motion.heading;
-  const view = { now, phone, heading, speed: currentSpeed(now), around: [], ahead: [], pins: [], focus: null, neighbour: null, kind: 'wait' };
+  const view = { now, phone, heading, speed: currentSpeed(now), around: [], ahead: [], pins: [], focus: null, neighbour: null, beside: false, kind: 'wait' };
   const moving = movingNow(now);
   if (moving) drive.pinnedId = null;
   if (drive.sent && !drive.sent.undoing && (moving || now - drive.sent.madeAt > DRIVE_UNDO_MS)) drive.sent = null;
@@ -5545,8 +5558,9 @@ function stepDrive(now = Date.now()) {
     view.kind = 'loading';
     return view;
   }
+  const thin = new Set(state.stations.filter(driveThin).map((station) => station.id));
   view.around = state.stations
-    .filter((station) => station.location)
+    .filter((station) => station.location && !thin.has(station.id))
     .map((station) => driveItem(phone, station, heading))
     .filter((item) => item.metres <= DRIVE_RADIUS_METRES)
     .sort((a, b) => a.metres - b.metres);
@@ -5574,7 +5588,9 @@ function stepDrive(now = Date.now()) {
     return view;
   }
   const rough = effectiveAccuracy() > ROUGH_METRES;
-  const hereId = rough ? null : stationHereId(phone, nearbyPlaces(), DRIVE_AT_METRES);
+  const places = nearbyPlaces();
+  thin.forEach((id) => places.delete(id));
+  const hereId = rough ? null : stationHereId(phone, places, DRIVE_AT_METRES);
   const atId = drive.pinnedId || hereId;
   if (atId && slowFor(now) >= DRIVE_STAND_MS && !markedRecently(atId, 10) && now - (drive.confirmed.get(atId) || 0) > 10 * 60 * 1000 && itemFor(atId)) {
     view.kind = 'at';
@@ -5590,7 +5606,7 @@ function stepDrive(now = Date.now()) {
     const passed = Object.entries(state.passed)
       .map(([id, item]) => ({ id, ...item, metres: haversineKm(phone, item.location) * 1000 }))
       .filter((item) => item.fastAt && now - item.fastAt <= DRIVE_ASK_WITHIN_MS && item.metres <= DRIVE_ASK_WITHIN_METRES
-        && !drive.asked.has(item.id) && item.id !== hereId && !markedRecently(item.id)
+        && !drive.asked.has(item.id) && item.id !== hereId && !markedRecently(item.id) && !thin.has(item.id)
         // A car stopped short of a station has not passed it yet.
         && (heading == null || Math.abs(turnFrom(heading, bearingDegrees(phone, item.location))) > 90))
       .sort((a, b) => b.fastAt - a.fastAt)[0];
@@ -5615,6 +5631,19 @@ function stepDrive(now = Date.now()) {
   }
   if (!view.around.length) {
     view.kind = 'empty';
+    return view;
+  }
+  // Pulled in at the pumps, the station stands beside the car or behind it,
+  // no longer ahead, and the sheet went on to the next one up the road: one
+  // had to hunt for the station to mark it (16 Sep 2026). Standing by it, or
+  // crawling onto its forecourt, the sheet stays on it, with the buttons once
+  // the car stands; «Вы на АЗС» still waits for DRIVE_STAND_MS.
+  const beside = view.around[0];
+  if (beside && ((!moving && beside.metres <= DRIVE_AT_METRES)
+    || (view.speed != null && view.speed <= DRIVE_CRAWL_KMH && beside.metres <= DRIVE_AT_METRES / 2))) {
+    view.kind = 'near';
+    view.focus = beside;
+    view.beside = true;
     return view;
   }
   const serves = (station) => SERVES_NOW[station.grade?.status] === 0;
@@ -5806,12 +5835,15 @@ function drivePanels(view) {
     const actions = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>${driveDelete(station.id)}`
       : movingNow(view.now) && !drive.passenger ? '<button type="button" class="drive-lock" data-drive="passenger">🔒 Отметить — на остановке · <u>я пассажир</u></button>'
         : driveMarkButtons(station.id);
-    return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
+    // Already there, the way to it is no news.
+    const road = still && !view.beside;
+    const whereText = view.beside ? `Вы у АЗС · ${driveDistance(focus.metres)}` : `Через ${driveDistance(focus.metres)}${driveSide(focus)}`;
+    return { sheet: `${where(whereText)}${road ? driveGo(station) : ''}
       <p class="drive-line drive-name">${title}</p>
       <div class="drive-chips">${driveChips(station)}</div>
       ${meta(driveMeta(station, { witness: false }))}
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
-      ${still ? meta(driveRouteNote(station.id)) : ''}
+      ${road ? meta(driveRouteNote(station.id)) : ''}
       ${actions}` };
   }
   if (view.kind === 'none') {
@@ -6109,7 +6141,7 @@ function paintDriveMap(view) {
 // «Роснефть · 95 есть» is shows at a glance (15 Sep 2026: it took a while to find).
 function paintDriveLine(view) {
   if (!drive.line) return;
-  const target = ['line', 'near', 'tapped', 'none'].includes(view.kind) ? view.focus : null;
+  const target = ['line', 'near', 'tapped', 'none'].includes(view.kind) && !view.beside ? view.focus : null;
   if (!target || !view.phone || !drive.routeOn) {
     drive.line.setLatLngs([]);
     return;

@@ -436,6 +436,12 @@ async function run(label, browserType, device) {
   while (t < 0) await step(way.at((t = Math.min(0, t + STEP_METRES))));
   for (let i = 0; i < 12; i += 1) await step(way.at(0));
   check('twelve seconds at the pumps: not yet «Вы на АЗС»', (await kind(page)) !== 'at');
+  // Yet the station is on the sheet, not the next one up the road, and can be marked.
+  const beside = await text(page, '#driveSheet');
+  check(`standing there, the sheet stays on the station with the buttons: «${beside.slice(0, 60)}…»`,
+    (await kind(page)) === 'near' && beside.startsWith('Вы у АЗС') && beside.includes(names.display) && !!(await page.$('#driveSheet [data-drive="mark"]')));
+  check('a card one feed lists with nothing fresh is no place to lead to', await page.evaluate(() => driveThin({ sources: ['gdebenzin24'], grade: { status: 'NO_FRESH_DATA' } })
+    && !driveThin({ sources: ['gdebenzin24', 'sber'], grade: { status: 'NO_FRESH_DATA' } }) && !driveThin({ sources: ['gdebenzin'], grade: { status: 'LIKELY_AVAILABLE' } })));
   let standing = 12;
   while (standing < 40 && (await kind(page)) !== 'at') {
     await step(way.at(0));

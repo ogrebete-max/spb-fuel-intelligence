@@ -95,6 +95,18 @@ def drop_broken_names(stations: list[dict[str, Any]]) -> list[dict[str, Any]]:
 # catches the same row should the feed give it a new id.
 NOT_STATIONS = (
     {"source": "gdebenzin24", "station_id": "753179155", "lat": 59.93841, "lon": 30.31793},
+    # 16 Sep 2026, the historic centre, each listed by one feed alone: the Moika
+    # embankment, Gazprom Neft's office on it, Malaya Konyushennaya (a pedestrian
+    # street), Fonarny lane, a business centre on Marata, a lane of houses and a
+    # car air-conditioning shop on Vasilyevsky Island.
+    {"source": "gdebenzin24", "station_id": "370250522", "lat": 59.93997, "lon": 30.31995},
+    {"source": "gdezapravka", "station_id": "110209", "lat": 59.93308, "lon": 30.31371},
+    {"source": "gdebenzin24", "station_id": "552637759", "lat": 59.93841, "lon": 30.32685},
+    {"source": "gdebenzin24", "station_id": "17260", "lat": 59.92807, "lon": 30.30565},
+    {"source": "gdebenzin24", "station_id": "120613029", "lat": 59.92807, "lon": 30.30565},
+    {"source": "gdebenzin24", "station_id": "1055924600", "lat": 59.92157, "lon": 30.34220},
+    {"source": "gdebenzin24", "station_id": "134761076", "lat": 59.94084, "lon": 30.35742},
+    {"source": "gdezapravka", "station_id": "110219", "lat": 59.94177, "lon": 30.28145},
 )
 NOT_STATION_METRES = 60
 

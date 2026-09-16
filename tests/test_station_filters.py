@@ -37,6 +37,22 @@ class NotStations(unittest.TestCase):
             "source_refs": refs(("gdebenzin24", "753179155"), ("sber", "1")),
         }))
 
+    def test_the_centre_pins_one_feed_alone_listed_are_dropped(self):
+        for network, source, station_id, lat, lon in (
+            ("Татнефть", "gdebenzin24", "370250522", 59.93996605, 30.31994820),
+            ("Газпромнефть", "gdezapravka", "110209", 59.93308, 30.31371),
+            ("Росснефть", "gdebenzin24", "552637759", 59.93840617, 30.32684684),
+            ("teboil", "gdebenzin24", "17260", 59.928068, 30.305645),
+            ("Газпром", "gdebenzin24", "1055924600", 59.9215729, 30.3422008),
+            ("трансазс", "gdebenzin24", "134761076", 59.940839, 30.357415),
+            ("Автокондиционеры", "gdezapravka", "110219", 59.941772, 30.281453),
+        ):
+            with self.subTest(network):
+                self.assertTrue(is_not_a_station({
+                    "network": network, "location": {"lat": lat, "lon": lon},
+                    "source_refs": refs((source, station_id)),
+                }))
+
     def test_an_ordinary_station_stays(self):
         self.assertFalse(is_not_a_station({
             "network": "Роснефть", "location": {"lat": 59.7256, "lon": 30.3995},
