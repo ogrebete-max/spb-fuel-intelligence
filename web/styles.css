@@ -521,11 +521,13 @@ body.following #locateButton { background: var(--accent, #1f7a4d); color: #fff; 
 .mark-sent.refused { color: #a33a2b; }
 .feed-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 8px; font-weight: 800; font-size: 16px; color: var(--brand-dark, #0d3328); }
 .feed-head small { font-weight: 500; color: var(--muted); font-size: 12px; }
-.feed-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-.feed-item { display: grid; gap: 4px; text-align: left; padding: 12px 14px; border: 2px solid #1f7a4d; border-radius: 14px; background: #eef8f1; cursor: pointer; font: inherit; color: var(--ink); }
-.feed-title { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.feed-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); }
+/* A card never grows past its own width (16 Sep 2026: two names, a distance and
+   a long queue pushed every row of a «Свои» card off an iPhone's screen). */
+.feed-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; text-align: left; padding: 12px 14px; border: 2px solid #1f7a4d; border-radius: 14px; background: #eef8f1; cursor: pointer; font: inherit; color: var(--ink); }
+.feed-title { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; align-items: baseline; }
 .feed-title strong { font-size: 16px; }
-.feed-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.feed-meta { font-size: 12px; color: var(--muted); }
 .feed-address { font-size: 13px; color: var(--muted); }
 .feed-grades { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; align-items: center; }
 .feed-grade { padding: 3px 9px; border-radius: 999px; font-weight: 700; font-size: 14px; }
