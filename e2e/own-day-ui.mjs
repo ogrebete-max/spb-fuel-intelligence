@@ -111,10 +111,12 @@ async function run(label, browserType, device) {
   await page.evaluate(() => pollGroupMarks());
   check('«👁 Свои · 4»: every station ours marked in the day', await becomes(page, () => document.querySelector('#statusStrip [data-own]')?.textContent.trim() === '👁 Свои · 4'));
 
+  check(`the feed says how much was marked: «${await text(page, '#groupFeed [data-own-open]')}»`, await becomes(page, () => document.querySelector('#groupFeed [data-own-open]')?.textContent.trim() === 'За сутки свои отметили 4 АЗС, 5 раз →'));
+
   // 2. Fresh marks on top, nearest first; the rest of the day behind a button.
   await page.click('#statusStrip [data-own]');
   check('«Свои» opens', await becomes(page, () => state.ownOnly && document.querySelectorAll('#stationList .own-card').length > 0));
-  check(`the bar says the day: «${await text(page, '#stationList .own-bar span')}»`, (await text(page, '#stationList .own-bar span')) === 'Отметки своих за сутки');
+  check(`the bar counts the day: «${await text(page, '#stationList .own-bar span')}»`, (await text(page, '#stationList .own-bar span')) === 'За сутки свои отметили 4 АЗС, 5 раз');
   const top = await page.evaluate(() => ({
     head: document.querySelector('#stationList .own-head')?.textContent.trim(),
     cards: [...document.querySelectorAll('#stationList .own-card')].map((card) => ({
@@ -203,6 +205,23 @@ async function run(label, browserType, device) {
   const sheet = await text(page, '#driveSheet');
   await page.screenshot({ path: path.join(OUT, `own-day-${label.split(' ')[0]}-4-drive-own.png`) });
   check(`the sheet talks about it: «${sheet}»`, ['line', 'near'].includes(await page.evaluate(() => document.querySelector('#drive').dataset.kind)) && sheet.includes('95 есть'));
+
+  // How the sheet reads a contested answer (16 Sep 2026, a Teboil at 72 % with a queue, Yandex saying no).
+  const says = await page.evaluate(() => {
+    const grade = (probability, yandex) => ({ status: 'LIMITED', probability, queue: { label: '20–50 машин' }, age_seconds: 1440, yandex });
+    const against = { availability: 'NOT_AVAILABLE', fresh: true, agrees: false, confirmations: 2 };
+    return {
+      unsure: driveSays({ grade: grade(0.72) }).text,
+      sure: driveSays({ grade: grade(0.9) }).text,
+      limit: driveSays({ grade: { status: 'LIMITED', probability: 0.9, limit_liters: 20 } }).text,
+      bare: driveSays({ grade: { status: 'LIMITED', probability: 0.7 } }).text,
+      meta: driveMeta({ id: 'no-such-station', grade: grade(0.72, against) }),
+      agreeing: driveMeta({ id: 'no-such-station', grade: grade(0.72, { ...against, agrees: true }) }),
+    };
+  });
+  check(`a contested «есть» with a queue: «${says.unsure}», a near-certain one: «${says.sure}»`, says.unsure === '95 скорее есть' && says.sure === '95 есть');
+  check(`a limit and a bare restriction still said: «${says.limit}», «${says.bare}»`, says.limit === '95 есть, лимит 20 л' && says.bare === '95 скорее есть, с ограничением');
+  check(`Yandex saying otherwise is on the sheet: «${says.meta}»`, says.meta === '24 мин назад · очередь 20–50 машин · Яндекс: 95 нет' && !says.agreeing.includes('Яндекс'));
 
   // 98, which nobody marked: the sheet says so and offers every station back.
   await page.click('#drive [data-drive="grades"]');

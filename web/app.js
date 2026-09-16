@@ -40,7 +40,7 @@ const state = {
   follow: false, watchId: null, accuracy: null,
   locationAt: 0, fixStartedAt: 0, pendingFix: null, locating: false, locationTimer: null, contextTimer: null,
   passed: {}, ownOnly: false, workerBatch: false,
-  groupMarks: {}, dayMarks: {}, ownDay: false, ownMore: false, stationInfo: {}, stationDetails: {}, total: 0,
+  groupMarks: {}, dayMarks: {}, ownDay: false, ownMore: false, ownLooks: 0, stationInfo: {}, stationDetails: {}, total: 0,
   club: { enabled: false, mode: 'off', member: null, profile: null, newsTimer: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
@@ -1912,6 +1912,10 @@ async function pollGroupMarks() {
     // A server from before the day was kept answers with its three hours.
     state.ownDay = Number(payload.window_hours) >= 24;
     const dayMarks = foldMarks(payload.reports || [], now - OWN_DAY_MS);
+    const since = now - (state.ownDay ? OWN_DAY_MS : OWN_WINDOW_MS);
+    state.ownLooks = new Set((payload.reports || [])
+      .filter((report) => report && report.at >= since && report.station && report.grade)
+      .map((report) => `${report.who}|${report.station}|${report.at}`)).size;
     const changed = JSON.stringify(marks) !== JSON.stringify(state.groupMarks || {});
     const dayChanged = JSON.stringify(dayMarks) !== JSON.stringify(state.dayMarks || {});
     const previous = state.groupMarks || {};
@@ -2525,9 +2529,21 @@ function updateOwnChip() {
   else if (html) strip.insertAdjacentHTML('afterbegin', html);
 }
 
+// «За сутки свои отметили 23 АЗС, 27 раз» (16 Sep 2026): the day's work in
+// words, so that the few fresh marks on top are not taken for all there was. A
+// look is one person marking one station at one moment, whatever grades it
+// lists. A later look at the same grade replaces an earlier one on the server,
+// so the count is «at least».
+function ownTally() {
+  const stations = ownEntries().length;
+  const looks = Math.max(state.ownLooks || 0, stations);
+  const span = ownSpan();
+  return `${span.charAt(0).toLocaleUpperCase('ru-RU')}${span.slice(1)} свои отметили ${stations} АЗС, ${looks} ${plural(looks, 'раз', 'раза', 'раз')}`;
+}
+
 function ownLink() {
   const count = ownEntries().length;
-  return count ? `<button type="button" class="feed-all" data-own-open>Все отметки своих ${ownSpan()} · ${count} →</button>` : '';
+  return count ? `<button type="button" class="feed-all" data-own-open>${escapeHtml(ownTally())} →</button>` : '';
 }
 
 function bindOwnLink(root) {
@@ -2616,7 +2632,7 @@ async function renderOwnList() {
   });
   const earlier = placed.filter((entry) => entry.tier.key === 'stale').sort((a, b) => b.latest - a.latest);
   const stations = (count) => `${count} ${plural(count, 'АЗС', 'АЗС', 'АЗС')}`;
-  const back = `<div class="own-bar"><span>Отметки своих ${ownSpan()}</span><button type="button" class="own-back" data-own-back>Показать все АЗС</button></div>`;
+  const back = `<div class="own-bar"><span>${escapeHtml(ownTally())}</span><button type="button" class="own-back" data-own-back>Показать все АЗС</button></div>`;
   const head = recent.length
     ? '<p class="own-head">Свежие — до полутора часов</p>'
     : '<p class="own-head quiet">Свежих отметок нет: за полтора часа свои ничего не отмечали</p>';
@@ -5802,7 +5818,14 @@ function driveSays(station) {
   const limit = grade.limit_liters != null ? `, лимит ${Math.round(grade.limit_liters)} л` : '';
   if (grade.status === 'CAN_REFUEL') return { text: `${label} есть${limit}`, tone: 'yes' };
   if (grade.status === 'LIKELY_AVAILABLE') return { text: `${label} скорее есть${limit}`, tone: 'yes' };
-  if (grade.status === 'LIMITED') return { text: `${label} есть${limit || ', с ограничением'}`, tone: 'lim' };
+  if (grade.status === 'LIMITED') {
+    // A queue report turns «скорее есть» into LIMITED as well as «есть»: on 16
+    // Sep 2026 a Teboil at 72 % read «95 есть, с ограничением» while Yandex's
+    // drivers said there was none. «Есть» only when the sources nearly agree;
+    // a queue is told in the line below.
+    const sure = grade.probability == null || grade.probability >= 0.85;
+    return { text: `${label} ${sure ? 'есть' : 'скорее есть'}${limit || (grade.queue?.label ? '' : ', с ограничением')}`, tone: 'lim' };
+  }
   if (grade.status === 'LIKELY_NOT') return { text: `${label} скорее нет`, tone: 'no' };
   if (grade.status === 'CONFIRMED_NO') return { text: `${label} нет`, tone: 'no' };
   if (grade.status === 'CONFLICT') return { text: `по ${label} данные расходятся`, tone: 'unk' };
@@ -5844,6 +5867,12 @@ function driveMeta(station, { witness = true } = {}) {
   }
   const queue = mark?.queue != null ? queueWords(mark.queue) : grade.queue?.label;
   if (queue) parts.push(`очередь ${queue}`);
+  // Yandex is what drivers check against; the list flags its disagreement, and
+  // so does the navigator.
+  const yandex = grade.yandex;
+  if (grade.status && grade.status !== 'NO_FRESH_DATA' && yandex?.fresh && yandex.agrees === false) {
+    parts.push(`Яндекс: ${driveGradeLabel()} ${YANDEX_SENSE[yandex.availability] || 'иначе'}`);
+  }
   return parts.join(' · ');
 }
 
