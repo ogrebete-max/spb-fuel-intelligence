@@ -35,6 +35,15 @@ SOURCE_COUNT_KEYS = {
 }
 
 
+def yandex_org(station: dict[str, Any]) -> str | None:
+    """The station's organisation id in Yandex Maps, when Yandex is one of its feeds."""
+    for ref in station.get("source_refs", []):
+        station_id = str(ref.get("station_id") or "")
+        if ref.get("source") == "yandex-maps" and station_id.isascii() and station_id.isdigit():
+            return station_id
+    return None
+
+
 class StationRepository:
     def __init__(self, snapshot_path: Path, history_path: Path | None = None):
         self.snapshot_path = snapshot_path
@@ -189,7 +198,7 @@ class StationRepository:
             # available from /api/stations/{id}; omitting it here keeps map/list
             # responses small even when hundreds of stations are visible.
             grade_summary = {key: value for key, value in evaluated.items() if key != "evidence"}
-            result.append({
+            row = {
                 "id": station["id"],
                 "network": station.get("network") or "АЗС",
                 "address": station.get("address") or "Адрес не указан",
@@ -198,7 +207,14 @@ class StationRepository:
                 "source_count": len(station.get("source_refs", [])),
                 "sources": sorted({ref["source"] for ref in station.get("source_refs", [])}),
                 "grade": grade_summary,
-            })
+            }
+            # The navigator's «В Яндексе» opens the station's own card there
+            # («Расскажите о заправке», what drivers wrote). The page has to open
+            # in the tap itself, so the id travels with the list row.
+            yandex = yandex_org(station)
+            if yandex:
+                row["yandex_org"] = yandex
+            result.append(row)
 
         priority = {
             "CAN_REFUEL": 0, "LIMITED": 1, "LIKELY_AVAILABLE": 2, "CONFLICT": 3,

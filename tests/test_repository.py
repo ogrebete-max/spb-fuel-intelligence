@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from src.repository import StationRepository
+from src.repository import StationRepository, yandex_org
 
 
 class RepositoryTests(unittest.TestCase):
@@ -41,6 +41,21 @@ class RepositoryTests(unittest.TestCase):
     def test_source_count_aliases(self):
         counts = {row["id"]: row["station_rows_in_snapshot"] for row in self.repository.sources()["sources"]}
         self.assertEqual(counts, {"sber_fuel_map": 10, "toplivo_ryadom": 20})
+
+    def test_list_row_carries_yandex_org_only_when_yandex_knows_the_station(self):
+        listed = self.repository.query(grade="AI95", as_of="2026-09-11T05:00:00Z")
+        self.assertNotIn("yandex_org", listed["stations"][0])
+        snapshot = json.loads(self.path.read_text(encoding="utf-8"))
+        snapshot["stations"][0]["source_refs"].append({"source": "yandex-maps", "station_id": "48686311669"})
+        self.path.write_text(json.dumps(snapshot), encoding="utf-8")
+        listed = StationRepository(self.path).query(grade="AI95", as_of="2026-09-11T05:00:00Z")
+        self.assertEqual(listed["stations"][0]["yandex_org"], "48686311669")
+        self.assertEqual(yandex_org({"source_refs": [
+            {"source": "sber", "station_id": "7"},
+            {"source": "yandex-maps", "station_id": "not-a-number"},
+            {"source": "yandex-maps", "station_id": "48686311669"},
+        ]}), "48686311669")
+        self.assertIsNone(yandex_org({"source_refs": [{"source": "yandex-maps", "station_id": "12/34"}]}))
 
     def test_radius_keeps_nearby_station_and_adds_distance(self):
         result = self.repository.query(

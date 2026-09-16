@@ -6239,15 +6239,24 @@ function openDriveRoute(id) {
   window.open(`https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`, '_blank', 'noopener');
 }
 
-// The station itself in Yandex Maps: its card with what drivers write there,
-// and Yandex's own route button a tap away.
-function openDriveYandex(id) {
-  const station = state.stations.find((item) => item.id === id);
+// The station itself in Yandex Maps: its card with «Расскажите о заправке»
+// and what drivers write there, and Yandex's own route button a tap away.
+// When Yandex is one of the station's feeds the build carries its id and the
+// card opens straight away; otherwise a search by name and address finds it.
+function driveYandexUrl(station) {
+  const org = String(station?.yandex_org || '');
+  if (/^\d+$/.test(org)) return `https://yandex.ru/maps/org/${org}/`;
   const place = station?.location;
-  if (!place) return;
+  if (!place) return null;
   const words = `${displayNetwork(station.network)} ${driveAddress(station.address) || ''}`.trim();
+  return `https://yandex.ru/maps/?text=${encodeURIComponent(words)}&ll=${Number(place.lon)},${Number(place.lat)}&z=17`;
+}
+
+function openDriveYandex(id) {
+  const url = driveYandexUrl(state.stations.find((item) => item.id === id));
+  if (!url) return;
   track('route_open', { station: id });
-  window.open(`https://yandex.ru/maps/?text=${encodeURIComponent(words)}&ll=${Number(place.lon)},${Number(place.lat)}&z=17`, '_blank', 'noopener');
+  window.open(url, '_blank', 'noopener');
 }
 
 function driveGo(station) {

@@ -579,7 +579,43 @@ async function run(label, browserType, device) {
   check('after all of it the top bar and the sheet are still on screen', await framed(page));
   await shot(page, { path: path.join(OUT, `drive-${label}-9-night.png`) });
 
-  // 11. 🗺: the ordinary map over the whole screen; the bar opens the navigator again.
+  // 11. A station tapped on the map: «В Яндексе» opens its own card there, with
+  // «Расскажите о заправке» and what drivers wrote, when Yandex is one of its
+  // feeds; the search by name and address when it is not. It opens in the tap
+  // itself, or an iPhone would block the new page.
+  await page.evaluate(() => {
+    window.openedPages = [];
+    window.open = (url) => {
+      window.openedPages.push(String(url));
+      return null;
+    };
+  });
+  const known = await page.evaluate(() => {
+    const ids = state.stations.filter((item) => 'yandex_org' in item).map((item) => item.yandex_org);
+    const station = state.stations.find((item) => item.location && /^\d+$/.test(item.yandex_org || ''));
+    return { station, count: ids.length, digits: ids.every((id) => /^\d+$/.test(id)) };
+  });
+  check(`the list carries the Yandex ids of stations Yandex knows (${known.count} of them nearby, digits only)`, !!known.station && known.digits);
+  // The same station twice: as the build has it, then as if Yandex did not know it.
+  for (const way of ['card', 'search']) {
+    const station = known.station;
+    if (!station) break;
+    if (way === 'search') await page.evaluate((id) => delete state.stations.find((item) => item.id === id).yandex_org, station.id);
+    await page.evaluate((id) => tapDriveStation(id), station.id);
+    const sheet = await becomes(page, () => document.querySelector('#drive').dataset.kind === 'tapped' && !!document.querySelector('#driveSheet [data-drive="yandex"]'), null, 3000);
+    check(`a tapped station (${way}): its sheet with «В Яндексе» lies on screen`, sheet && await framed(page));
+    const before = await page.evaluate(() => window.openedPages.length);
+    await tap(page, '#driveSheet [data-drive="yandex"]');
+    const opened = await page.evaluate((count) => window.openedPages.slice(count), before);
+    const expected = way === 'card'
+      ? opened.length === 1 && opened[0] === `https://yandex.ru/maps/org/${station.yandex_org}/`
+      : opened.length === 1 && opened[0].startsWith('https://yandex.ru/maps/?text=') && opened[0].endsWith(`&ll=${Number(station.location.lon)},${Number(station.location.lat)}&z=17`);
+    check(`«В Яндексе» opens ${way === 'card' ? 'its card' : 'the search for it'}: ${opened.join(' ') || 'nothing'}`, expected);
+    await tap(page, '#driveSheet [data-drive="untap"]');
+    check('«Скрыть» puts the sheet back', await becomes(page, () => drive.tapped === null && document.querySelector('#drive').dataset.kind !== 'tapped', null, 3000));
+  }
+
+  // 12. 🗺: the ordinary map over the whole screen; the bar opens the navigator again.
   check('🗺 leaves the drive screen for the ordinary map', await tap(page, '#drive [data-drive="close"]') && await becomes(page, () => !drive.open && document.querySelector('#drive').hidden && !document.body.classList.contains('driving') && document.body.classList.contains('map-screen'), null, 5000));
   check('the screen lock is let go and the list and the map are intact', await page.evaluate(() => drive.wakeLock === null && !!state.map && document.querySelectorAll('#stationList .station-card').length > 0 && !!document.querySelector('#map .leaflet-tile-pane')));
   check('«🚗 Навигатор» in the bar opens it again', await tap(page, '#modeBar [data-screen="drive"]') && await becomes(page, () => drive.open, null, 5000));
