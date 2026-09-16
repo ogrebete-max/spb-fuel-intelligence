@@ -209,40 +209,53 @@ def collect_telegram() -> dict[str, Any]:
 #
 # This is the only source found that reports a queue for individual stations,
 # which is the half of the decision the project was missing.  It is fetched
-# gently: one request a second, an honest browser User-Agent, a dozen requests
-# per refresh, and the whole collector can be switched off with
-# SPBFI_DISABLE_YANDEX=1 without touching anything else.
-YANDEX_VIEWS = (
-    (29.70, 59.66), (29.81, 59.66), (29.93, 59.66), (30.04, 59.66),
-    (30.16, 59.66), (30.27, 59.66), (30.39, 59.66), (30.50, 59.66),
-    (30.62, 59.66), (30.73, 59.66), (30.85, 59.66), (29.70, 59.71),
-    (29.81, 59.71), (29.93, 59.71), (30.04, 59.71), (30.16, 59.71),
-    (30.27, 59.71), (30.39, 59.71), (30.50, 59.71), (30.62, 59.71),
-    (30.73, 59.71), (30.85, 59.71), (29.70, 59.77), (29.81, 59.77),
-    (29.93, 59.77), (30.04, 59.77), (30.16, 59.77), (30.27, 59.77),
-    (30.39, 59.77), (30.50, 59.77), (30.62, 59.77), (30.73, 59.77),
-    (30.85, 59.77), (29.70, 59.82), (29.81, 59.82), (29.93, 59.82),
-    (30.04, 59.82), (30.16, 59.82), (30.27, 59.82), (30.39, 59.82),
-    (30.50, 59.82), (30.62, 59.82), (30.73, 59.82), (30.85, 59.82),
-    (29.70, 59.88), (29.81, 59.88), (29.93, 59.88), (30.04, 59.88),
-    (30.16, 59.88), (30.27, 59.88), (30.39, 59.88), (30.50, 59.88),
-    (30.62, 59.88), (30.73, 59.88), (30.85, 59.88), (29.70, 59.93),
-    (29.81, 59.93), (29.93, 59.93), (30.04, 59.93), (30.16, 59.93),
-    (30.27, 59.93), (30.39, 59.93), (30.50, 59.93), (30.62, 59.93),
-    (30.73, 59.93), (30.85, 59.93), (29.70, 59.99), (29.81, 59.99),
-    (29.93, 59.99), (30.04, 59.99), (30.16, 59.99), (30.27, 59.99),
-    (30.39, 59.99), (30.50, 59.99), (30.62, 59.99), (30.73, 59.99),
-    (30.85, 59.99), (29.70, 60.04), (29.81, 60.04), (29.93, 60.04),
-    (30.04, 60.04), (30.16, 60.04), (30.27, 60.04), (30.39, 60.04),
-    (30.50, 60.04), (30.62, 60.04), (30.73, 60.04), (30.85, 60.04),
-    (29.70, 60.10), (29.81, 60.10), (29.93, 60.10), (30.04, 60.10),
-    (30.16, 60.10), (30.27, 60.10), (30.39, 60.10), (30.50, 60.10),
-    (30.62, 60.10), (30.73, 60.10), (30.85, 60.10), (29.70, 60.15),
-    (29.81, 60.15), (29.93, 60.15), (30.04, 60.15), (30.16, 60.15),
-    (30.27, 60.15), (30.39, 60.15), (30.50, 60.15), (30.62, 60.15),
-    (30.73, 60.15), (30.85, 60.15),
+# gently: one request a second, an honest browser User-Agent, and the whole
+# collector can be switched off with SPBFI_DISABLE_YANDEX=1 without touching
+# anything else.
+#
+# A search page lists at most 25 stations, whatever the zoom, and neither
+# `page` nor `results` brings more (16 Sep 2026).  So the stations are reached
+# from many sides: searches by chain and by district, then map views.  Measured
+# twice, two hours apart, over 110 views on a grid and 28 searches: these 77
+# requests reach all ~570 stations that the whole pool returned, where the grid
+# alone reached 488.  docs/sources-scout/yandex-coverage.py measures it again.
+YANDEX_SEARCHES = (
+    "АЗС Teboil", "АЗС Татнефть", "АЗС ПТК", "АЗС Лукойл", "АЗС Кинеф",
+    "АЗС Выборгский район", "АЗС Фрунзенский район", "АЗС Пушкинский район",
+    "АЗС Красногвардейский район", "АЗС Курортный район", "АЗС Московский район",
+    "АЗС Петродворцовый район", "АЗС Невский район", "АЗС Кировский район",
+    "АЗС Колпинский район", "АЗС Петроградский район", "АЗС Красносельский район",
+    "АЗС Приморский район", "АЗС Калининский район", "АЗС Кронштадтский район",
+    "АЗС Василеостровский район",
 )
+YANDEX_VIEWS = (
+    (30.16, 59.66), (30.27, 59.66), (30.39, 59.66), (30.50, 59.66),
+    (29.81, 59.71), (29.93, 59.71), (30.04, 59.71), (30.16, 59.71),
+    (30.27, 59.71), (30.39, 59.71), (30.62, 59.71), (30.73, 59.71),
+    (30.85, 59.71), (29.93, 59.77), (30.04, 59.77), (30.16, 59.77),
+    (30.27, 59.77), (30.39, 59.77), (30.50, 59.77), (30.73, 59.77),
+    (29.70, 59.82), (29.93, 59.82), (30.27, 59.82), (30.39, 59.82),
+    (30.50, 59.82), (30.62, 59.82), (29.70, 59.88), (30.04, 59.88),
+    (30.16, 59.88), (30.39, 59.88), (30.50, 59.88), (30.73, 59.88),
+    (29.70, 59.93), (30.27, 59.93), (30.39, 59.93), (30.50, 59.93),
+    (30.62, 59.93), (30.85, 59.93), (30.27, 59.99), (30.39, 59.99),
+    (30.50, 59.99), (30.62, 59.99), (30.73, 59.99), (30.85, 59.99),
+    (30.27, 60.04), (30.39, 60.04), (30.50, 60.04), (30.73, 60.04),
+    (30.27, 60.10), (30.39, 60.10), (30.50, 60.10), (30.85, 60.10),
+    (29.81, 60.15), (30.16, 60.15), (30.39, 60.15), (30.50, 60.15),
+)
+YANDEX_SEARCH_URL = "https://yandex.ru/maps/2/saint-petersburg/search/"
 YANDEX_STATE = re.compile(r'<script type="application/json" class="state-view">(.*?)</script>', re.S)
+
+
+def yandex_requests() -> list[tuple[str, str]]:
+    """Every page the collector asks for, as (label, url)."""
+    searches = [(text, f"{YANDEX_SEARCH_URL}{quote(text)}/") for text in YANDEX_SEARCHES]
+    views = [
+        (f"{lon},{lat}", f"{YANDEX_SEARCH_URL}{quote('АЗС')}/?ll={lon:.4f}%2C{lat:.4f}&z=14")
+        for lon, lat in YANDEX_VIEWS
+    ]
+    return searches + views
 
 
 def collect_yandex() -> dict[str, Any]:
@@ -250,26 +263,22 @@ def collect_yandex() -> dict[str, Any]:
         raise RuntimeError("disabled by SPBFI_DISABLE_YANDEX")
     stations: dict[str, dict[str, Any]] = {}
     errors: list[str] = []
-    for index, (lon, lat) in enumerate(YANDEX_VIEWS):
+    for index, (label, url) in enumerate(yandex_requests()):
         if index:
             time.sleep(1.0)
-        url = (
-            "https://yandex.ru/maps/2/saint-petersburg/search/"
-            f"{quote('АЗС')}/?ll={lon:.4f}%2C{lat:.4f}&z=14"
-        )
         try:
             page = _fetch(url, accept="text/html", timeout=45).decode("utf-8", "replace")
         except Exception as exc:
-            errors.append(f"{lon},{lat}: {type(exc).__name__}: {exc}")
+            errors.append(f"{label}: {type(exc).__name__}: {exc}")
             continue
         match = YANDEX_STATE.search(page)
         if not match:
-            errors.append(f"{lon},{lat}: fuel block missing")
+            errors.append(f"{label}: fuel block missing")
             continue
         try:
             state = json.loads(html.unescape(match.group(1)))
         except json.JSONDecodeError as exc:
-            errors.append(f"{lon},{lat}: {exc}")
+            errors.append(f"{label}: {exc}")
             continue
         for stack in state.get("stack", []):
             for item in (stack.get("results") or {}).get("items") or []:
@@ -288,8 +297,8 @@ def collect_yandex() -> dict[str, Any]:
                 }
     if not stations:
         raise RuntimeError("; ".join(errors) or "no stations returned")
-    return {"captured_at": _now(), "views": len(YANDEX_VIEWS), "errors": errors,
-            "stations": list(stations.values())}
+    return {"captured_at": _now(), "views": len(YANDEX_VIEWS), "searches": len(YANDEX_SEARCHES),
+            "errors": errors, "stations": list(stations.values())}
 
 
 def _tiles(steps_lat: int, steps_lon: int) -> list[tuple[float, float, float, float]]:
