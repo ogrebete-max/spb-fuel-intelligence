@@ -37,8 +37,12 @@ self.addEventListener('fetch', (event) => {
   // white screen on iPhone. A page load now always gets a real page: the
   // network one, else the cached shell.
   if (request.mode === 'navigate') {
+    // The page is asked of the site every time, not of the browser's cache:
+    // GitHub Pages lets a browser keep it ten minutes, and an app opened in
+    // those minutes after a new build started on the old page and had to
+    // reload itself (16 Sep 2026). An unchanged page costs a short «304».
     event.respondWith(
-      fetch(request)
+      fetch(new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' }))
         .then((response) => {
           if (response.redirected) {
             return response.blob().then((body) => new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers }));

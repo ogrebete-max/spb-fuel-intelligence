@@ -6931,8 +6931,8 @@ bootstrap();
 
 // A published snapshot changes every ten minutes, but an open page used to
 // keep the copy it loaded for as long as it stayed open — which looks exactly
-// like an app that never updates.
-const SNAPSHOT_POLL_MS = 120000;
+// like an app that never updates. A new build is looked for every minute.
+const SNAPSHOT_POLL_MS = 60000;
 
 // Every automatic reload goes through here. Two triggers exist (a new build
 // and a new service worker) and on an iPhone home-screen app a page served
@@ -6986,6 +6986,23 @@ setInterval(() => {
 pollGroupMarks();
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) { pollForNewSnapshot(); pollGroupMarks(); }
+});
+
+// A computer's window that stays on screen gets no visibilitychange when one
+// comes back to it: on 16 Sep 2026 the owner looked at the app on a computer
+// minutes after a new build and saw the old one, still waiting for its poll.
+// Coming back to the window, the page coming back from the browser's history,
+// or the network returning, looks for a new build at once.
+let lookedForBuildAt = 0;
+function lookForNewBuild() {
+  if (document.hidden || Date.now() - lookedForBuildAt < 15000) return;
+  lookedForBuildAt = Date.now();
+  pollForNewSnapshot();
+}
+window.addEventListener('focus', lookForNewBuild);
+window.addEventListener('online', lookForNewBuild);
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) lookForNewBuild();
 });
 
 if ('serviceWorker' in navigator) {
