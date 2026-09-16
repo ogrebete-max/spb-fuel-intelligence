@@ -28,6 +28,8 @@ const runs = [
   ['write-guard.test.mjs', 'd1'],
   ['analytics-owner.test.mjs', 'kv'],
   ['analytics-owner.test.mjs', 'd1'],
+  ['club-return-ask.test.mjs', 'kv'],
+  ['club-return-ask.test.mjs', 'd1'],
   ['storage.test.mjs', 'kv+d1'],
   ['migrate.test.mjs', 'd1'],
   ['club.test.mjs', 'd1-file'],

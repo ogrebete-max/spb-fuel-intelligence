@@ -1213,6 +1213,16 @@ function cleanName(value) {
   return String(value || '').replace(/[<>\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
 }
 
+// Names are told apart the way the owner's key is read: «Саша» and «саша » are
+// one name, and one name is one person (16 Sep 2026).
+function sameName(left, right) {
+  return !!ownerKeyForm(left) && ownerKeyForm(left) === ownerKeyForm(right);
+}
+
+async function sha256Text(value) {
+  return b64u.encode(new Uint8Array(await crypto.subtle.digest('SHA-256', utf8.encode(String(value)))));
+}
+
 function publicMember(member) {
   return {
     id: member.id, name: member.name, role: member.role, sponsor: member.sponsor || null,
@@ -1237,6 +1247,10 @@ function inviteAllowance(member, invites) {
 // device that is still inside. A code from the owner is the last resort.
 const LOGIN_CODE_MS = 10 * 60 * 1000;
 const RETURN_CODE_MS = 7 * 24 * 60 * 60 * 1000;
+// A member back on a new phone with a fresh code waits a day at most for the
+// one who gave it to vouch, then has a quarter of an hour to pick up the pass.
+const RETURN_ASK_MS = 24 * 60 * 60 * 1000;
+const RETURN_PASS_MS = 15 * 60 * 1000;
 const PASSKEY_CHALLENGE_MS = 5 * 60 * 1000;
 const PASSKEYS_PER_MEMBER = 6;
 const MAX_DEVICES = 8;
@@ -1410,7 +1424,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, owner_analytics: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, owner_analytics: true, return_asks: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -1490,6 +1504,11 @@ async function clubRoutes(request, env, url, ctx) {
       if (body.accept !== true) return { error: 'rules_not_accepted', status: 400 };
       const sponsor = members[invite.by];
       if (!sponsor || sponsor.banned) return { error: 'sponsor_banned', status: 403 };
+      // One name, one person (16 Sep 2026): a member on a new phone given a
+      // fresh code became a second member with nothing. The app asks whether it
+      // is them, and whoever gave the code vouches (/club/return/ask).
+      const namesake = Object.values(members).find((item) => sameName(item.name, name));
+      if (namesake) return { error: 'name_taken', status: 409, name: namesake.name };
       let id;
       do {
         id = b64u.encode(crypto.getRandomValues(new Uint8Array(6)));
@@ -1504,6 +1523,7 @@ async function clubRoutes(request, env, url, ctx) {
         ...(joined.reason != null ? { reason: joined.reason } : {}),
         ...(joined.by ? { by: joined.by } : {}),
         ...(joined.returning != null ? { returning: joined.returning } : {}),
+        ...(joined.name ? { name: joined.name } : {}),
       };
       return json({ error: joined.error, ...extra }, request, env, joined.status);
     }
@@ -1549,13 +1569,82 @@ async function clubRoutes(request, env, url, ctx) {
     return json({ token: await issueToken(env, who.id), member: publicMember(who), returned: true }, request, env);
   }
 
+  // Back on a new phone with a fresh code (16 Sep 2026): the name typed is a
+  // member's already. The phone asks whoever made the code to vouch that it is
+  // that member, as the owner decided, and gets a secret to fetch the pass
+  // with once they have. The code is not spent.
+  if (request.method === 'POST' && path === '/club/return/ask') {
+    if (limited(request, 'club-return', 6)) return json({ error: 'too_many_attempts' }, request, env, 429);
+    const body = (await readJson(request)) || {};
+    const code = normalizeCode(body.code);
+    const name = cleanName(body.name);
+    const device = String(body.device || '').slice(0, 64);
+    if (!code || !name) return json({ error: 'expected_code_and_name' }, request, env, 400);
+    const secret = b64u.encode(crypto.getRandomValues(new Uint8Array(18)));
+    const hashed = await sha256Text(secret);
+    const asked = await transact(env, { 'club:members': {}, 'club:invites': {}, 'club:returns': {}, 'club:stats': {} }, (docs) => {
+      const everyone = docs['club:members'];
+      const invite = docs['club:invites'][code];
+      const now = Date.now();
+      if (!invite || invite.revoked || invite.for) return { error: 'invite_unknown', status: 404 };
+      if (invite.used_by) return { error: 'invite_used', status: 409 };
+      if (invite.expires < now) return { error: 'invite_expired', status: 410 };
+      const voucher = everyone[invite.by];
+      if (!voucher || voucher.banned) return { error: 'sponsor_banned', status: 403 };
+      const target = Object.values(everyone).find((item) => sameName(item.name, name));
+      if (!target) return { error: 'member_unknown', status: 404 };
+      if (target.role === 'owner') return { error: 'owner_returns_by_key', status: 403 };
+      if (target.banned) return { ...bannedBody(target), status: 403 };
+      const returns = docs['club:returns'];
+      for (const [id, item] of Object.entries(returns)) {
+        // Answers a day old are clutter, and a phone asking again replaces its request.
+        if (item.expires < now - RETURN_ASK_MS || (item.for === target.id && item.device === device)) delete returns[id];
+      }
+      let id;
+      do {
+        id = b64u.encode(crypto.getRandomValues(new Uint8Array(9)));
+      } while (returns[id]);
+      returns[id] = { for: target.id, by: invite.by, code, device, secret: hashed, status: 'pending', at: now, expires: now + RETURN_ASK_MS };
+      pushNews(statsFor(docs['club:stats'], invite.by), { type: 'return_ask', name: target.name, at: now });
+      return { id, name: target.name, by_name: voucher.name, expires: returns[id].expires };
+    });
+    if (asked.error) return json({ error: asked.error, ...(asked.reason != null ? { reason: asked.reason } : {}) }, request, env, asked.status);
+    return json({ ...asked, secret }, request, env);
+  }
+
+  if (request.method === 'POST' && path === '/club/return/status') {
+    if (limited(request, 'club-return-status', 30)) return json({ error: 'too_many_attempts' }, request, env, 429);
+    const body = (await readJson(request)) || {};
+    const id = String(body.id || '').slice(0, 32);
+    const hashed = await sha256Text(String(body.secret || '').slice(0, 64));
+    const { 'club:returns': returns, 'club:members': everyone } = await loadDocs(env, { 'club:returns': {}, 'club:members': {} });
+    const ask = returns[id];
+    if (!ask || !constantEqual(String(ask.secret), hashed)) return json({ error: 'return_unknown' }, request, env, 404);
+    const now = Date.now();
+    const byName = everyone[ask.by]?.name || '';
+    if (ask.status === 'pending') return json({ status: now > ask.expires ? 'expired' : 'pending', by_name: byName }, request, env);
+    if (ask.status !== 'approved') return json({ status: ask.status, by_name: byName }, request, env);
+    if (now > (ask.answered_at || 0) + RETURN_PASS_MS) return json({ status: 'expired', by_name: byName }, request, env);
+    // Vouched for: the pass, as often as asked within the quarter of an hour,
+    // so an answer lost on a weak connection is not lost for good.
+    const back = await transact(env, { 'club:members': {} }, (docs) => {
+      const target = docs['club:members'][ask.for];
+      if (!target) return { error: 'member_unknown', status: 404 };
+      if (target.banned) return { ...bannedBody(target), status: 403 };
+      rememberDevice(target, ask.device);
+      return { member: target };
+    });
+    if (back.error) return json({ error: back.error, ...(back.reason != null ? { reason: back.reason } : {}) }, request, env, back.status);
+    return json({ status: 'approved', token: await issueToken(env, back.member.id), member: publicMember(back.member), returned: true }, request, env);
+  }
+
   const members = await readDoc(env, 'club:members', {});
   const member = await clubMember(request, env, members);
   if (!member) return json({ error: 'club_required' }, request, env, 401);
   if (member.banned) return json(bannedBody(member), request, env, 403);
 
   if (request.method === 'GET' && path === '/club/me') {
-    const { 'club:invites': invites, 'club:stats': all, 'club:passkeys': keys, 'club:settings': settings } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {}, 'club:passkeys': {}, 'club:settings': {} });
+    const { 'club:invites': invites, 'club:stats': all, 'club:passkeys': keys, 'club:settings': settings, 'club:returns': returns } = await loadDocs(env, { 'club:invites': {}, 'club:stats': {}, 'club:passkeys': {}, 'club:settings': {}, 'club:returns': {} });
     const mine = Object.entries(invites)
       .filter(([, invite]) => invite.by === member.id && !invite.revoked && !invite.for)
       .map(([code, invite]) => ({
@@ -1575,6 +1664,10 @@ async function clubRoutes(request, env, url, ctx) {
       // The club's chat link reaches members only, from here.
       chat_url: settings.chat_url || null,
       request_url: settings.request_url || null,
+      // Members back on a new phone with this member's code, waiting to be vouched for.
+      returns: Object.entries(returns)
+        .filter(([, ask]) => ask.by === member.id && ask.status === 'pending' && ask.expires > Date.now())
+        .map(([id, ask]) => ({ id, name: members[ask.for]?.name || '', code: ask.code, at: ask.at })),
       profile: profileOf(stats), news, now: Date.now(),
     }, request, env);
   }
@@ -1617,6 +1710,24 @@ async function clubRoutes(request, env, url, ctx) {
   // A way back that needs nobody: a device still inside shows a short code for
   // a computer or a new phone. The owner can make one for someone who has lost
   // every device and has no passkey.
+  // Whoever made the code vouches that the phone asking to come back is that member.
+  if (request.method === 'POST' && path === '/club/return/answer') {
+    if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
+    const body = (await readJson(request)) || {};
+    const id = String(body.id || '').slice(0, 32);
+    const answered = await transact(env, { 'club:returns': {} }, (docs) => {
+      const ask = docs['club:returns'][id];
+      if (!ask || ask.by !== member.id) return { error: 'return_unknown', status: 404 };
+      if (ask.status !== 'pending') return { status: ask.status, for: ask.for };
+      if (ask.expires < Date.now()) return { error: 'return_expired', status: 410 };
+      ask.status = body.yes === true ? 'approved' : 'declined';
+      ask.answered_at = Date.now();
+      return { status: ask.status, for: ask.for };
+    });
+    if (answered.error) return json({ error: answered.error }, request, env, answered.status);
+    return json({ ok: true, status: answered.status, name: members[answered.for]?.name || '' }, request, env);
+  }
+
   if (request.method === 'POST' && path === '/club/code') {
     if (member.pending) return json({ error: 'try_again_in_a_minute' }, request, env, 409);
     const body = (await readJson(request)) || {};

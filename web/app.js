@@ -306,7 +306,12 @@ async function bootstrap() {
   try { state.club.member = JSON.parse(localStorage.getItem(CLUB_MEMBER_KEY) || 'null'); } catch { state.club.member = null; }
   $('#clubButton')?.addEventListener('click', showClub);
   bindSecretClubEntry();
+  // A saved membership shows at once, as the club last answered; the check that
+  // follows confirms it. On 16 Sep 2026 one slow or failed check at the start
+  // hid names, «Спасибо» and 👍/👎 on a member's phone until the app reopened.
+  restoreClubState();
   checkClub();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && state.club.healthFailed) checkClub(); });
   // A tapped notification lands here with the station in the URL.
   const wanted = new URLSearchParams(location.search).get('station');
   if (wanted) {
@@ -2380,6 +2385,7 @@ function handleNews(news = [], now = Date.now()) {
       else if (item.type === 'hero') { burst('🦸'); showToast('🦸 Вы — герой прошлой недели!', `${handshakes(item.liters)} за неделю. Спасибо от всего клуба.`); }
       else if (item.type === 'sponsor') showToast('🤝 Ваш приглашённый стал активным', 'Значок «Поручитель» — ваш.');
       else if (item.type === 'invites') { burst('🎟'); showToast('🎟 Вам дали ещё приглашения', `+${item.count} от владельца · «👥 Клуб» → «Создать приглашение»`); }
+      else if (item.type === 'return_ask') showToast(`🔑 «${item.name}» просит вернуться в клуб`, 'Подтвердите в «👥 Клуб», если это правда он(а).');
     }, 600 * index);
   });
 }
@@ -2998,6 +3004,10 @@ const CLUB_ERRORS = {
   bad_chat_url: 'Нужна ссылка на группу в Telegram — она начинается с https://t.me/',
   invite_expired: 'Срок кода истёк: он действует 7 дней. Попросите новый.',
   sponsor_banned: 'Пригласивший исключён из клуба, поэтому код недействителен.',
+  name_taken: 'Это имя в клубе уже занято. Напишите другое — например, с фамилией или буквой.',
+  owner_returns_by_key: 'Это имя владельца клуба, а он входит своим ключом. Если вы другой человек — напишите другое имя.',
+  return_unknown: 'Запрос на возвращение не найден. Попросите код ещё раз.',
+  return_expired: 'Запрос на возвращение устарел. Попросите код ещё раз.',
   rules_not_accepted: 'Чтобы вступить, нужно принять правила клуба.',
   expected_code_and_name: 'Введите код приглашения и имя.',
   wrong_owner_key: 'Ключ владельца не подошёл. Нажмите «Показать» и сверьте слова с сохранёнными.',
@@ -3304,20 +3314,51 @@ function handleClubRejection(result) {
   return true;
 }
 
+const CLUB_HEALTH_KEY = 'spbfi-club-health-v1';
+
+function restoreClubState() {
+  if (!clubToken() || !state.club.member) return;
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(CLUB_HEALTH_KEY) || 'null'); } catch { saved = null; }
+  // A club the server last said was off stays off until it says otherwise.
+  if (saved?.mode === 'off') return;
+  state.club.mode = ['test', 'invite', 'closed'].includes(saved?.mode) ? saved.mode : 'test';
+  state.club.features = saved?.features || {};
+  state.club.enabled = true;
+  renderClubButton();
+}
+
+// A check that failed is made again in 15 seconds, then less often, up to every
+// two minutes, and at once when the app comes back to the screen.
+function retryClubCheck() {
+  clearTimeout(state.club.retryTimer);
+  state.club.retryDelay = Math.min(120000, (state.club.retryDelay || 7500) * 2);
+  state.club.retryTimer = setTimeout(checkClub, state.club.retryDelay);
+}
+
 async function checkClub() {
   if (!window.SPBFI_REPORT_ENDPOINT) return;
-  let health;
+  let health = null;
   try {
-    health = await clubCall('/club/health', { timeout: 6000 });
+    health = await clubCall('/club/health', { timeout: 12000 });
   } catch {
-    // The worker is unreachable. A saved membership keeps working offline and
-    // nobody is locked out of the station list because of a network hiccup.
+    health = null;
+  }
+  // No answer, or not the club's (the proxy while the server restarts, a
+  // timeout on a weak connection): what the phone shows stays as it was — a
+  // saved membership keeps working — and the phone asks again. Only the
+  // club's own answer changes it.
+  if (!health?.ok || typeof health.data?.mode !== 'string') {
     state.club.healthFailed = true;
+    retryClubCheck();
     return;
   }
-  state.club.healthFailed = !health.ok;
+  state.club.healthFailed = false;
+  clearTimeout(state.club.retryTimer);
+  state.club.retryDelay = 0;
   state.club.mode = clubModeFrom(health);
-  state.club.features = health.ok ? (health.data || {}) : {};
+  state.club.features = health.data;
+  try { localStorage.setItem(CLUB_HEALTH_KEY, JSON.stringify({ mode: state.club.mode, features: state.club.features, at: Date.now() })); } catch { /* the next start asks again */ }
   // Until the door is closed only the phones that joined are inside; for
   // everyone else the app stays exactly as it was.
   state.club.enabled = state.club.mode === 'closed' || (state.club.mode !== 'off' && !!clubToken());
@@ -3326,7 +3367,7 @@ async function checkClub() {
     renderClubButton();
     // An invitation link, or the owner's, still opens the door on request.
     const wanted = new URLSearchParams(location.search).get('club');
-    if (state.club.mode !== 'off' && (inviteFromUrl() || wanted === 'owner' || wanted === 'join')) showClubGate({ mode: wanted === 'owner' ? 'owner' : 'join' });
+    if (state.club.mode !== 'off' && (inviteFromUrl() || wanted === 'owner' || wanted === 'join' || (!state.club.member && storedReturn()))) showClubGate({ mode: wanted === 'owner' ? 'owner' : 'join' });
     return;
   }
   if (!clubToken()) {
@@ -3597,6 +3638,9 @@ function showClubGate({ notice = '', banned = null, bannedBy = 'owner', mode = '
     event.preventDefault();
     enterClub('/club/owner', { key: $('#gateOwnerKey').value, name: $('#gateOwnerName').value }, event.target.querySelector('.gate-submit'));
   });
+  // A phone that asked to come back and was closed meanwhile waits on.
+  const asked = mode === 'join' ? storedReturn() : null;
+  if (asked) waitForReturn(asked);
 }
 
 async function enterClub(path, body, button, { busy = '', passkey = false } = {}) {
@@ -3619,6 +3663,11 @@ async function enterClub(path, body, button, { busy = '', passkey = false } = {}
         // themselves; a friend it was passed on to does not become them.
         if (confirm(`Этим кодом уже вступил(а) «${returning}». Это вы?\n\nНажмите «OK», чтобы вернуться в клуб как «${returning}» — со всеми рукопожатиями.`)) retry = { ...body, returning: true };
         else if (error) error.textContent = CLUB_ERRORS.not_your_code;
+        return;
+      }
+      // The name is a member's already: not a twin with nothing, a way back.
+      if (result.data?.error === 'name_taken' && path === '/club/join') {
+        offerReturn(body, result.data.name || body.name);
         return;
       }
       // The code was accepted and only the name is missing: say that, not
@@ -3656,6 +3705,138 @@ async function enterClub(path, body, button, { busy = '', passkey = false } = {}
     if (error?.isConnected && error.textContent) error.scrollIntoView({ block: 'center', behavior: 'smooth' });
     if (retry) enterClub(path, retry, button, { busy: '⏳ Возвращаем вас в клуб…' });
   }
+}
+
+// Back on a new phone with a fresh code (16 Sep 2026): the name is a member's
+// already. Not a twin with nothing — the owner said one name is one person —
+// but a request to whoever gave the code to vouch; the phone waits for the
+// answer and comes in as that member, with everything they had.
+const RETURN_KEY = 'spbfi-club-return-v1';
+let returnTimer = null;
+
+function storedReturn() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(RETURN_KEY) || 'null');
+    return saved?.id && saved.expires > Date.now() ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function forgetReturn() {
+  try { localStorage.removeItem(RETURN_KEY); } catch { /* nothing kept */ }
+}
+
+function returnBox(html) {
+  $('#gateReturnAsk')?.remove();
+  const box = document.createElement('div');
+  box.className = 'gate-return';
+  box.id = 'gateReturnAsk';
+  box.innerHTML = html;
+  const form = $('#gateJoinForm');
+  if (form) form.insertAdjacentElement('afterend', box);
+  else $('#clubGate .gate-card')?.append(box);
+  box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  return box;
+}
+
+function offerReturn(body, name) {
+  const error = $('#gateError');
+  if (error) error.textContent = '';
+  const box = returnBox(`<strong class="gate-return-title">«${escapeHtml(name)}» уже в клубе. Это вы с нового телефона?</strong>
+    <p>Тогда тот, кто дал вам этот код, подтвердит, что это вы, и вы вернётесь в клуб прежним участником — со всеми рукопожатиями. Код при этом не тратится.</p>
+    <button type="button" class="gate-submit" id="gateReturnYes">Да, это я</button>
+    <button type="button" class="gate-submit secondary" id="gateReturnNo">Нет, выберу другое имя</button>`);
+  box.querySelector('#gateReturnNo').addEventListener('click', () => {
+    box.remove();
+    if (error) error.textContent = `В клубе уже есть «${name}». Напишите другое имя — например, с фамилией или буквой.`;
+    $('#gateName')?.focus();
+  });
+  box.querySelector('#gateReturnYes').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = '⏳ Отправляем запрос…';
+    const result = await clubCall('/club/return/ask', { method: 'POST', body: { code: body.code, name: body.name, device: deviceId() }, timeout: 20000 }).catch(() => null);
+    if (!result?.ok || !result.data?.secret) {
+      button.disabled = false;
+      button.textContent = 'Да, это я';
+      if (error) error.textContent = result ? clubMessage(result) : 'Нет связи с клубом. Проверьте интернет и попробуйте ещё раз.';
+      return;
+    }
+    const ask = { id: result.data.id, secret: result.data.secret, name: result.data.name, by_name: result.data.by_name, expires: result.data.expires };
+    try { localStorage.setItem(RETURN_KEY, JSON.stringify(ask)); } catch { /* the open gate still waits */ }
+    waitForReturn(ask);
+  });
+}
+
+function waitForReturn(ask) {
+  const voucher = escapeHtml(ask.by_name || 'участник');
+  const box = returnBox(`<strong class="gate-return-title">⏳ Ждём, когда «${voucher}» подтвердит, что это вы</strong>
+    <p>У «${voucher}» в «👥 Клуб» появился ваш запрос. Можно написать и попросить открыть приложение. Как только подтвердит — вы войдёте сами, как «${escapeHtml(ask.name)}».</p>
+    <button type="button" class="gate-submit secondary" id="gateReturnCheck">Проверить сейчас</button>
+    <button type="button" class="gate-link" id="gateReturnCancel">Отменить запрос</button>
+    <small id="gateReturnNote" role="status"></small>`);
+  const note = box.querySelector('#gateReturnNote');
+  const stop = () => {
+    clearInterval(returnTimer);
+    returnTimer = null;
+  };
+  const check = async () => {
+    if (!box.isConnected || $('#clubGate')?.hidden) {
+      stop();
+      return;
+    }
+    const result = await clubCall('/club/return/status', { method: 'POST', body: { id: ask.id, secret: ask.secret }, timeout: 15000 }).catch(() => null);
+    if (!box.isConnected) return;
+    if (!result) {
+      note.textContent = 'Нет связи с клубом — проверим ещё раз через несколько секунд.';
+      return;
+    }
+    const status = result.data?.status;
+    if (status === 'approved' && result.data.token) {
+      stop();
+      if (!admitReturned(result.data)) note.textContent = 'Телефон не даёт сохранить вход. Если открыт частный режим Safari, откройте приложение обычным способом.';
+      return;
+    }
+    if (status === 'pending') {
+      note.textContent = `Пока не подтвердили · проверено в ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+      return;
+    }
+    stop();
+    forgetReturn();
+    box.querySelector('#gateReturnCheck').hidden = true;
+    note.textContent = status === 'declined'
+      ? `«${ask.by_name}» не подтвердил(а), что это вы. Если это ошибка — напишите и попросите код ещё раз.`
+      : status === 'expired' ? 'Запрос устарел. Попросите код ещё раз.' : clubMessage(result);
+  };
+  box.querySelector('#gateReturnCheck').addEventListener('click', check);
+  box.querySelector('#gateReturnCancel').addEventListener('click', () => {
+    stop();
+    forgetReturn();
+    box.remove();
+  });
+  stop();
+  returnTimer = setInterval(check, 5000);
+  check();
+}
+
+// The pass a vouched-for return brings, kept as a sign-in keeps it.
+function admitReturned(data) {
+  try {
+    localStorage.setItem(CLUB_TOKEN_KEY, data.token);
+    localStorage.setItem(CLUB_MEMBER_KEY, JSON.stringify(data.member));
+  } catch {
+    return false;
+  }
+  forgetReturn();
+  navigator.storage?.persist?.().catch(() => {});
+  state.club.member = data.member;
+  state.club.enabled = true;
+  if (/[?&](club|invite)=/.test(location.search)) history.replaceState(null, '', location.pathname);
+  renderClubButton();
+  showWelcome(data.member, false, { returned: true });
+  checkClub();
+  return true;
 }
 
 function renderClubButton() {
@@ -3801,6 +3982,7 @@ async function showClub() {
     <p class="drawer-address">Вы в клубе как <b>${escapeHtml(member.name)}</b>${owner ? ' · владелец' : ''}.</p>
     ${me.data.chat_url ? `<a class="list-more club-chat" href="${escapeHtml(me.data.chat_url)}" target="_blank" rel="noopener noreferrer">💬 Чат клуба в Telegram</a>` : ''}
     ${owner && state.club.features?.owner_analytics ? '<a class="list-more club-analytics" href="analytics.html">📊 Аналитика: сколько людей открывают приложение</a>' : ''}
+    ${(me.data.returns || []).map((ask) => `<div class="drawer-status club-return-ask" style="--status-color:#b86b00"><strong>🔑 «${escapeHtml(ask.name)}» просит вернуться в клуб</strong><p>С нового телефона, по вашему коду ${escapeHtml(ask.code)}, ${escapeHtml(formatAge((Date.now() - ask.at) / 1000))}. Подтвердите, только если уверены, что это правда ${escapeHtml(ask.name)}: он(а) вернётся со всеми рукопожатиями.</p><button type="button" class="list-more" data-return-yes="${escapeHtml(ask.id)}">Да, это ${escapeHtml(ask.name)}</button><button type="button" class="list-more" data-return-no="${escapeHtml(ask.id)}">Нет, не знаю, кто это</button></div>`).join('')}
     ${profileCard(profile)}
     ${me.data.refuted_by ? `<div class="drawer-status" style="--status-color:#b8333a"><strong>👎 Ваши отметки опровергли: ${me.data.refuted_by} ${plural(me.data.refuted_by, 'человек', 'человека', 'человек')}${owner ? '' : ' из 5'}</strong><p>Так решили участники, которые сами были на тех заправках. ${owner ? 'Владельца из клуба не выводят, но это повод перепроверить.' : 'Отмечайте только то, что видите на колонках: после пяти разных людей — выбывание из клуба.'}</p></div>` : ''}
     <div class="drawer-status" style="--status-color:#0d5a43">
@@ -3848,6 +4030,18 @@ async function showClub() {
     button.textContent = '🎟 Запрос отправлен владельцу';
     showToast('🎟 Запрос отправлен', 'Владелец получит уведомление и сможет дать ещё приглашений.');
   });
+  $$('#drawerContent [data-return-yes], #drawerContent [data-return-no]').forEach((button) => button.addEventListener('click', async () => {
+    const yes = !!button.dataset.returnYes;
+    button.disabled = true;
+    const result = await clubCall('/club/return/answer', { method: 'POST', body: { id: button.dataset.returnYes || button.dataset.returnNo, yes } }).catch(() => null);
+    if (!result?.ok) {
+      button.disabled = false;
+      showToast('Не получилось ответить', result ? clubMessage(result) : 'Нет связи с клубом. Попробуйте ещё раз.', null, { key: 'club-return' });
+      return;
+    }
+    showToast(yes ? `✅ «${result.data.name}» возвращается в клуб` : 'Запрос отклонён', yes ? 'Телефон войдёт сам в течение минуты.' : 'Этот телефон в клуб не войдёт.', null, { key: 'club-return' });
+    showClub();
+  }));
   $('#clubChatSave')?.addEventListener('click', async (event) => {
     const button = event.currentTarget;
     const note = $('#clubChatNote');
