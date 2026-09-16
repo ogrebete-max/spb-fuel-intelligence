@@ -450,8 +450,11 @@ async function run(label, browserType, device) {
   check(`standing about twenty seconds brings «Вы на АЗС» (${standing} s)`, (await kind(page)) === 'at' && standing >= 18);
   const at = await text(page, '#driveFull');
   check(`«${at.slice(0, 80)}…»`, at.startsWith('Вы на АЗС') && at.includes(names.display));
-  const sizes = await page.evaluate(() => [...document.querySelectorAll('#driveFull .drive-btn.huge')].map((button) => [button.textContent.trim(), Math.round(button.getBoundingClientRect().height)]));
-  check(`two huge buttons ${JSON.stringify(sizes)}`, sizes.length === 2 && sizes[0][0] === '95 есть' && sizes[1][0] === '95 нет' && sizes.every(([, height]) => height >= 72));
+  const sizes = await page.evaluate(() => [...document.querySelectorAll('#driveFull [data-drive="pick"].huge')].map((button) => [button.textContent.trim(), Math.round(button.getBoundingClientRect().height)]));
+  check(`two huge buttons for my grade ${JSON.stringify(sizes)}`, sizes.length === 2 && sizes[0][0] === '95 есть' && sizes[1][0] === '95 нет' && sizes.every(([, height]) => height >= 64));
+  check('the other grades below, each with «есть» and «нет»', (await labels(page, '#driveFull .drive-other > span')) === '92 98 100 ДТ'
+    && await page.evaluate(() => document.querySelectorAll('#driveFull .drive-other [data-drive="pick"]').length === 8));
+  check('and «Отправить» waits until something is pressed', await page.evaluate(() => document.querySelector('#driveFull [data-drive="send-look"]')?.disabled === true));
   check('and the queue: нет, мало, много', (await labels(page, '#driveFull .drive-seg button')) === 'нет мало много');
   check('«Вы на АЗС» lies on screen', await framed(page));
   check('the map keeps its turn while standing', sameAngle(await turnOf(page, '#driveMap'), -way.degrees));
@@ -465,10 +468,19 @@ async function run(label, browserType, device) {
   }
   await shot(page, { path: path.join(OUT, `drive-${label}-4-at.png`) });
 
-  // 6. «мало», «95 есть»: sent, and «Отменить» takes it back.
+  // 6. «мало», «95 есть» and «92 нет»: sent as one look, and «Отменить» takes it back.
   await tap(page, '#driveFull [data-drive="queue"][data-cars="3"]');
   check('«мало» is pressed', await page.evaluate(() => document.querySelector('#driveFull [data-cars="3"]')?.getAttribute('aria-pressed') === 'true'));
-  await tap(page, '#driveFull [data-drive="mark"][data-seen="1"]');
+  await tap(page, '#driveFull [data-drive="pick"][data-grade="AI95"][data-seen="1"]');
+  check('«95 есть» is pressed, not sent', await becomes(page, () => document.querySelector('#driveFull [data-grade="AI95"][data-seen="1"]')?.getAttribute('aria-pressed') === 'true'
+    && !document.querySelector('#driveFull')?.textContent.includes('Отправлено своим'), null, 3000));
+  await tap(page, '#driveFull [data-drive="pick"][data-grade="AI92"][data-seen="0"]');
+  await tap(page, '#driveFull [data-drive="pick"][data-grade="AI98"][data-seen="1"]');
+  await tap(page, '#driveFull [data-drive="pick"][data-grade="AI98"][data-seen="1"]');
+  check('«Отправить: 92 нет, 95 есть» — 98 pressed twice is taken back out', await becomes(page, () => document.querySelector('#driveFull [data-drive="send-look"]')?.textContent.trim() === 'Отправить: 92 нет, 95 есть', null, 3000));
+  await shot(page, { path: path.join(OUT, `drive-${label}-4b-picked.png`) });
+  check('the picked panel lies on screen', await framed(page));
+  await tap(page, '#driveFull [data-drive="send-look"]');
   check('«Отправлено своим» with «Отменить»', await becomes(page, () => document.querySelector('#driveFull')?.textContent.includes('Отправлено своим') && !!document.querySelector('#driveFull [data-drive="undo"]'), null, 5000));
   // Five seconds to undo. The page's clock stands still while the panel is
   // photographed and the club is asked: a WebKit screenshot alone can take them.
@@ -476,13 +488,18 @@ async function run(label, browserType, device) {
   await shot(page, { path: path.join(OUT, `drive-${label}-5-sent.png`) });
   check('«Отправлено своим» lies on screen', await framed(page));
   const mine = async () => (await reports()).filter((item) => item.station === station.id && item.who === sasha.member.id);
-  check('the club got «95 есть» with the queue', await eventually(async () => (await mine()).some((item) => item.grade === 'AI95' && item.seen === true && item.queue === 3), 3000));
+  check('the club got «95 есть» with the queue and «92 нет», as one look', await eventually(async () => {
+    const got = await mine();
+    const yes = got.find((item) => item.grade === 'AI95' && item.seen === true && item.queue === 3);
+    const no = got.find((item) => item.grade === 'AI92' && item.seen === false);
+    return !!yes && !!no && yes.at === no.at && got.length === 2;
+  }, 3000));
   // «Отменить» is pressed while the clock still stands; then time goes on. In
   // the full chain WebKit took the rest of the five seconds to click.
   check('«Отменить» can be pressed', await tap(page, '#driveFull [data-drive="undo"]'));
   await page.clock.resume();
   check('the club no longer has the mark', await eventually(async () => (await mine()).length === 0));
-  check('nor the phone, and «Вы на АЗС» is back', await becomes(page, (id) => !Object.keys(state.marks[id] || {}).length && document.querySelector('#drive').dataset.kind === 'at' && !!document.querySelector('#driveFull [data-drive="mark"]'), station.id, 8000));
+  check('nor the phone, and «Вы на АЗС» is back', await becomes(page, (id) => !Object.keys(state.marks[id] || {}).length && document.querySelector('#drive').dataset.kind === 'at' && !!document.querySelector('#driveFull [data-drive="pick"]'), station.id, 8000));
 
   // 7. Someone else's fresh mark there: 👍 instead of marking over it.
   const lenaMarked = await api('/report', { method: 'POST', token: lena.token, body: { station: station.id, grades: [{ grade: 'AI95', seen: true }], queue: 12, lat: station.location.lat, lon: station.location.lon, name: station.network } });

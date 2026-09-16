@@ -925,6 +925,16 @@ body.driving .toast-stack { display: none; }
 .drive-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .drive-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .drive-row.huge { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+/* At the pumps: my grade's two buttons side by side, the other grades below in
+   two columns, and «Отправить» once something is pressed. */
+.drive-row.huge.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.drive-others { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.drive-other { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) minmax(0, 1fr); gap: 4px; align-items: center; }
+.drive-other > span { font-size: 18px; font-weight: 900; text-align: center; }
+.drive-other .drive-btn { min-height: 48px; padding: 0 2px; border-radius: 12px; font-size: 15px; }
+.drive-btn.on { box-shadow: inset 0 0 0 4px var(--ring), 0 0 0 3px var(--mine); }
+.drive-btn.send { background: var(--mine); color: var(--sheet); }
+.drive-btn.send:disabled { background: var(--chipbg); color: var(--sub); opacity: 1; font-size: 18px; }
 .drive-btn { min-height: 58px; border: 0; border-radius: 16px; color: var(--btn-ink); font-size: 17px; font-weight: 800; }
 .drive-btn.huge { min-height: 76px; border-radius: 20px; font-size: 24px; font-weight: 900; }
 .drive-btn.yes { background: var(--btn-yes); }

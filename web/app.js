@@ -5786,6 +5786,34 @@ function driveChips(station) {
   }).join('');
 }
 
+// At the pumps a sign often names several grades: «92 нет, 95 нет, ДТ есть».
+// Each grade pressed here waits, and «Отправить» sends them as one look (16 Sep
+// 2026: one tap sent one grade, and «95 нет» alone let the group think 92 was
+// there). My grade keeps its two huge buttons; the others sit below, smaller.
+function driveAtButtons(stationId) {
+  const id = escapeHtml(stationId);
+  const chosen = composeDraft(stationId)?.chosen || {};
+  const pick = (grade, seen, words, size = '') => {
+    const on = chosen[grade] === seen;
+    return `<button type="button" class="drive-btn ${seen ? 'yes' : 'no'}${size}${on ? ' on' : ''}" data-drive="pick" data-station="${id}" data-grade="${grade}" data-seen="${seen ? 1 : 0}" aria-pressed="${on}">${on ? '✓ ' : ''}${words}</button>`;
+  };
+  const mine = escapeHtml(driveGradeLabel());
+  const others = Object.keys(GRADE_LABELS).filter((grade) => grade !== state.grade).map((grade) => (
+    `<div class="drive-other"><span>${escapeHtml(driveGradeLabel(grade))}</span>${pick(grade, true, 'есть')}${pick(grade, false, 'нет')}</div>`
+  )).join('');
+  return `<div class="drive-row huge pair">${pick(state.grade, true, `${mine} есть`, ' huge')}${pick(state.grade, false, `${mine} нет`, ' huge')}</div>
+    <div class="drive-others">${others}</div>`;
+}
+
+function driveSendButton(stationId) {
+  const chosen = composeDraft(stationId)?.chosen || {};
+  const grades = Object.keys(GRADE_LABELS).filter((grade) => grade in chosen);
+  const words = grades.map((grade) => `${driveGradeLabel(grade)} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
+  return grades.length
+    ? `<button type="button" class="drive-btn huge send" data-drive="send-look" data-station="${escapeHtml(stationId)}">Отправить: ${escapeHtml(words)}</button>`
+    : '<button type="button" class="drive-btn huge send" data-drive="send-look" disabled>Отметьте марки — и отправить</button>';
+}
+
 function driveMarkButtons(stationId, { huge = false } = {}) {
   const label = escapeHtml(driveGradeLabel());
   const id = escapeHtml(stationId);
@@ -5918,9 +5946,10 @@ function driveAtPanel(view, title) {
   const chosen = composeDraft(station.id)?.queue;
   const queue = DRIVE_QUEUE.map(([cars, word]) => `<button type="button" class="drive-seg-button${chosen === cars ? ' on' : ''}" data-drive="queue" data-station="${id}" data-cars="${cars}" aria-pressed="${chosen === cars}">${word}</button>`).join('');
   return `${head}
-    ${driveMarkButtons(station.id, { huge: true })}
+    ${driveAtButtons(station.id)}
     <p class="drive-meta">Очередь, если видно</p>
-    <div class="drive-seg">${queue}</div>`;
+    <div class="drive-seg">${queue}</div>
+    ${driveSendButton(station.id)}`;
 }
 
 function driveSentPanel(title) {
@@ -6399,6 +6428,17 @@ function onDriveTap(event) {
     setDriveTheme(button.dataset.mode);
   } else if (action === 'mark') {
     sendDriveMark(station, button.dataset.seen === '1', button.closest('#driveFull') ? 'at_station' : 'near');
+  } else if (action === 'pick') {
+    // Pressed again, a grade is taken back out of the look.
+    const draft = composeDraft(station, { touch: true });
+    const { grade } = button.dataset;
+    const seen = button.dataset.seen === '1';
+    if (draft.chosen[grade] === seen) delete draft.chosen[grade];
+    else draft.chosen[grade] = seen;
+    paintComposers(station);
+    renderDrive({ force: true });
+  } else if (action === 'send-look') {
+    sendDriveLook(station, 'at_station');
   } else if (action === 'answer' && drive.question) {
     const { id } = drive.question;
     drive.question = null;
@@ -6457,6 +6497,41 @@ function sendDriveMark(stationId, seen, reason) {
   renderDrive({ force: true });
 }
 
+// Every grade pressed at the pumps, with the queue, as one look — the way the
+// card's own composer sends it.
+function sendDriveLook(stationId, reason) {
+  const draft = composeDraft(stationId);
+  const chosen = draft?.chosen || {};
+  const grades = Object.keys(GRADE_LABELS).filter((grade) => grade in chosen);
+  if (!stationId || !grades.length) return;
+  const station = state.stations.find((item) => item.id === stationId);
+  const queue = draft.queue ?? null;
+  composeDrafts.delete(stationId);
+  const words = grades.map((grade) => `${driveGradeLabel(grade)} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
+  const what = `${words}${queue != null ? `, очередь: ${queueWords(queue)}` : ''}`;
+  // A look at a grade the app knew nothing fresh about is worth a bonus.
+  const details = state.stationDetails[stationId];
+  const blindSpot = grades.some((grade) => ['NO_FRESH_DATA', 'CONFLICT'].includes(details?.grades?.[grade]?.status
+    || (grade === state.grade ? station?.grade?.status : briefFor(stationId)[grade]?.s)));
+  const madeAt = Date.now();
+  grades.forEach((grade) => saveMark(stationId, grade, chosen[grade], queue, { render: false, share: false }));
+  const promise = shareLook(stationId, grades.map((grade) => ({ grade, seen: chosen[grade] })), queue, { summary: what, blindSpot });
+  const main = grades.includes(state.grade) ? state.grade : grades[0];
+  const sent = {
+    stationId, grade: main, grades, what, madeAt, promise, outcome: null,
+    undoable: !!(state.club.enabled && state.club.member && state.club.features?.delete_marks),
+  };
+  drive.sent = sent;
+  promise.then((outcome) => {
+    sent.outcome = outcome;
+    if (drive.sent === sent) renderDrive({ force: true });
+  });
+  paintComposers(stationId);
+  renderGroupFeed();
+  track('drive_mark', { station: stationId, seen: chosen[main], queue, reason });
+  renderDrive({ force: true });
+}
+
 // «Отменить» takes the mark back the way 🗑 does: the club deletes it and takes
 // back its 🤝. A mark still waiting for a connection simply never leaves.
 async function undoDriveMark(button) {
@@ -6477,7 +6552,7 @@ async function undoDriveMark(button) {
   };
   const outcome = await sent.promise;
   if (outcome !== 'sent') {
-    trimOutbox(sent.stationId, [sent.grade]);
+    trimOutbox(sent.stationId, sent.grades || [sent.grade]);
     done(true);
     return;
   }
