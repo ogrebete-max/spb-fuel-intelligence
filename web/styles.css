@@ -1019,11 +1019,13 @@ body.driving .toast-stack { display: none; }
    the navigator, the ordinary map over the whole screen and the list. */
 .mode-bar, .map-top { display: none; }
 @media (max-width: 850px) {
-  .mode-bar { position: fixed; z-index: 850; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); background: #0d3328; box-shadow: 0 -8px 24px rgba(5, 25, 18, .22); }
+  .mode-bar { position: fixed; z-index: 850; left: 0; right: 0; bottom: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); background: #0d3328; box-shadow: 0 -8px 24px rgba(5, 25, 18, .22); }
   .mode-bar button { min-height: 50px; display: grid; place-items: center; gap: 1px; border: 0; border-radius: 14px; background: transparent; color: #cfe3d8; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
   .mode-bar button span { font-size: 19px; line-height: 1; }
   .mode-bar button[aria-pressed="true"] { background: #c9f06b; color: #0d3328; }
   .mode-bar button:focus-visible { outline: 3px solid #c9f06b; outline-offset: 2px; }
+  /* display: grid above would outrank [hidden]: the club's tab is for members only. */
+  .mode-bar button[hidden] { display: none; }
   .app-shell { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
   /* The bar does what «Список | Карта» did. */
   .view-switch { display: none; }

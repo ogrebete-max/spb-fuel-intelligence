@@ -39,3 +39,11 @@ h2 { margin: 0 0 18px; font-size: 21px; }
 .plain { color: #435c53; line-height: 1.6; }
 @media (max-width: 760px) { .analytics-header { align-items: start; flex-direction: column; } .kpis, .grid, .quality-grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 440px) { .kpis { grid-template-columns: 1fr; } .login-card form { flex-direction: column; } }
+/* Opened from the home-screen app the page runs under the iPhone's status bar,
+   with no browser «back»: the way back sits below the bar, big enough for a
+   thumb, and again at the bottom (16 Sep 2026). */
+.analytics-header { padding-top: calc(env(safe-area-inset-top, 0px) + 18px); }
+.analytics-header .back, .back-bottom { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; font-weight: 800; text-decoration: none; }
+.analytics-header .back { background: #17493b; color: #c2f45a; }
+.back-row { text-align: center; margin: 28px 0 calc(env(safe-area-inset-bottom, 0px) + 12px); }
+.back-bottom { background: #0d3328; color: #c2f45a; }

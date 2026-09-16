@@ -469,6 +469,11 @@ function bindControls() {
   $('#driveOfferYes')?.addEventListener('click', () => openDrive('suggestion'));
   $('#driveOfferNo')?.addEventListener('click', silenceDriveOffer);
   $('#modeBar')?.addEventListener('click', (event) => {
+    // A member's club is a tab of its own, not a screen.
+    if (event.target.closest('[data-club-tab]')) {
+      showClub();
+      return;
+    }
     const button = event.target.closest('[data-screen]');
     if (!button) return;
     if (button.dataset.screen === 'drive') openDrive('button');
@@ -3657,6 +3662,11 @@ function renderClubButton() {
   // Inside the club, or once its door is closed, the app says whose it is.
   const tag = $('#brandTag');
   if (tag) tag.textContent = state.club.mode === 'closed' || (state.club.enabled && state.club.member) ? 'закрытый клуб своих' : 'Санкт-Петербург';
+  // Members, the owner too, reach the club from the bar at the bottom as well:
+  // the button up here is gone once the list scrolls or the map is open, and
+  // five taps on a title are no way in for people already inside (16 Sep 2026).
+  const tab = $('#modeBar [data-club-tab]');
+  if (tab) tab.hidden = !(state.club.enabled && state.club.member);
   const button = $('#clubButton');
   if (!button) return;
   button.hidden = !(state.club.enabled && state.club.member);

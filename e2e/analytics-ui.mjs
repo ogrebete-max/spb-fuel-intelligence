@@ -3,7 +3,9 @@
 // as daily totals, and the owner reads them in «👥 Клуб» → «📊 Аналитика» with
 // the pass the app already holds, no key. A phone outside the club is counted;
 // a member sees no such button and the panel does not open for them; anyone
-// else on the page is told where it is. WebKit (iPhone) and Chromium (Android).
+// else on the page is told where it is. Members, the owner too, reach the club
+// from «👥 Клуб» in the bar at the bottom, the map screen included; a phone
+// outside the club has no such tab. WebKit (iPhone) and Chromium (Android).
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -105,6 +107,7 @@ async function run(label, browserType, device) {
   const stranger = await phone(browser, device);
   await stranger.page.goto(siteUrl, { waitUntil: 'load' });
   check('a phone outside the club opens the app', await becomes(stranger.page, () => document.querySelectorAll('#stationList .station-card').length > 0, null, 30000));
+  check('with no club tab in the bar', await stranger.page.evaluate(() => document.querySelector('#modeBar [data-club-tab]').hidden));
   let counted = 0;
   for (let i = 0; i < 40 && !counted; i += 1) {
     counted = await phonesToday(owner.token);
@@ -116,21 +119,26 @@ async function run(label, browserType, device) {
   const boss = await phone(browser, device, owner);
   await boss.page.goto(siteUrl, { waitUntil: 'load' });
   check('the owner is in the club', await becomes(boss.page, () => !!state.club.member && state.club.features?.owner_analytics === true, null, 30000));
-  await boss.page.click('#clubButton');
+  check('the bar at the bottom has «👥 Клуб»', await becomes(boss.page, () => !document.querySelector('#modeBar [data-club-tab]').hidden, null, 10000));
+  await boss.page.click('#modeBar [data-club-tab]');
   check('the club offers «📊 Аналитика»', await becomes(boss.page, () => !!document.querySelector('#drawerContent .club-analytics'), null, 10000));
   await boss.page.click('#drawerContent .club-analytics');
   check('it opens the panel with no key', await becomes(boss.page, () => location.pathname.endsWith('analytics.html') && !document.querySelector('#dashboard').hidden && document.querySelector('#login').hidden, null, 15000));
   const first = await boss.page.evaluate(() => document.querySelector('#kpis article')?.textContent || '');
   check(`«Сегодня открывали» shows the phones (${first})`, /^Сегодня открывали[1-9]/.test(first));
+  const back = await boss.page.evaluate(() => ({ height: Math.round(document.querySelector('.analytics-header .back').getBoundingClientRect().height), bottom: !!document.querySelector('.back-bottom') }));
+  check(`the way back is big enough for a thumb, at the top and the bottom (${JSON.stringify(back)})`, back.height >= 44 && back.bottom);
   await boss.page.screenshot({ path: path.join(OUT, `analytics-${label}-panel.png`) });
   await boss.page.click('.analytics-header a[href="./"]');
-  check('«← Карта» leads back to the app', await becomes(boss.page, () => !!document.querySelector('#stationList .station-card'), null, 30000));
+  check('«← В приложение» leads back to the app',await becomes(boss.page, () => !!document.querySelector('#stationList .station-card'), null, 30000));
 
   // A member sees no button, and the panel does not open for them.
   const member = await phone(browser, device, sasha);
   await member.page.goto(siteUrl, { waitUntil: 'load' });
   check('the member is in the club', await becomes(member.page, () => !!state.club.member && !!state.club.features, null, 30000));
-  await member.page.click('#clubButton');
+  await member.page.click('#modeBar [data-screen="map"]');
+  check('the member has «👥 Клуб» in the bar, on the map screen too', await becomes(member.page, () => document.body.classList.contains('map-screen') && !document.querySelector('#modeBar [data-club-tab]').hidden, null, 10000));
+  await member.page.click('#modeBar [data-club-tab]');
   check('the member\'s club opens', await becomes(member.page, () => (document.querySelector('#drawerContent')?.textContent || '').includes('Пригласить человека'), null, 10000));
   check('with no «📊 Аналитика»', !(await member.page.$('#drawerContent .club-analytics')));
   await member.page.goto(`${siteUrl}analytics.html`, { waitUntil: 'load' });
