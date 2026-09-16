@@ -330,6 +330,28 @@ function readSpan(url) {
   return Number(url.searchParams.get('hours')) >= 24 ? DAY_MS : WINDOW_MS;
 }
 
+// «За сутки свои отметили 23 АЗС, 27 раз» (16 Sep 2026): the owner wants the
+// day's work in numbers, even where the list cannot show it. The list keeps a
+// person's latest look per station and grade, and until that evening kept only
+// three hours; a member's news keeps each paid look with its station and time.
+// A look counts once from either, and nothing is written for the count: a
+// deleted look leaves both, and an excluded member's news is not counted.
+function dayTally(reports, stats, members, now = Date.now()) {
+  const looks = new Set();
+  const stations = new Set();
+  const add = (who, station, at) => {
+    if (!who || !station || !Number.isFinite(at) || now - at > DAY_MS) return;
+    looks.add(`${who}|${station}|${at}`);
+    stations.add(station);
+  };
+  for (const report of reports) if (report) add(report.who, report.station, Number(report.at));
+  for (const [who, member] of Object.entries(stats || {})) {
+    if (!members?.[who] || members[who].banned) continue;
+    for (const item of member?.news || []) if (item?.type === 'mark') add(who, item.station, Number(item.at));
+  }
+  return { stations: stations.size, looks: looks.size };
+}
+
 // Where a phone stood is given only for the hours the vote uses; a list of the
 // day needs the station, not a trail of someone's stops.
 function listedReport(report, now = Date.now()) {
@@ -1443,7 +1465,7 @@ async function clubRoutes(request, env, url, ctx) {
   if (request.method === 'GET' && path === '/club/health') {
     // `club` still means "the door is closed": an app from before the stages
     // shows its gate only then.
-    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, owner_analytics: true, return_asks: true, day_marks: true, storage: storageKind(env) }, request, env);
+    return json({ club: clubClosed(env), mode: clubMode(env), version: CLUB_VERSION, batch: true, late_marks: true, forgiving_key: true, rejoin: true, remove: true, returning: true, passkeys: true, votes: true, invites_more: true, chat: true, delete_marks: true, migrate: true, drive_events: true, request_link: true, write_guard: true, owner_analytics: true, return_asks: true, day_marks: true, day_tally: true, storage: storageKind(env) }, request, env);
   }
   if (!clubEnabled(env)) return json({ error: 'club_disabled' }, request, env, 404);
 
@@ -2061,7 +2083,8 @@ async function clubRoutes(request, env, url, ctx) {
           my_vote: votes.up.includes(member.id) ? 'up' : votes.down.includes(member.id) ? 'down' : null,
         };
       });
-    return json({ window_hours: span / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
+    const day = span === DAY_MS ? { day: dayTally(reports, clubStats, members, now) } : {};
+    return json({ window_hours: span / 3600000, count: reports.length, batch: true, late_marks: true, reports, ...day }, request, env);
   }
 
   if (member.role !== 'owner') return json({ error: 'owner_only' }, request, env, 403);
@@ -2445,8 +2468,9 @@ async function route(request, env, ctx) {
   if (request.method === 'GET' && (url.pathname === '/reports' || url.pathname === '/')) {
     const span = readSpan(url);
     let reports = (await readAll(env, span)).map((report) => listedReport(report));
+    let members = {};
     if (clubEnabled(env)) {
-      const members = await readDoc(env, 'club:members', {});
+      members = await readDoc(env, 'club:members', {});
       // Until the door is closed, phones outside the club read the marks too.
       if (clubClosed(env) && secretSet(env, 'CLUB_READER_KEY') && !(await secretMatches(request, env, 'CLUB_READER_KEY', request.headers.get('X-Reader-Key')))) {
         const member = await clubMember(request, env, members);
@@ -2455,7 +2479,8 @@ async function route(request, env, ctx) {
       // Names stay inside the club; the public read carries member ids only.
       reports = reports.filter((report) => !members[report.who]?.banned);
     }
-    return json({ window_hours: span / 3600000, count: reports.length, batch: true, late_marks: true, reports }, request, env);
+    const day = span === DAY_MS ? { day: dayTally(reports, clubEnabled(env) ? await readDoc(env, 'club:stats', {}) : {}, members) } : {};
+    return json({ window_hours: span / 3600000, count: reports.length, batch: true, late_marks: true, reports, ...day }, request, env);
   }
 
   if (request.method === 'GET' && url.pathname === '/vapid') {

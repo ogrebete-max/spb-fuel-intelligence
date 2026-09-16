@@ -40,7 +40,7 @@ const state = {
   follow: false, watchId: null, accuracy: null,
   locationAt: 0, fixStartedAt: 0, pendingFix: null, locating: false, locationTimer: null, contextTimer: null,
   passed: {}, ownOnly: false, workerBatch: false,
-  groupMarks: {}, dayMarks: {}, ownDay: false, ownMore: false, ownLooks: 0, stationInfo: {}, stationDetails: {}, total: 0,
+  groupMarks: {}, dayMarks: {}, ownDay: false, ownMore: false, ownLooks: 0, ownDayCount: null, stationInfo: {}, stationDetails: {}, total: 0,
   club: { enabled: false, mode: 'off', member: null, profile: null, newsTimer: null },
   searchScope: null, radiusKm: 5, searchLabel: null,
 };
@@ -1399,6 +1399,19 @@ const YANDEX_SENSE = {
   UNKNOWN: 'не уверен',
 };
 
+// Yandex saying otherwise, while its word is current. Its own card counts its
+// drivers' confirmations over the hour, and an older word is not shown (16 Sep
+// 2026, the owner: «информация должна быть актуальной», not hang for hours).
+const YANDEX_CURRENT_SECONDS = 60 * 60;
+
+function yandexAgainst(grade) {
+  const yandex = grade?.yandex;
+  if (!yandex || yandex.agrees !== false || !grade.status || grade.status === 'NO_FRESH_DATA') return null;
+  const age = yandex.age_seconds != null ? yandex.age_seconds + staticElapsedSeconds() : null;
+  if (age == null ? !yandex.fresh : age > YANDEX_CURRENT_SECONDS) return null;
+  return { said: YANDEX_SENSE[yandex.availability] || 'иначе', age };
+}
+
 // Yandex is what people compare against anyway. Showing its verdict beside
 // ours — with its age and how many drivers stand behind it — is the one thing
 // this app can do that neither app does alone.
@@ -1913,6 +1926,12 @@ async function pollGroupMarks() {
     state.ownDay = Number(payload.window_hours) >= 24;
     const dayMarks = foldMarks(payload.reports || [], now - OWN_DAY_MS);
     const since = now - (state.ownDay ? OWN_DAY_MS : OWN_WINDOW_MS);
+    // The server counts the day from its marks and members' news, which keep
+    // looks the list has let go; an older server gives no count.
+    const told = payload.day;
+    state.ownDayCount = state.ownDay && told && Number.isFinite(Number(told.looks))
+      ? { stations: Math.max(0, Number(told.stations) || 0), looks: Math.max(0, Number(told.looks) || 0) }
+      : null;
     state.ownLooks = new Set((payload.reports || [])
       .filter((report) => report && report.at >= since && report.station && report.grade)
       .map((report) => `${report.who}|${report.station}|${report.at}`)).size;
@@ -2535,14 +2554,14 @@ function updateOwnChip() {
 // lists. A later look at the same grade replaces an earlier one on the server,
 // so the count is «at least».
 function ownTally() {
-  const stations = ownEntries().length;
-  const looks = Math.max(state.ownLooks || 0, stations);
+  const stations = Math.max(ownEntries().length, state.ownDayCount?.stations || 0);
+  const looks = Math.max(state.ownDayCount?.looks || 0, state.ownLooks || 0, stations);
   const span = ownSpan();
   return `${span.charAt(0).toLocaleUpperCase('ru-RU')}${span.slice(1)} свои отметили ${stations} АЗС, ${looks} ${plural(looks, 'раз', 'раза', 'раз')}`;
 }
 
 function ownLink() {
-  const count = ownEntries().length;
+  const count = Math.max(ownEntries().length, state.ownDayCount?.stations || 0);
   return count ? `<button type="button" class="feed-all" data-own-open>${escapeHtml(ownTally())} →</button>` : '';
 }
 
@@ -4939,7 +4958,7 @@ function renderStations({ append = false } = {}) {
     }
     actions.querySelector('[data-open-station]')?.addEventListener('click', () => openStation(station.id));
     const second = yandexLine(grade);
-    if (second && second.agrees === false) {
+    if (second && yandexAgainst(grade)) {
       const note = document.createElement('span');
       note.className = 'yandex-flag';
       note.textContent = `⚠ ${second.text}`;
@@ -5868,11 +5887,9 @@ function driveMeta(station, { witness = true } = {}) {
   const queue = mark?.queue != null ? queueWords(mark.queue) : grade.queue?.label;
   if (queue) parts.push(`очередь ${queue}`);
   // Yandex is what drivers check against; the list flags its disagreement, and
-  // so does the navigator.
-  const yandex = grade.yandex;
-  if (grade.status && grade.status !== 'NO_FRESH_DATA' && yandex?.fresh && yandex.agrees === false) {
-    parts.push(`Яндекс: ${driveGradeLabel()} ${YANDEX_SENSE[yandex.availability] || 'иначе'}`);
-  }
+  // so does the navigator, with how old Yandex's word is.
+  const against = yandexAgainst(grade);
+  if (against) parts.push(`Яндекс: ${driveGradeLabel()} ${against.said}${against.age != null ? `, ${formatAge(against.age)}` : ''}`);
   return parts.join(' · ');
 }
 

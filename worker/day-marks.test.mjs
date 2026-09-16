@@ -90,6 +90,8 @@ const stations = (reports) => reports.map((report) => report.station).sort();
   }
   assert.deepEqual(stations(await stored(env)), ['s-five', 's-fresh', 's-twenty', 's-two'], 'the store lets go of a mark once it is a day old');
   assert.equal((await call(env, '/reports?hours=6')).data.window_hours, 3, 'anything short of a day is the usual three hours');
+  assert.deepEqual(day.day, { stations: 4, looks: 4 }, 'the day read says how much was marked');
+  assert.ok(!('day' in three), 'the plain read, which the pipeline makes, stays as it was');
 }
 
 // ------------------------------------------------------------ inside the club
@@ -121,6 +123,26 @@ const stations = (reports) => reports.map((report) => report.station).sort();
   assert.equal((await thanks(day.reports.find((report) => report.station === 'club-one'))).status, 200);
 
   assert.equal((await call(env, '/club/health')).data.day_marks, true, 'the app knows it may ask for the day');
+  assert.equal((await call(env, '/club/health')).data.day_tally, true);
+
+  // The count of the day: two looks at two stations. A server from before the
+  // day was kept had already let the six-hour mark go from the list; the
+  // member's news of it still counts.
+  assert.deepEqual(day.day, { stations: 2, looks: 2 });
+  const listed = await stored(env);
+  const shortened = JSON.stringify(listed.filter((report) => report.station !== 'club-six'));
+  if (env.DB) await env.DB.prepare('UPDATE docs SET body = ?, version = version + 1 WHERE key = ?').bind(shortened, 'reports').run();
+  else await env.REPORTS.put('reports', shortened);
+  const without = (await call(env, '/club/reports?hours=24', { token: owner.token })).data;
+  assert.deepEqual(stations(without.reports), ['club-one'], 'the list has lost the older mark');
+  assert.deepEqual(without.day, { stations: 2, looks: 2 }, 'the count still has it, from the news');
+  assert.deepEqual((await call(env, '/reports?hours=24')).data.day, { stations: 2, looks: 2 }, 'and the public read counts the same');
+
+  // A deleted look stops counting.
+  const recent = without.reports.find((report) => report.station === 'club-one');
+  const removed = await call(env, '/club/report/delete', { method: 'POST', token: owner.token, body: { station: 'club-one', at: recent.at, author: recent.who } });
+  assert.equal(removed.status, 200);
+  assert.deepEqual((await call(env, '/club/reports?hours=24', { token: owner.token })).data.day, { stations: 1, looks: 1 });
 }
 
 console.log('day marks: ok');

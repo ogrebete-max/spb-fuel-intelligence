@@ -58,12 +58,13 @@ MIN_BYTES = 200
 MAY_BE_EMPTY = {"own-reports"}
 
 # Nobody is served by asking a source for data faster than that data changes.
-# Yandex signals are two hours old at the median, and one pass over it costs a
-# hundred and ten page requests, so polling it every ten minutes would mean
-# fifteen thousand requests a day to learn nothing new. Anything not listed
-# here is a single cheap request and is refreshed every run.
+# Yandex signals are two hours old at the median, and one pass over it costs 77
+# page requests: every twenty minutes (16 Sep 2026, the owner wants Yandex's word
+# current) is about 5,500 requests a day, what the old 110-request pass cost
+# every half hour; every ten minutes would double that to learn little. Anything
+# not listed here is a single cheap request and is refreshed every run.
 MIN_INTERVAL_SECONDS = {
-    "yandex-maps": 30 * 60,
+    "yandex-maps": 20 * 60,
     "gdebenzfuel": 20 * 60,
     "tbank-fuel": 20 * 60,
     "telegram-benzinspb78": 15 * 60,
