@@ -1,6 +1,6 @@
 // Every worker check: the storage-agnostic ones once on KV and once on D1,
-// some again on D1 kept in files as on the club's own server (d1-file), and
-// the server itself.
+// some again on D1 kept in files as on the club's own server (d1-file), the
+// server itself, and the rules that read what a driver says out loud.
 //   node worker/run-tests.mjs
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +38,7 @@ const runs = [
   ['storage.test.mjs', 'd1-file'],
   ['migrate.test.mjs', 'd1-file'],
   ['../server/server.test.mjs', 'server'],
+  ['../web/voice.test.mjs', 'voice'],
 ];
 
 let failed = 0;

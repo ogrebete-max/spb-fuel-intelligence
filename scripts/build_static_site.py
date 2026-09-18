@@ -60,6 +60,7 @@ def main() -> int:
     index_html = index_html.replace('href="styles.css"', f'href="styles.css?v={build}"')
     index_html = index_html.replace('src="app.js"', f'src="app.js?v={build}"')
     index_html = index_html.replace('src="analytics.js"', f'src="analytics.js?v={build}"')
+    index_html = index_html.replace('src="voice.js"', f'src="voice.js?v={build}"')
     # The running page learns its own build so it can notice, from meta.json,
     # that a newer one has been deployed and reload itself (an installed PWA
     # left open on a phone otherwise keeps yesterday's code for days).

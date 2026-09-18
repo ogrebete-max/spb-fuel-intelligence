@@ -5650,6 +5650,167 @@ function driveOwnSeen(stationId) {
   return !!mark && mark.seen && !((mark.down || 0) > (mark.up || 0));
 }
 
+// ——— Голос за рулём (18.09.2026) ———
+//
+// The owner asked for two things by voice: «Где мне сейчас заправиться рядом?»
+// and a mark made while passing a station, and asked that rules do the work
+// wherever they can — «если где-то можно обойтись без ЛЛМ, делать без». The
+// phone's own recogniser turns the phrase into text, `web/voice.js` reads it,
+// and the answer is said aloud and left on the screen, because at the wheel it
+// may not be read at once. Nothing is sent anywhere for it.
+const VOICE_HINT = 'Скажите: «Где заправиться 95-м» или «95 есть».';
+const VOICE_SAID_MS = 9000;
+const VOICE_LISTEN_MS = 15000;
+// A spoken mark is about the station the driver is at — the same distance at
+// which the card stops listing others and answers about this one.
+const VOICE_MARK_METRES = AT_STATION_METRES;
+const voice = { listening: false, stop: null, heard: false };
+
+function voiceHere() {
+  return !!window.Voice?.supported();
+}
+
+// Banners do not fly over the navigator, so the line the panels already carry
+// for a failure is where the voice speaks too.
+function flashDrive(text, ms = VOICE_SAID_MS) {
+  drive.flash = { text, until: Date.now() + ms };
+  if (drive.open) renderDrive({ force: true });
+}
+
+function voiceAnswer(text, { aloud = true } = {}) {
+  flashDrive(text);
+  if (aloud) window.Voice?.say(text);
+}
+
+function paintVoice() {
+  const button = $('#drive [data-drive="voice"]');
+  if (!button) return;
+  const here = voiceHere();
+  if (button.hidden !== !here) button.hidden = !here;
+  const words = voice.listening ? '🎤 Слушаю…' : '🎤 Голос';
+  if (button.textContent !== words) button.textContent = words;
+  button.classList.toggle('hearing', voice.listening);
+  if (button.getAttribute('aria-pressed') !== String(voice.listening)) button.setAttribute('aria-pressed', String(voice.listening));
+}
+
+function toggleVoice() {
+  if (voice.listening) {
+    voice.stop?.();
+    return;
+  }
+  if (!voiceHere()) {
+    flashDrive('Этот браузер не умеет слушать. На iPhone — Safari, на Android — Chrome.');
+    return;
+  }
+  voice.listening = true;
+  voice.heard = false;
+  paintVoice();
+  flashDrive(`🎤 Слушаю. ${VOICE_HINT}`, VOICE_LISTEN_MS);
+  track('voice_listen');
+  voice.stop = window.Voice.listen({
+    onHeard: (said) => {
+      voice.heard = true;
+      onVoice(said);
+    },
+    onDone: (reason) => {
+      voice.listening = false;
+      voice.stop = null;
+      paintVoice();
+      if (reason === 'denied') voiceAnswer('Микрофон запрещён в настройках браузера. Разрешите доступ — и скажите снова.', { aloud: false });
+      else if (!voice.heard && reason === 'silent') flashDrive(`Ничего не услышал. ${VOICE_HINT}`);
+      else if (!voice.heard) flashDrive('Не получилось послушать. Попробуйте ещё раз.');
+    },
+  });
+}
+
+function onVoice(said) {
+  const meant = window.Voice.parse(said);
+  track('voice_heard', { kind: meant.kind, grade: meant.grade || '' });
+  if (meant.kind === 'find') voiceFind(meant);
+  else if (meant.kind === 'mark') voiceMark(meant);
+  else voiceAnswer(`Не понял: «${meant.heard}». ${VOICE_HINT}`);
+}
+
+// The list is loaded for one grade at a time, so a question about another one
+// waits for it before it can be answered.
+function voiceWaitForGrade(grade, within = 8000) {
+  const until = Date.now() + within;
+  return new Promise((resolve) => {
+    const look = () => {
+      if (state.stations[0]?.grade?.grade === grade) resolve(true);
+      else if (Date.now() > until) resolve(false);
+      else setTimeout(look, 200);
+    };
+    look();
+  });
+}
+
+async function voiceFind(meant) {
+  if (meant.grade && meant.grade !== state.grade) {
+    flashDrive(`Смотрю ${GRADE_LABELS[meant.grade]}…`, VOICE_LISTEN_MS);
+    chooseGrade(meant.grade);
+    if (!await voiceWaitForGrade(meant.grade)) {
+      voiceAnswer(`Не успел загрузить ${GRADE_LABELS[meant.grade]}. Спросите ещё раз.`);
+      return;
+    }
+  }
+  const phone = drivePhone();
+  const label = GRADE_LABELS[state.grade];
+  if (!phone) {
+    voiceAnswer('Пока не знаю, где вы. Разрешите геопозицию — и спросите снова.');
+    return;
+  }
+  const found = state.stations
+    .filter((station) => station.location && SERVES_NOW[station.grade?.status] === 0)
+    .map((station) => driveItem(phone, station, motion.heading))
+    .sort((a, b) => a.metres - b.metres)[0];
+  if (!found) {
+    voiceAnswer(`Рядом никто не подтверждает ${label}. Лучше не ехать наугад — скажу, как только кто-то отметит.`);
+    return;
+  }
+  // The same as a tap on its pin: the screen talks about this station now.
+  tapDriveStation(found.station.id);
+  const place = driveAddress(found.station.address);
+  const where = driveDirection(found.turn) || driveSide(found);
+  voiceAnswer(`${displayNetwork(found.station.network)}${place ? `, ${place}` : ''} — ${driveDistance(found.metres)}${where}. ${driveSays(found.station).text}.`);
+}
+
+// Which station a spoken mark is about: the one the screen is at, and failing
+// that the nearest one the car stands by. Never a station read about from afar
+// — a mark is about the pumps in front of the driver.
+function voiceStation() {
+  const view = stepDrive(Date.now());
+  const focused = ['at', 'near'].includes(view.kind) ? view.focus : null;
+  if (focused && focused.metres <= VOICE_MARK_METRES) return focused;
+  const phone = drivePhone();
+  if (!phone) return null;
+  const nearest = state.stations
+    .filter((station) => station.location)
+    .map((station) => driveItem(phone, station, motion.heading))
+    .sort((a, b) => a.metres - b.metres)[0];
+  return nearest && nearest.metres <= VOICE_MARK_METRES ? nearest : null;
+}
+
+// A mark may be said on the move: that is what it is for — «отмечать голосом,
+// проезжая мимо». The buttons stay locked while the car moves, because a
+// finger on a button is a finger off the wheel; a word is not.
+function voiceMark(meant) {
+  const grade = meant.grade || state.grade;
+  const label = GRADE_LABELS[grade];
+  if (meant.seen == null) {
+    voiceAnswer(`Не понял, есть ли ${label}. Скажите «${label} есть» или «${label} нет».`);
+    return;
+  }
+  const item = voiceStation();
+  if (!item) {
+    voiceAnswer('Не вижу, у какой вы заправки. Подъедьте ближе — и скажите снова.');
+    return;
+  }
+  const what = `${label} ${meant.seen ? 'есть' : 'нет'}${meant.queue != null ? `, очередь: ${queueWords(meant.queue)}` : ''}`;
+  voiceAnswer(`${displayNetwork(item.station.network)}: ${what}. Отправляю своим.`);
+  sendDriveMark(item.station.id, meant.seen, 'voice', { grade, queue: meant.queue });
+}
+
 function driveItem(phone, station, heading) {
   const metres = haversineKm(phone, station.location) * 1000;
   return { station, metres, turn: heading == null ? null : turnFrom(heading, bearingDegrees(phone, station.location)) };
@@ -6134,6 +6295,7 @@ function renderDrive({ force = false } = {}) {
   const shown = view.speed == null ? '—' : String(Math.round(view.speed));
   if (speed && speed.textContent !== shown) speed.textContent = shown;
   paintDriveOwn();
+  paintVoice();
   const routeSwitch = $('#drive [data-drive="route-toggle"]');
   if (routeSwitch && routeSwitch.getAttribute('aria-pressed') !== String(drive.routeOn)) routeSwitch.setAttribute('aria-pressed', String(drive.routeOn));
   // A finger that has just landed keeps its button where it is: a redraw
@@ -6541,6 +6703,8 @@ function onDriveTap(event) {
     openDriveRoute(station);
   } else if (action === 'yandex') {
     openDriveYandex(station);
+  } else if (action === 'voice') {
+    toggleVoice();
   } else if (action === 'own') {
     drive.ownOnly = !drive.ownOnly;
     drive.tapped = null;
@@ -6630,15 +6794,17 @@ function onDriveTap(event) {
 
 // Through the same path as every mark: kept on the phone, sent to the club,
 // waiting for a connection when there is none, under the club's own rules.
-function sendDriveMark(stationId, seen, reason) {
+function sendDriveMark(stationId, seen, reason, { grade = state.grade, queue = null } = {}) {
   if (!stationId) return;
   const station = state.stations.find((item) => item.id === stationId);
-  const grade = state.grade;
   const draft = composeDraft(stationId);
-  const queue = reason === 'at_station' ? draft?.queue ?? null : null;
+  // A spoken mark brings its own grade and queue and leaves the draft alone;
+  // a button takes the queue from the composer, as before.
+  const said = reason === 'voice';
+  if (!said && reason === 'at_station') queue = draft?.queue ?? null;
   // Said now, the grade and the queue are no longer a draft; other grades
   // pressed on the card underneath stay pressed.
-  if (draft) {
+  if (draft && !said) {
     delete draft.chosen[grade];
     draft.queue = null;
     if (!Object.keys(draft.chosen).length) composeDrafts.delete(stationId);

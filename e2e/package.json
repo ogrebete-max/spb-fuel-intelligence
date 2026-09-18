@@ -31,11 +31,12 @@
     "fit": "node feed-fit-ui.mjs",
     "own-day": "node own-day-ui.mjs",
     "update-laptop": "node update-laptop-ui.mjs",
+    "voice": "node voice-ui.mjs",
     "d1": "node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1",
     "server": "node club-ui.mjs --server && node club-rewards-ui.mjs --server",
     "live": "node live-open.mjs",
     "audit": "node audit-server.mjs",
-    "all": "node field-ui.mjs && node own-mode-ui.mjs && node race-ui.mjs && node club-ui.mjs && node club-rewards-ui.mjs && node scout-ui.mjs && node outbox-ui.mjs && node far-away-ui.mjs && node club-test-mode-ui.mjs && node club-return-ui.mjs && node club-votes-ui.mjs && node club-invites-ui.mjs && node coarse-location-ui.mjs && node update-ui.mjs && node nearby-highlight-ui.mjs && node club-delete-ui.mjs && node quick-mark-ui.mjs && node drive-mode-ui.mjs && node location-denied-ui.mjs && node ageing-ui.mjs && node scroll-ui.mjs && node analytics-ui.mjs && node club-return-ask-ui.mjs && node club-steady-ui.mjs && node feed-fit-ui.mjs && node own-day-ui.mjs && node update-laptop-ui.mjs && node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1 && node club-ui.mjs --server && node club-rewards-ui.mjs --server"
+    "all": "node field-ui.mjs && node own-mode-ui.mjs && node race-ui.mjs && node club-ui.mjs && node club-rewards-ui.mjs && node scout-ui.mjs && node outbox-ui.mjs && node far-away-ui.mjs && node club-test-mode-ui.mjs && node club-return-ui.mjs && node club-votes-ui.mjs && node club-invites-ui.mjs && node coarse-location-ui.mjs && node update-ui.mjs && node nearby-highlight-ui.mjs && node club-delete-ui.mjs && node quick-mark-ui.mjs && node drive-mode-ui.mjs && node location-denied-ui.mjs && node ageing-ui.mjs && node scroll-ui.mjs && node analytics-ui.mjs && node club-return-ask-ui.mjs && node club-steady-ui.mjs && node feed-fit-ui.mjs && node own-day-ui.mjs && node update-laptop-ui.mjs && node voice-ui.mjs && node club-ui.mjs --d1 && node club-rewards-ui.mjs --d1 && node club-ui.mjs --server && node club-rewards-ui.mjs --server"
   },
   "devDependencies": {
     "playwright": "1.63.0"
