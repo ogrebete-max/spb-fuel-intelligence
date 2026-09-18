@@ -51,8 +51,11 @@ async function run(label, browserType, device) {
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('load', () => { loads += 1; });
   await page.goto(`http://localhost:${SITE_PORT}/`, { waitUntil: 'load' });
-  await page.waitForTimeout(7000);
-  check(`the old page reloads itself onto the new build (${await page.evaluate(() => window.SPBFI_BUILD)})`, await page.evaluate((build) => window.SPBFI_BUILD === build, BUILD));
+  // The app never reloads itself in its first seconds — that is how an iPhone
+  // was left with a white screen (18 Sep 2026) — so it walks onto the new
+  // build a moment after it is on screen, not instantly.
+  const arrived = await page.waitForFunction((build) => window.SPBFI_BUILD === build, BUILD, { timeout: 30000 }).then(() => true, () => false);
+  check(`the old page reloads itself onto the new build (${await page.evaluate(() => window.SPBFI_BUILD)})`, arrived);
   check(`once, not in a loop (${loads} loads)`, loads === 2);
   check('and the list is there', await page.waitForSelector('.station-card', { timeout: 30000 }).then(() => true, () => false));
   check(`no page errors (${errors.length})`, errors.length === 0);

@@ -6959,12 +6959,18 @@ const SNAPSHOT_POLL_MS = 60000;
 // reload lands on the same old page and the app waits out its minute before
 // trying again (17 Sep 2026). Meanwhile the app goes on working on the build it
 // has: on a slow phone network waiting for the new page is a blank screen.
+// Never at the launch itself: an iPhone reloading a home-screen app in its
+// first seconds is how a white screen happens (18 Sep 2026). The app is on
+// screen and working by then, and the reload is a blink.
+const SETTLED_MS = 8000;
+const startedAt = Date.now();
 let takingNewPage = false;
 function reloadForNewBuild() {
   if (takingNewPage) return;
   takingNewPage = true;
   fetch(location.href.split('#')[0], { cache: 'reload', credentials: 'same-origin' })
     .catch(() => null)
+    .then(() => new Promise((resolve) => { setTimeout(resolve, Math.max(0, SETTLED_MS - (Date.now() - startedAt))); }))
     .then(() => {
       takingNewPage = false;
       if (!document.hidden) reloadOnce();

@@ -26,6 +26,10 @@ FINAL_STATUSES: dict[str, str] = {
 POSITIVE = {"AVAILABLE", "LIKELY"}
 NEGATIVE = {"NOT_AVAILABLE", "LIKELY_NOT"}
 RESTRICTED = {"LIMITED", "QUEUE"}
+# How many independent provenance clusters must speak for a grade before the
+# app says it is there, and the evidence that never needs corroboration.
+POSITIVE_VOICES = 3
+FIRST_HAND_KINDS = {"eyewitness", "official_stock", "official_relay"}
 NON_STATUS_KINDS = {"price", "catalog_price", "catalog_fuel", "catalog_or_stale"}
 
 # A TTL says for how long a signal may influence the current status.  Old rows
@@ -781,6 +785,28 @@ def evaluate_grade(
         status = "CONFIRMED_NO"
         reason = "Свежие источники почти единодушны: этой марки нет."
 
+    # Three voices for «есть».  Measured on the published snapshot of 18 Sep
+    # 2026 against Yandex's own crowd signal, which is independent of every feed
+    # we read: an «есть» carried by one provenance cluster was right in 7% of
+    # cases, by two in 26%, by three in 71%, by four in 79%, by five and more in
+    # 89%.  The owner chose accuracy over noise — "лучше нет свежих данных" —
+    # so below three voices the app says it has no fresh answer instead of
+    # sending anyone.  Someone of ours standing at the pump and a chain's own
+    # stock feed are not a crowd and are not asked to corroborate.
+    if status in {"CAN_REFUEL", "LIKELY_AVAILABLE", "LIMITED"}:
+        speaking = [item for item in fresh if item.row.get("availability") in POSITIVE | RESTRICTED]
+        voices = {item.cluster for item in speaking}
+        first_hand = any(str(item.row.get("kind")) in FIRST_HAND_KINDS for item in speaking)
+        if not first_hand and len(voices) < POSITIVE_VOICES:
+            status = "NO_FRESH_DATA"
+            reason = (
+                ("За наличие говорит только один источник, и никто его не подтвердил. "
+                 if len(voices) < 2 else
+                 "За наличие говорят два источника, третьего нет. ")
+                + "Этого мало, чтобы вести вас сюда."
+            )
+            probability = None
+
     # An undated row is dated by the moment we polled, which is not when anyone
     # saw anything.  Such a row may still vote, at its low weight, but it must
     # never set the age shown on the card: that is how a two-month-old crowd
@@ -866,7 +892,7 @@ def evaluate_grade(
 def evaluate_station(
     station: dict[str, Any],
     *,
-    grades: Iterable[str] = ("AI92", "AI95", "AI98", "AI100", "DT", "LPG"),
+    grades: Iterable[str] = ("AI92", "AI95", "AI98", "AI100", "DT"),
     now: datetime | None = None,
 ) -> dict[str, Any]:
     result = {key: value for key, value in station.items() if key != "evidence"}

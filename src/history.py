@@ -10,7 +10,7 @@ from typing import Any
 from .evidence_engine import evaluate_grade, parse_time
 
 
-GRADES = ("AI92", "AI95", "AI98", "AI100", "DT", "LPG")
+GRADES = ("AI92", "AI95", "AI98", "AI100", "DT")
 POSITIVE_STATUSES = {"CAN_REFUEL", "LIKELY_AVAILABLE"}
 NEGATIVE_STATUSES = {"CONFIRMED_NO", "LIKELY_NOT"}
 SOURCE_PRIORITY = {

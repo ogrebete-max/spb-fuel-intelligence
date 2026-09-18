@@ -100,15 +100,14 @@ async function run(label, browserType, device) {
   again.on('pageerror', (error) => errors.push(error.message));
   let loads = 0;
   again.on('load', () => { loads += 1; });
-  await again.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' });
-  await again.waitForSelector('.station-card', { timeout: 30000 });
-  await again.waitForTimeout(4000);
-  const opened = await again.evaluate(() => window.SPBFI_BUILD);
-  if (controlled) {
-    check(`opened again, it starts on the new build (${opened}), asking the site for the page (${pages.served - before}), in one load (${loads})`, opened === 'build-c' && loads === 1 && pages.served - before === 1);
-  } else {
-    check(`opened again without a service worker, it still ends on the new build (${opened})`, opened === 'build-c');
-  }
+  const openedAt = Date.now();
+  await again.goto(`http://localhost:${PORT}/`, { waitUntil: 'commit' });
+  const shown = await again.waitForSelector('.station-card', { timeout: 30000 }).then(() => Date.now() - openedAt, () => null);
+  // The app is on the glass at once, from the page kept for it, and it walks
+  // onto the new build a few seconds later — never a blank screen at launch.
+  check(`opened again, the app is on screen in ${shown} ms`, shown != null && shown < 5000);
+  check('and it walks onto the new build by itself', await becomes(again, () => window.SPBFI_BUILD === 'build-c', null, 30000));
+  check(`the site was asked for the page (${pages.served - before})`, pages.served - before >= 1);
   // 3. A phone on a poor network: the kept page goes on the glass at once, and
   // the app catches up with the new build by itself.
   build = 'build-d';

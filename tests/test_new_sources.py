@@ -209,7 +209,9 @@ class TwoGisTests(unittest.TestCase):
         diesel = evidence["DT"]
         self.assertEqual((diesel["availability"], diesel["queue"], diesel["limit_liters"]), ("AVAILABLE", "up_to_25", 30.0))
         self.assertEqual((evidence["AI92"]["queue"], evidence["AI92"]["limit_liters"]), (None, None))
-        result = evaluate_grade(rows[0]["evidence"], "DT", now=when(diesel["observed_at"]) + timedelta(minutes=5))
+        heard = [evidence_row("gdebenz", "gdebenz-crowd", "crowd_status", "AVAILABLE", 3, grade="DT"),
+                 evidence_row("yandex-maps", "yandex-crowd", "crowd_status", "AVAILABLE", 3, grade="DT")]
+        result = evaluate_grade(rows[0]["evidence"] + heard, "DT", now=when(diesel["observed_at"]) + timedelta(minutes=5))
         self.assertEqual(result["status"], "LIMITED")
         self.assertEqual(
             (result["queue"]["cars_from"], result["queue"]["cars_to"], result["queue"]["label"]),
@@ -295,7 +297,12 @@ class TransitCardTests(unittest.TestCase):
 
     def test_an_undated_status_votes_but_never_sets_the_age_on_a_card(self):
         undated = evaluate_grade(
-            [evidence_row("transitcard", "transitcard-payments", "payment_projection", "AVAILABLE")], "AI95", now=NOW)
+            # Three voices, none of which gives a time: the answer stands, the
+            # card still shows no age (18 Sep 2026: «есть» needs three voices).
+            [evidence_row("transitcard", "transitcard-payments", "payment_projection", "AVAILABLE"),
+             evidence_row("gdebenz", "gdebenz-crowd", "crowd_status", "AVAILABLE", independent=True),
+             evidence_row("azsradar-rf", "azsradar-crowd", "crowd_status", "AVAILABLE", independent=True)],
+            "AI95", now=NOW)
         self.assertNotEqual(undated["status"], "NO_FRESH_DATA")
         self.assertIsNone(undated["updated_at"])
         self.assertIsNone(undated["age_seconds"])
@@ -308,8 +315,9 @@ class TransitCardTests(unittest.TestCase):
         alfa = evidence_row("alfa-azs", "alfa-payments", "payment_projection", "AVAILABLE")
         card = evidence_row("transitcard", "transitcard-payments", "payment_projection", "LIMITED")
         crowd = evidence_row("yandex-maps", "yandex-crowd", "crowd_status", "AVAILABLE", 10, independent=True)
-        result = evaluate_grade([alfa, card, crowd], "AI95", now=NOW)
-        self.assertEqual(voices(result), {"alfa-payments", "yandex-crowd"})
+        third = evidence_row("azsradar-rf", "azsradar-crowd", "crowd_status", "AVAILABLE", 10, independent=True)
+        result = evaluate_grade([alfa, card, crowd, third], "AI95", now=NOW)
+        self.assertEqual(voices(result), {"alfa-payments", "yandex-crowd", "azsradar-crowd"})
         self.assertEqual(result["status"], "LIMITED")
 
     def test_polled_later_it_does_not_erase_alfas_litre_limit(self):

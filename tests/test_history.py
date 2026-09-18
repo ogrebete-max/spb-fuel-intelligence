@@ -5,15 +5,21 @@ from src.history import station_history_id, timeline_for, update_history_data
 
 
 def snapshot(at, availability, kind="official_stock"):
+    # A crowd answer needs three independent voices since 18 Sep 2026; an
+    # official stock feed still speaks alone.
+    voices = [("gazpromneft", "gazpromneft-official")] if kind == "official_stock" else [
+        # Three unrelated voices: azsmap and ГдеБЕНЗ would be folded into one.
+        ("crowd-one", "crowd-a"), ("crowd-two", "crowd-b"), ("crowd-three", "crowd-c"),
+    ]
     station = {
         "id": "canonical-1", "network": "Test", "address": "СПб",
         "location": {"lat": 59.9, "lon": 30.3},
         "source_refs": [{"source": "gazpromneft", "station_id": "1108"}],
         "evidence": [{
-            "source": "gazpromneft", "grade": "AI95", "availability": availability,
+            "source": source, "grade": "AI95", "availability": availability,
             "kind": kind, "received_at": at, "observed_at": at,
-            "provenance_cluster": "gazpromneft-official", "independent": False,
-        }],
+            "provenance_cluster": cluster, "independent": True,
+        } for source, cluster in voices],
     }
     return {"snapshot_at": at, "stations": [station]}, station
 

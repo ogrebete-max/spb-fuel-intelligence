@@ -14,7 +14,9 @@ from .last_seen import silence_note
 from .station_matcher import haversine_km
 
 
-GRADES = ("AI92", "AI95", "AI98", "AI100", "DT", "LPG")
+# Petrol and diesel only: the owner has no use for gas, and the stations
+# that sell nothing else are dropped from the snapshot (18 Sep 2026).
+GRADES = ("AI92", "AI95", "AI98", "AI100", "DT")
 SOURCE_COUNT_KEYS = {
     "sber_fuel_map": "sber",
     "gdebenzin_rf": "gdebenzin",
@@ -319,7 +321,10 @@ class StationRepository:
         this station is down, so the card says which one.
         """
         failing = station.get("failing_sources")
-        if failing and evaluated["status"] == "NO_FRESH_DATA":
+        # Only when nothing fresh came at all: since 18 Sep 2026 an answer is
+        # also withheld when fewer than three voices speak for it, and blaming
+        # a silent feed for that would be false — the feed did answer.
+        if failing and evaluated["status"] == "NO_FRESH_DATA" and not evaluated.get("fresh_evidence_count"):
             note = silence_note(failing)
             evaluated["source_note"] = note
             evaluated["reason"] = f"{note[0].upper()}{note[1:]}. {evaluated['reason']}"

@@ -89,34 +89,53 @@ class EvidenceEngineTests(unittest.TestCase):
         ], "AI95", now=NOW)
         self.assertEqual(result["status"], "CAN_REFUEL")
 
-    def test_two_independent_crowd_clusters_confirm(self):
-        evidence = [row("AVAILABLE", cluster="a"), row("AVAILABLE", cluster="b")]
-        self.assertEqual(evaluate_grade(evidence, "AI95", now=NOW)["status"], "CAN_REFUEL")
+    def test_three_crowd_voices_answer_and_two_stay_silent(self):
+        """«Есть» from the crowd needs three independent voices (18 Sep 2026).
+
+        Measured on the published snapshot against Yandex's own signal, which
+        is independent of every feed we read: an «есть» carried by one cluster
+        was right in 7% of cases, by two in 26%, by three in 71%. The owner
+        chose to say nothing rather than send a driver on two.
+        """
+        two = evaluate_grade([row("AVAILABLE", cluster="a"), row("AVAILABLE", cluster="b")], "AI95", now=NOW)
+        self.assertEqual(two["status"], "NO_FRESH_DATA")
+        self.assertIn("третьего нет", two["reason"])
+        self.assertIsNone(two["probability"])
+        three = evaluate_grade(
+            [row("AVAILABLE", cluster="a"), row("AVAILABLE", cluster="b"), row("AVAILABLE", cluster="c")],
+            "AI95", now=NOW,
+        )
+        self.assertEqual(three["status"], "CAN_REFUEL")
 
     def test_dependent_duplicates_do_not_confirm(self):
-        evidence = [row("AVAILABLE", cluster="same", independent=False), row("AVAILABLE", cluster="same", independent=False)]
+        evidence = [row("AVAILABLE", cluster="same", independent=False) for _ in range(3)]
         result = evaluate_grade(evidence, "AI95", now=NOW)
-        self.assertEqual(result["status"], "LIKELY_AVAILABLE")
+        self.assertEqual(result["status"], "NO_FRESH_DATA", "three copies of one voice are still one voice")
         self.assertEqual(result["fresh_provenance_count"], 1)
 
     def test_opposite_fresh_signals_are_conflict(self):
         evidence = [row("AVAILABLE", cluster="a"), row("NOT_AVAILABLE", cluster="b")]
         self.assertEqual(evaluate_grade(evidence, "AI95", now=NOW)["status"], "CONFLICT")
 
-    def test_a_lone_restricted_row_reads_as_fuel_with_a_limit(self):
+    def test_a_restricted_row_speaks_for_the_grade_never_against_it(self):
         """«Есть, но с лимитом» is a voice for the grade, not against it.
 
         On 18 Sep 2026 a single fresh row of that kind published «СКОРЕЕ НЕТ»
         with the reason «против наличия есть только один слабый сигнал», while
         the engine's own probability stood above a half: the weak band asked
         only about plain positives, and a restricted row is in neither list.
+        One voice now says nothing at all; three of them say «есть, с лимитом».
         """
         for status, extra in (("LIMITED", {"limit": 20}), ("QUEUE", {"queue": "5_20"})):
             with self.subTest(status=status):
-                result = evaluate_grade([row(status, kind="payment_projection", independent=False, **extra)], "AI95", now=NOW)
-                self.assertGreater(result["probability"], 0.5)
-                self.assertEqual(result["status"], "LIMITED")
-                self.assertIn("очереди или лимите", result["reason"])
+                lone = evaluate_grade([row(status, kind="payment_projection", independent=False, **extra)], "AI95", now=NOW)
+                self.assertEqual(lone["status"], "NO_FRESH_DATA")
+                self.assertNotIn("Против наличия", lone["reason"])
+                heard = evaluate_grade(
+                    [row(status, cluster="a", **extra), row("AVAILABLE", cluster="b"), row("AVAILABLE", cluster="c")],
+                    "AI95", now=NOW,
+                )
+                self.assertEqual(heard["status"], "LIMITED")
         # A «нет» of the same weight beside it is a disagreement, not a quiet «нет».
         both = evaluate_grade(
             [row("LIMITED", kind="payment_projection", independent=False, limit=20),
@@ -133,20 +152,24 @@ class EvidenceEngineTests(unittest.TestCase):
         self.assertEqual(heavier["status"], "LIKELY_NOT")
 
     def test_limit_is_visible_and_restricted(self):
-        result = evaluate_grade([row("AVAILABLE", limit=30)], "AI95", now=NOW)
+        result = evaluate_grade([row("AVAILABLE", limit=30), row("AVAILABLE", cluster="b"), row("AVAILABLE", cluster="c")], "AI95", now=NOW)
         self.assertEqual(result["status"], "LIMITED")
         self.assertEqual(result["limit_liters"], 30)
 
     def test_known_queue_is_restricted_but_empty_queue_metadata_is_not(self):
-        queued = evaluate_grade([row("AVAILABLE", queue={"size": "20_50"})], "AI95", now=NOW)
-        unknown = evaluate_grade([row("AVAILABLE", queue={"size": None})], "AI95", now=NOW)
+        heard = [row("AVAILABLE", cluster="b"), row("AVAILABLE", cluster="c")]
+        queued = evaluate_grade([row("AVAILABLE", queue={"size": "20_50"}), *heard], "AI95", now=NOW)
+        unknown = evaluate_grade([row("AVAILABLE", queue={"size": None}), *heard], "AI95", now=NOW)
         self.assertEqual(queued["status"], "LIMITED")
-        self.assertEqual(unknown["status"], "LIKELY_AVAILABLE")
+        self.assertEqual(unknown["status"], "CAN_REFUEL", "queue metadata with no size does not restrict")
 
     def test_expired_queue_is_not_shown_or_restricted(self):
         expired = {"size": "gt50", "until": (NOW - timedelta(minutes=1)).isoformat()}
-        result = evaluate_grade([row("AVAILABLE", queue=expired)], "AI95", now=NOW)
-        self.assertEqual(result["status"], "LIKELY_AVAILABLE")
+        result = evaluate_grade(
+            [row("AVAILABLE", queue=expired), row("AVAILABLE", cluster="b"), row("AVAILABLE", cluster="c")],
+            "AI95", now=NOW,
+        )
+        self.assertEqual(result["status"], "CAN_REFUEL", "a queue that has run out does not restrict")
         self.assertIsNone(result["queue"])
 
 

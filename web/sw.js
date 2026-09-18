@@ -57,13 +57,22 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => null);
     event.respondWith((async () => {
-      const kept = await caches.match(request, { ignoreSearch: true })
-        .then((cached) => cached || caches.match('./'))
-        .then((cached) => cached || caches.match('index.html'));
-      if (!kept) return (await fromSite) || Response.error();
-      const quick = await Promise.race([fromSite, new Promise((resolve) => { setTimeout(() => resolve(null), 1200); })]);
-      if (!quick) event.waitUntil(fromSite);
-      return quick || kept;
+      // The kept page goes up at once — an iPhone opening the app must never
+      // wait on the network (17-18 Sep 2026: it showed a white screen, and only
+      // closing and opening the app again helped). The newer page is taken in
+      // the background for the next launch, and the app reloads itself onto a
+      // new build once meta.json names it, a few seconds after it is on screen.
+      const kept = await Promise.race([
+        caches.match(request, { ignoreSearch: true })
+          .then((cached) => cached || caches.match('./'))
+          .then((cached) => cached || caches.match('index.html')),
+        new Promise((resolve) => { setTimeout(() => resolve(null), 1500); }),
+      ]);
+      if (kept) {
+        event.waitUntil(fromSite);
+        return kept;
+      }
+      return (await fromSite) || Response.error();
     })());
     return;
   }

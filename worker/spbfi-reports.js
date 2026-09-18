@@ -61,8 +61,9 @@ const MAX_REPORTS = 4000;
 const MAX_PER_MINUTE = 20;
 const MAX_SUBSCRIPTIONS = 300;
 const NOTIFY_RADIUS_KM = 7;
-const GRADES = new Set(['AI92', 'AI95', 'AI98', 'AI100', 'DT', 'LPG']);
-const GRADE_LABELS = { AI92: '92', AI95: '95', AI98: '98', AI100: '100', DT: 'ДТ', LPG: 'Газ' };
+// Petrol and diesel only (18 Sep 2026): the app has no gas in it.
+const GRADES = new Set(['AI92', 'AI95', 'AI98', 'AI100', 'DT']);
+const GRADE_LABELS = { AI92: '92', AI95: '95', AI98: '98', AI100: '100', DT: 'ДТ' };
 const ANALYTICS_VERSION = 2;
 const ANALYTICS_RETENTION_SECONDS = 180 * 24 * 60 * 60;
 const ANALYTICS_EVENTS = new Set([

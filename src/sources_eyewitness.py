@@ -23,7 +23,7 @@ def normalize_eyewitness(report: dict[str, Any]) -> list[dict[str, Any]]:
         # canonical station id is derived from the snapshot and may change.
         return []
     grade = str(report.get("grade") or "")
-    if grade not in {"AI92", "AI95", "AI98", "AI100", "DT", "LPG"}:
+    if grade not in {"AI92", "AI95", "AI98", "AI100", "DT"}:
         return []
     seen = report.get("seen")
     if not isinstance(seen, bool):

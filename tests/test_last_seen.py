@@ -27,6 +27,9 @@ from src.repository import StationRepository  # noqa: E402
 
 
 START = datetime(2026, 9, 14, 12, 0, tzinfo=timezone.utc)
+# The fixture has two sources; since 18 Sep 2026 «есть» is published only with
+# three independent voices, so these tests watch the fresh evidence a slot
+# delivers rather than the word the engine puts on it.
 NOTE = "источник gdezapravka сейчас не отвечает"
 # A forecourt only gdezapravka knows, and one that Sber lists as well.
 ONLY = {"id": "7001", "address": "Тестовая ул., 1", "lat": 60.30, "lng": 29.62, "available": ["ai95"]}
@@ -147,7 +150,7 @@ class SourceOutageTests(unittest.TestCase):
         # from gdezapravka.
         shared = listed_as(during, "sber", "sber-7002")
         self.assertEqual(shared["failing_sources"], ["gdezapravka"])
-        self.assertNotEqual(cards[shared["id"]]["status"], "NO_FRESH_DATA")
+        self.assertGreater(cards[shared["id"]]["fresh_evidence_count"], 0, "Sber still answers for 95 here")
         self.assertNotIn("source_note", cards[shared["id"]])
         diesel = repository.detail(shared["id"], as_of="snapshot")["grades"]["DT"]
         self.assertEqual((diesel["status"], diesel["source_note"]), ("NO_FRESH_DATA", NOTE))
@@ -155,8 +158,8 @@ class SourceOutageTests(unittest.TestCase):
     def test_the_last_answer_is_not_carried_over_as_current(self):
         station_id = listed_as(self.pipeline.refresh(START), "gdezapravka", "7001")["id"]
         _, cards = self.pipeline.cards()
-        self.assertIn(cards[station_id]["status"], {"CAN_REFUEL", "LIKELY_AVAILABLE"})
-        self.assertEqual(cards[station_id]["timeline"]["state"], "OBSERVED_AVAILABLE")
+        self.assertGreater(cards[station_id]["fresh_evidence_count"], 0)
+        self.assertEqual(cards[station_id]["timeline"]["state"], "OBSERVED")
 
         self.pipeline.refresh(START + timedelta(minutes=10), "missing")
         _, cards = self.pipeline.cards()
@@ -176,7 +179,7 @@ class SourceOutageTests(unittest.TestCase):
         station = listed_as(recent, "gdezapravka", "7001")
         self.assertEqual(station["failing_sources"], ["gdezapravka"])
         _, cards = self.pipeline.cards()
-        self.assertIn(cards[station["id"]]["status"], {"CAN_REFUEL", "LIKELY_AVAILABLE"})
+        self.assertGreater(cards[station["id"]]["fresh_evidence_count"], 0)
         self.assertNotIn("source_note", cards[station["id"]])
 
         # Three hours on, the same capture is only proof the station exists.
@@ -217,7 +220,7 @@ class SourceOutageTests(unittest.TestCase):
         self.assertNotIn("failing_sources", station)
         self.assertTrue(station["evidence"])
         _, cards = self.pipeline.cards()
-        self.assertIn(cards[station["id"]]["status"], {"CAN_REFUEL", "LIKELY_AVAILABLE"})
+        self.assertGreater(cards[station["id"]]["fresh_evidence_count"], 0)
 
     def test_a_station_the_answering_source_no_longer_lists_goes_at_once(self):
         self.pipeline.refresh(START)
