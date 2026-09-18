@@ -604,8 +604,16 @@ async function run(label, browserType, device) {
     await page.evaluate((id) => tapDriveStation(id), station.id);
     const sheet = await becomes(page, () => document.querySelector('#drive').dataset.kind === 'tapped' && !!document.querySelector('#driveSheet [data-drive="yandex"]'), null, 3000);
     check(`a tapped station (${way}): its sheet with «В Яндексе» lies on screen`, sheet && await framed(page));
+    // The app reloads its list on a timer, and a reload brings the Yandex id
+    // back: for the «search» round it is taken away again right before the tap,
+    // which is when the button reads it.
+    if (way === 'search') await page.evaluate((id) => { const item = state.stations.find((one) => one.id === id); if (item) delete item.yandex_org; }, station.id);
     const before = await page.evaluate(() => window.openedPages.length);
     await tap(page, '#driveSheet [data-drive="yandex"]');
+    // The tap is read only once the page has actually opened something: WebKit
+    // clicks «directly» when it calls the button unstable, and the opening then
+    // lands a moment later — late enough to be counted in the next round.
+    await becomes(page, (count) => window.openedPages.length > count, before, 3000);
     const opened = await page.evaluate((count) => window.openedPages.slice(count), before);
     const expected = way === 'card'
       ? opened.length === 1 && opened[0] === `https://yandex.ru/maps/org/${station.yandex_org}/`
