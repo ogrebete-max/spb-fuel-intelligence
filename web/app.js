@@ -1340,6 +1340,7 @@ async function loadStations({ silent = false } = {}) {
     const data = await api(`/api/stations?${params}`);
     if (requestId !== state.request) return;
     state.stations = data.stations;
+    rememberFoldedIds(data.stations);
     state.total = Number(data.total || 0);
     $('#resultCount').textContent = data.total.toLocaleString('ru-RU');
     $('#resultNoun').textContent = `${plural(data.total, 'карточка', 'карточки', 'карточек')} АЗС`;
@@ -1862,11 +1863,55 @@ window.addEventListener('online', () => flushOutbox());
 // The latest mark of each grade at each station since `cutoff`, with everyone
 // who marked it; what this device filed stays in even before the worker echoes
 // it back (or if the shared word was wrong and it never will).
+// Карточки, которые приложение свело в одну (18.09.2026): отметка сделана на
+// той карточке, что была в тот момент, и её id мог исчезнуть вместе с ней. Здесь
+// она находит карточку, в которую та вошла, — иначе отметка просто пропадает с
+// экрана, хотя лежит на сервере клуба.
+function rememberFoldedIds(stations) {
+  const map = {};
+  for (const station of stations || []) {
+    for (const old of station.also_ids || []) map[old] = station.id;
+  }
+  // The lists come one grade at a time, and a card may be missing from this
+  // one; what was learnt before is kept.
+  state.aliasOf = { ...(state.aliasOf || {}), ...map };
+  moveOwnMarks();
+}
+
+// Свои отметки лежат на телефоне под id карточки: когда карточки свелись в одну,
+// они переезжают на неё, иначе «Вы отметили» пропадает с карточки.
+function moveOwnMarks() {
+  const marks = loadMarks();
+  let moved = false;
+  for (const [id, grades] of Object.entries(marks)) {
+    const now = stationNow(id);
+    if (now === id) continue;
+    const slot = (marks[now] = marks[now] || {});
+    for (const [grade, mine] of Object.entries(grades)) {
+      if (!slot[grade] || slot[grade].at < mine.at) slot[grade] = mine;
+    }
+    delete marks[id];
+    moved = true;
+  }
+  if (!moved) return;
+  try {
+    localStorage.setItem(MARK_STORE, JSON.stringify(marks));
+  } catch {
+    // Without storage they still stand for this visit.
+  }
+  state.marks = marks;
+}
+
+function stationNow(id) {
+  return (state.aliasOf && state.aliasOf[id]) || id;
+}
+
 function foldMarks(reports, cutoff) {
   const marks = {};
   for (const report of reports) {
     if (!report || report.at < cutoff || !report.station || !report.grade) continue;
-    const slot = (marks[report.station] = marks[report.station] || {});
+    const station = stationNow(report.station);
+    const slot = (marks[station] = marks[station] || {});
     const current = slot[report.grade];
     const people = new Set(current?.people || []);
     people.add(report.who || '?');
@@ -1883,7 +1928,8 @@ function foldMarks(reports, cutoff) {
       current.names = [...names];
     }
   }
-  for (const [stationId, grades] of Object.entries(loadMarks())) {
+  for (const [ownId, grades] of Object.entries(loadMarks())) {
+    const stationId = stationNow(ownId);
     for (const [grade, mine] of Object.entries(grades)) {
       if (mine.at < cutoff) continue;
       const slot = (marks[stationId] = marks[stationId] || {});
@@ -7197,10 +7243,17 @@ pollGroupMarks();
 // keyboard, or the page being zoomed. A fixed bar is placed against the page,
 // which on an iPhone is taller than what one sees, and the bottom bar slid up
 // into the middle of the list while scrolling (17 Sep 2026).
+// 18.09.2026: полоса снова уехала на середину страницы на iPhone. Держать её
+// над панелью браузера стоит ровно до тех пор, пока это несколько десятков
+// пикселей: всё, что больше, — это клавиатура или мгновение, когда iOS отдаёт
+// странные размеры при прокрутке, и полосе там делать нечего. Ниже края экрана
+// она не уходит никогда.
+const GLASS_LIMIT = 120;
 function keepOnGlass() {
   const view = window.visualViewport;
-  const hidden = view ? Math.max(0, Math.round(window.innerHeight - (view.height + view.offsetTop))) : 0;
-  document.documentElement.style.setProperty('--glass-bottom', `${hidden}px`);
+  const hidden = view ? Math.round(window.innerHeight - (view.height + view.offsetTop)) : 0;
+  const glass = hidden > 0 && hidden <= GLASS_LIMIT ? hidden : 0;
+  document.documentElement.style.setProperty('--glass-bottom', `${glass}px`);
 }
 
 if (window.visualViewport) {

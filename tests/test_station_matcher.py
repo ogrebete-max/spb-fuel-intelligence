@@ -142,6 +142,22 @@ class TwinCardTests(unittest.TestCase):
         cards = {card["network"]: {ref["source"] for ref in card["source_refs"]} for card in merge_stations(rows)}
         self.assertEqual(cards, {"Газпромнефть, АЗС": {"sber", "gde-benzin", "gazpromneft", "tofuel"}})
 
+    def test_a_folded_card_keeps_its_old_id_as_a_name(self):
+        """Marks are filed under the id of the card they were made on.
+
+        18 Sep 2026: four of the day's club marks lost their station the moment
+        two cards became one, and people stopped seeing what they had marked.
+        """
+        rows = [
+            station("azsmap", "np", "Nord Point", "Санкт-Петербург, Выборгская набережная", 59.97180, 30.33500),
+            station("gde-benzin", "np-2", "Nord Point", "Санкт-Петербург, Выборгская набережная", 59.97180, 30.33500),
+            station("sber", "70000001000000057", "Газпромнефть, АЗС", "Санкт-Петербург, Выборгская набережная, 57 к1", 59.97200, 30.33500),
+        ]
+        alone = {card["network"]: card["id"] for card in merge_stations(rows[:2])}
+        [card] = merge_stations(rows)
+        self.assertEqual(card["network"], "Газпромнефть, АЗС")
+        self.assertIn(alone["Nord Point"], card["also_ids"])
+
     def test_a_little_further_apart_the_house_number_decides(self):
         """«Газпром» and «Газпромнефть», one house, twenty-two metres apart."""
         rows = [

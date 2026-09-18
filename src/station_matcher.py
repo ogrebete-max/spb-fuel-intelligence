@@ -438,6 +438,14 @@ def _forecourt_rank(station: dict[str, Any]) -> tuple[int, ...]:
 
 
 def _absorb(keeper: dict[str, Any], gone: dict[str, Any]) -> None:
+    # The card that goes keeps living as a name for this one: the club's marks
+    # are filed under the id of the card they were made on, and on 18 Sep 2026
+    # four of the day's marks lost their station the moment two cards became
+    # one. Everything a folded card was called is carried here.
+    aliases = keeper.setdefault("also_ids", [])
+    for old in [gone["id"], *gone.get("also_ids", [])]:
+        if old != keeper["id"] and old not in aliases:
+            aliases.append(old)
     for ref in gone.get("source_refs", []):
         if ref not in keeper["source_refs"]:
             keeper["source_refs"].append(ref)

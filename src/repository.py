@@ -216,6 +216,10 @@ class StationRepository:
             yandex = yandex_org(station)
             if yandex:
                 row["yandex_org"] = yandex
+            # Marks made on a card that has since been folded into this one are
+            # filed under its old id; the app follows them here.
+            if station.get("also_ids"):
+                row["also_ids"] = station["also_ids"]
             result.append(row)
 
         priority = {
