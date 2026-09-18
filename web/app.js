@@ -5308,6 +5308,8 @@ function stillFor(now = Date.now()) {
 const DRIVE_RADIUS_METRES = 5000;
 const DRIVE_AHEAD_DEGREES = 60;
 const DRIVE_BIG_PINS = 3;
+// Сколько заправок предлагать кроме той, о которой говорит панель.
+const DRIVE_OPTIONS = 2;
 const DRIVE_LINE_METRES = 1200;
 // «Вы на АЗС» is said only beside the pumps, after standing there a while:
 // a traffic light next to a station is not a visit.
@@ -5756,6 +5758,10 @@ function toggleVoice() {
     voice.stopped = true;
     drive.flash = null;
     voice.stop?.();
+    // Whatever the recogniser does with that, the button is free again.
+    voice.listening = false;
+    voice.stop = null;
+    paintVoice();
     renderDrive({ force: true });
     return;
   }
@@ -5778,8 +5784,11 @@ function toggleVoice() {
       voice.listening = false;
       voice.stop = null;
       paintVoice();
-      if (voice.stopped) return;
+      if (voice.stopped || reason === 'stopped') return;
       if (reason === 'denied') voiceAnswer('Микрофон запрещён в настройках браузера. Разрешите доступ — и скажите снова.', { aloud: false });
+      // An iPhone sometimes leaves the recogniser hanging without a word: the
+      // button used to stay lit with «Слушаю…» until the app was restarted.
+      else if (!voice.heard && reason === 'stuck') flashDrive('Микрофон не ответил. Нажмите «🎤 Голос» ещё раз.');
       else if (!voice.heard && reason === 'silent') flashDrive(`Ничего не услышал. ${VOICE_HINT}`);
       else if (!voice.heard) flashDrive('Не получилось послушать. Попробуйте ещё раз или откройте приложение в Safari.');
     },
@@ -5987,24 +5996,30 @@ function stepDrive(now = Date.now()) {
     return view;
   }
   const serves = (station) => (drive.ownOnly ? driveOwnSeen(station.id) : SERVES_NOW[station.grade?.status] === 0);
+  const choices = view.ahead.filter((item) => serves(item.station));
   const target = view.ahead[0];
   if (target && target.metres <= NEARBY_REPORT_METRES) {
     view.kind = 'near';
     view.focus = target;
     return view;
   }
-  const withGrade = view.ahead.find((item) => serves(item.station));
+  const withGrade = choices[0];
   if (!withGrade) {
-    // Nothing ahead has it: the nearest station that has, wherever it is.
-    view.kind = 'none';
-    view.focus = state.stations
+    // Nothing ahead has it: the nearest stations that have, wherever they are.
+    const anywhere = state.stations
       .filter((station) => station.location && serves(station))
       .map((station) => driveItem(phone, station, heading))
-      .sort((a, b) => a.metres - b.metres)[0] || null;
+      .sort((a, b) => a.metres - b.metres);
+    view.kind = 'none';
+    view.focus = anywhere[0] || null;
+    view.options = anywhere.slice(1, 1 + DRIVE_OPTIONS);
     return view;
   }
   view.kind = 'line';
   view.focus = target.metres <= DRIVE_LINE_METRES ? target : withGrade;
+  // Рядом почти всегда не одна заправка с нужной маркой: за рулём видна была
+  // одна, и выбора будто нет (18.09.2026, владелец). Следующие — одной строкой.
+  view.options = choices.filter((item) => item !== view.focus).slice(0, DRIVE_OPTIONS);
   return view;
 }
 
@@ -6165,6 +6180,14 @@ function driveSendButton(stationId) {
     : '<button type="button" class="drive-btn huge send" data-drive="send-look" disabled>Отметьте марки — и отправить</button>';
 }
 
+// «Дальше»: следующие заправки с той же маркой, нажатием — переключиться.
+function driveOptions(view) {
+  const options = view.options || [];
+  if (!options.length) return '';
+  const chips = options.map((item) => `<button type="button" class="drive-next" data-drive="target" data-station="${escapeHtml(item.station.id)}">${escapeHtml(shortNetwork(item.station.network))} · ${escapeHtml(driveDistance(item.metres))}${escapeHtml(driveSide(item))}</button>`).join('');
+  return `<div class="drive-more"><span>Дальше:</span>${chips}</div>`;
+}
+
 function driveMarkButtons(stationId, { huge = false } = {}) {
   const label = escapeHtml(driveGradeLabel());
   const id = escapeHtml(stationId);
@@ -6206,7 +6229,7 @@ function drivePanels(view) {
   if (view.kind === 'line') {
     const says = drive.ownOnly ? { text: `${driveGradeLabel()} есть`, tone: 'yes' } : driveSays(station);
     return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
-      <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}` };
+      <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}${driveOptions(view)}` };
   }
   if (view.kind === 'near') {
     const witness = eyewitnessLine(station.grade, station.id, { brief: true });
@@ -6766,6 +6789,8 @@ function onDriveTap(event) {
     openDriveRoute(station);
   } else if (action === 'yandex') {
     openDriveYandex(station);
+  } else if (action === 'target') {
+    tapDriveStation(station);
   } else if (action === 'voice') {
     toggleVoice();
   } else if (action === 'own') {

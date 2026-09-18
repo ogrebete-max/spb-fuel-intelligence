@@ -114,6 +114,12 @@
     return !!engine();
   }
 
+  // How long to wait for the recogniser to say anything at all. On an iPhone it
+  // sometimes never answers — neither a result, nor an end, nor an error — and
+  // the button stayed lit with «Слушаю…» until the app was closed and opened
+  // again (18 Sep 2026, the owner). After this it is stopped and said so.
+  const PATIENCE_MS = 12000;
+
   // One phrase, then it stops by itself. `onHeard` gets the text, `onDone` the
   // reason it ended — 'ok', 'silent', 'denied', 'broken' — so the app can say
   // something useful instead of leaving a button lit.
@@ -136,9 +142,16 @@
     ears.continuous = false;
     let said = false;
     let ended = false;
+    const stop = () => { try { ears.abort(); } catch (error) { /* already stopped */ } };
+    const patience = setTimeout(() => {
+      // Nothing at all came back: stop it and let the app say so.
+      stop();
+      done(said ? 'ok' : 'stuck');
+    }, Math.max(1000, Number(root.Voice?.patience) || PATIENCE_MS));
     const done = (reason) => {
       if (ended) return;
       ended = true;
+      clearTimeout(patience);
       onDone?.(reason);
     };
     ears.onresult = (event) => {
@@ -155,7 +168,7 @@
       const code = event?.error === 'not-allowed' || event?.error === 'service-not-allowed' ? 'denied'
         : event?.error === 'no-speech' ? 'silent' : 'broken';
       done(code);
-      try { ears.abort(); } catch (error) { /* already stopped */ }
+      stop();
     };
     ears.onend = () => done(said ? 'ok' : 'silent');
     try {
@@ -163,7 +176,9 @@
     } catch (error) {
       done('broken');
     }
-    return () => { try { ears.abort(); } catch (error) { /* already stopped */ } };
+    // Stopped from the outside: the app is told at once, because an aborted
+    // recogniser on an iPhone does not always call back.
+    return () => { stop(); done('stopped'); };
   }
 
   // Said aloud, because at the wheel the answer cannot be read.
@@ -182,5 +197,5 @@
     }
   }
 
-  root.Voice = { parse, listen, say, supported };
+  root.Voice = { parse, listen, say, supported, patience: PATIENCE_MS };
 })(typeof window !== 'undefined' ? window : globalThis);

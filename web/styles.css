@@ -1011,6 +1011,11 @@ body.driving .toast-stack { display: none; }
 .drive.free :is(.drive-sheet, .drive-full) { cursor: pointer; }
 .drive.free .drive-edge { display: none; }
 @keyframes drive-glow { 50% { box-shadow: 0 0 0 3px var(--mine), 0 0 40px var(--glow2); } }
+/* «Дальше»: соседние заправки с той же маркой, одной строкой под ответом. */
+.drive-more { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.drive-more span { font-size: 13px; font-weight: 700; color: var(--sub); }
+.drive-next { min-height: 38px; border: 0; border-radius: 12px; padding: 7px 11px; background: var(--chipbg); color: var(--chipink); font: inherit; font-size: 15px; font-weight: 800; white-space: nowrap; cursor: pointer; touch-action: manipulation; }
+
 /* Sideways a panel is a card at the bottom right, as tall as what it says
    (15 Sep 2026: a panel down the whole right side was mostly empty black), and
    the map keeps the rest of the screen. A car's head unit is sideways too, and
