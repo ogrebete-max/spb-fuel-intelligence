@@ -5951,7 +5951,12 @@ function stepDrive(now = Date.now()) {
     track('drive_stop_question', { station: drive.question.id, reason: 'moved' });
     drive.question = null;
   }
-  if (!drive.question && !rough && stillFor(now) >= DRIVE_ASK_STILL_MS) {
+  // Стоя у колонки, водитель приехал заправляться, а не отвечать про заправку,
+  // которую проехал (18.09.2026, прогулка по маршруту: на десятой секунде у
+  // колонки экран спрашивал про предыдущую АЗС и лишь потом показывал «Вы на
+  // АЗС»). У заправки вопросов не задаём.
+  const atPumps = !!atId || (view.around[0]?.metres ?? Infinity) <= DRIVE_AT_METRES;
+  if (!drive.question && !rough && !atPumps && stillFor(now) >= DRIVE_ASK_STILL_MS) {
     const passed = Object.entries(state.passed)
       .map(([id, item]) => ({ id, ...item, metres: haversineKm(phone, item.location) * 1000 }))
       .filter((item) => item.fastAt && now - item.fastAt <= DRIVE_ASK_WITHIN_MS && item.metres <= DRIVE_ASK_WITHIN_METRES
@@ -5998,9 +6003,13 @@ function stepDrive(now = Date.now()) {
   const serves = (station) => (drive.ownOnly ? driveOwnSeen(station.id) : SERVES_NOW[station.grade?.status] === 0);
   const choices = view.ahead.filter((item) => serves(item.station));
   const target = view.ahead[0];
+  const otherThan = (item) => choices.filter((choice) => choice !== item).slice(0, DRIVE_OPTIONS);
   if (target && target.metres <= NEARBY_REPORT_METRES) {
     view.kind = 'near';
     view.focus = target;
+    // Подъезжая к заправке, водитель и решает — сюда или дальше. Если у этой
+    // марки нет, а рядом есть, это должно быть видно здесь, а не после.
+    view.options = otherThan(target);
     return view;
   }
   const withGrade = choices[0];
@@ -6019,7 +6028,7 @@ function stepDrive(now = Date.now()) {
   view.focus = target.metres <= DRIVE_LINE_METRES ? target : withGrade;
   // Рядом почти всегда не одна заправка с нужной маркой: за рулём видна была
   // одна, и выбора будто нет (18.09.2026, владелец). Следующие — одной строкой.
-  view.options = choices.filter((item) => item !== view.focus).slice(0, DRIVE_OPTIONS);
+  view.options = otherThan(view.focus);
   return view;
 }
 
@@ -6246,7 +6255,7 @@ function drivePanels(view) {
       ${meta(driveMeta(station, { witness: false }))}
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
       ${road ? meta(driveRouteNote(station.id)) : ''}
-      ${actions}` };
+      ${actions}${driveOptions(view)}` };
   }
   if (view.kind === 'none' && drive.ownOnly) {
     if (!focus) {
@@ -6254,12 +6263,12 @@ function drivePanels(view) {
       <button type="button" class="drive-btn skip" data-drive="own">Показать все заправки</button>` };
     }
     return { sheet: `${where(`Впереди свои ${driveGradeLabel()} не видели`)}${still ? driveGo(station) : ''}
-      <p class="drive-line">Ближайшая, где свои видели ${label}, — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}` };
+      <p class="drive-line">Ближайшая, где свои видели ${label}, — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}${driveOptions(view)}` };
   }
   if (view.kind === 'none') {
     if (!focus) return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}<p class="drive-line">Рядом ${label} нет ни на одной заправке</p>` };
     return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}${still ? driveGo(station) : ''}
-      <p class="drive-line">Ближайшая с ${label} — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}` };
+      <p class="drive-line">Ближайшая с ${label} — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}${driveOptions(view)}` };
   }
   if (view.kind === 'question') {
     const name = shortNetwork(drive.question.network);
