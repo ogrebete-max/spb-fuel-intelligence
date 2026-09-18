@@ -130,6 +130,26 @@ async function run(label, browserType, device) {
   const named = await page.evaluate(() => document.querySelector('#driveSheet')?.textContent.replace(/\s+/g, ' ').trim() || '');
   check(`the panel names it: «${named.slice(0, 80)}…»`, named.includes(pickedName.split(',')[0]));
 
+  // 2a. A station without the grade standing closer is no longer the headline:
+  // it moves to the «мимо» line, and the one to drive to takes the top.
+  await page.evaluate(() => { drive.tapped = null; renderDrive({ force: true }); });
+  const reading = await page.evaluate(() => {
+    const view = stepDrive();
+    const sheet = document.querySelector('#driveSheet');
+    return {
+      kind: view.kind,
+      focus: view.focus?.station.network || null,
+      focusServes: [0].includes(SERVES_NOW[view.focus?.station.grade?.status]),
+      passing: view.passing?.station.network || null,
+      line: sheet?.querySelector('.drive-line')?.textContent.replace(/\s+/g, ' ').trim() || '',
+      by: sheet?.querySelector('.drive-passing')?.textContent.replace(/\s+/g, ' ').trim() || '',
+    };
+  });
+  console.log(`   главная строка: «${reading.line}»${reading.by ? ` | ниже: «${reading.by}»` : ''}`);
+  check('the headline is a station that has the grade', reading.kind !== 'line' || reading.focusServes);
+  check('and a nearer one without it, if any, is named below as «мимо»',
+    !reading.passing || (reading.by.startsWith('мимо:') && reading.by.includes(reading.passing.split(',')[0])));
+
   // 3. A recogniser that never answers lets the button go all the same.
   await page.evaluate(() => { window.Voice.patience = 900; });
   await page.click('#drive [data-drive="voice"]');

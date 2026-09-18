@@ -6055,7 +6055,12 @@ function stepDrive(now = Date.now()) {
     return view;
   }
   view.kind = 'line';
-  view.focus = target.metres <= DRIVE_LINE_METRES ? target : withGrade;
+  // Главная строка отвечает на главный вопрос — куда ехать заправляться
+  // (18.09.2026, по решению владельца после показа двух вариантов). Заправка,
+  // мимо которой сейчас проезжаем, остаётся, но строчкой ниже: она нужна,
+  // чтобы знать, что её можно не тормозить.
+  view.focus = withGrade;
+  if (target !== withGrade && target.metres <= DRIVE_LINE_METRES) view.passing = target;
   // Рядом почти всегда не одна заправка с нужной маркой: за рулём видна была
   // одна, и выбора будто нет (18.09.2026, владелец). Следующие — одной строкой.
   view.options = otherThan(view.focus);
@@ -6267,6 +6272,13 @@ function drivePanels(view) {
   if (view.kind === 'empty') return { sheet: `${where(`В ${DRIVE_RADIUS_METRES / 1000} км заправок нет`)}${meta('Приложение знает заправки Петербурга и области.')}` };
   if (view.kind === 'line') {
     const says = drive.ownOnly ? { text: `${driveGradeLabel()} есть`, tone: 'yes' } : driveSays(station);
+    if (view.passing) {
+      const by = view.passing;
+      const bySays = driveSays(by.station);
+      return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
+        <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>
+        <p class="drive-passing">мимо: ${escapeHtml(shortNetwork(by.station.network))} — <span class="drive-${bySays.tone}">${escapeHtml(bySays.text)}</span>, ${escapeHtml(driveDistance(by.metres))}</p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}${driveOptions(view)}` };
+    }
     return { sheet: `${where(`Через ${driveDistance(focus.metres)}${driveSide(focus)}`)}${still ? driveGo(station) : ''}
       <p class="drive-line">${escapeHtml(shortNetwork(station.network))} · <span class="drive-${says.tone}">${escapeHtml(says.text)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}${driveOptions(view)}` };
   }
