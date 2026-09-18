@@ -168,6 +168,27 @@ class TwinCardTests(unittest.TestCase):
         cards = {card["network"]: {ref["source"] for ref in card["source_refs"]} for card in merge_stations(rows)}
         self.assertEqual(cards, {"Газпромнефть, АЗС": {"sber", "azsmap", "azsradar-rf"}})
 
+    def test_the_crowd_places_a_forecourt_by_eye_and_still_joins_it(self):
+        """The last «Nord Point», 34 m from Газпромнефть on улица Руставели.
+
+        A card only the crowd feeds carry is given forty metres: they place a
+        forecourt by eye, and the house was written «54» against «54а».
+        """
+        rows = [
+            station("azsmap", "np-rust", "Nord Point", "ул. Руставели, 54, Санкт-Петербург", 60.02650, 30.41300),
+            station("gde-benzin", "np-rust-2", "Nord Point", "ул. Руставели, 54", 60.02650, 30.41300),
+            station("sber", "70000001000000054", "Газпромнефть, АЗС", "Санкт-Петербург, улица Руставели, 54а", 60.02681, 30.41300),
+        ]
+        self.assertEqual([card["network"] for card in merge_stations(rows)], ["Газпромнефть, АЗС"])
+
+    def test_forty_metres_is_where_it_stops(self):
+        # Further than that the app keeps both cards, whoever lists them.
+        rows = [
+            station("azsmap", "far-1", "Nord Point", "ул. Руставели, 54", 60.02650, 30.41300),
+            station("sber", "70000001000000055", "Газпромнефть, АЗС", "Санкт-Петербург, улица Руставели, 54а", 60.02700, 30.41300),
+        ]
+        self.assertEqual(sorted(card["network"] for card in merge_stations(rows)), ["Nord Point", "Газпромнефть, АЗС"])
+
     def test_a_chain_naming_its_own_station_is_not_a_stale_name(self):
         """Both sides known to someone who keeps names: two cards, two stations.
 

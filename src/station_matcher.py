@@ -323,6 +323,10 @@ ONE_FORECOURT_METRES = 15
 # 303» written twice, twenty-two metres apart, is one forecourt; «Благодатная, 2»
 # and «Благодатная, 2а» are left alone.
 SAME_HOUSE_METRES = 30
+# A card nobody but the crowd feeds knows is given a little more room: they
+# place a forecourt by eye, and «Nord Point» stood 34 m from Газпромнефть on
+# улица Руставели with the house written 54 against 54а.
+CROWD_ONLY_METRES = 40
 HOUSE_NUMBER = re.compile(r"(?<![\w-])(\d{1,4})\s*([а-яa-z])?(?![\w])", re.IGNORECASE)
 
 
@@ -388,11 +392,11 @@ def _fold_one_forecourt(canonical: list[dict[str, Any]]) -> list[dict[str, Any]]
                     continue
                 first, second = canonical[one], canonical[two]
                 metres = haversine_km(first["location"], second["location"]) * 1000
-                if metres > SAME_HOUSE_METRES:
+                lonely = _crowd_only(first) != _crowd_only(second)
+                if metres > (CROWD_ONLY_METRES if lonely else SAME_HOUSE_METRES):
                     continue
                 if metres > ONE_FORECOURT_METRES and not (
-                    _house_numbers(first.get("address")) & _house_numbers(second.get("address"))
-                    or _crowd_only(first) != _crowd_only(second)
+                    lonely or _house_numbers(first.get("address")) & _house_numbers(second.get("address"))
                 ):
                     continue
                 # A gas pump and a petrol forecourt share many a lot, and the
