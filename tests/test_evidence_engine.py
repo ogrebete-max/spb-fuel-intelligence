@@ -103,6 +103,35 @@ class EvidenceEngineTests(unittest.TestCase):
         evidence = [row("AVAILABLE", cluster="a"), row("NOT_AVAILABLE", cluster="b")]
         self.assertEqual(evaluate_grade(evidence, "AI95", now=NOW)["status"], "CONFLICT")
 
+    def test_a_lone_restricted_row_reads_as_fuel_with_a_limit(self):
+        """«Есть, но с лимитом» is a voice for the grade, not against it.
+
+        On 18 Sep 2026 a single fresh row of that kind published «СКОРЕЕ НЕТ»
+        with the reason «против наличия есть только один слабый сигнал», while
+        the engine's own probability stood above a half: the weak band asked
+        only about plain positives, and a restricted row is in neither list.
+        """
+        for status, extra in (("LIMITED", {"limit": 20}), ("QUEUE", {"queue": "5_20"})):
+            with self.subTest(status=status):
+                result = evaluate_grade([row(status, kind="payment_projection", independent=False, **extra)], "AI95", now=NOW)
+                self.assertGreater(result["probability"], 0.5)
+                self.assertEqual(result["status"], "LIMITED")
+                self.assertIn("очереди или лимите", result["reason"])
+        # A «нет» of the same weight beside it is a disagreement, not a quiet «нет».
+        both = evaluate_grade(
+            [row("LIMITED", kind="payment_projection", independent=False, limit=20),
+             row("NOT_AVAILABLE", kind="undated_crowd_summary", cluster="crowd-b")],
+            "AI95", now=NOW,
+        )
+        self.assertEqual(both["status"], "CONFLICT")
+        # A heavier «нет» still outweighs it, as it always did.
+        heavier = evaluate_grade(
+            [row("LIMITED", kind="payment_projection", independent=False, limit=20),
+             row("NOT_AVAILABLE", cluster="crowd-b")],
+            "AI95", now=NOW,
+        )
+        self.assertEqual(heavier["status"], "LIKELY_NOT")
+
     def test_limit_is_visible_and_restricted(self):
         result = evaluate_grade([row("AVAILABLE", limit=30)], "AI95", now=NOW)
         self.assertEqual(result["status"], "LIMITED")

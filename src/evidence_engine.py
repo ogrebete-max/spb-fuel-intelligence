@@ -756,12 +756,21 @@ def evaluate_grade(
         # "Расходятся" must mean sources actually disagree.  A lone weak signal
         # lands in the same probability band but is thin evidence, not a
         # conflict, and saying otherwise would be misleading.
-        if positives and negatives:
+        #
+        # A row that says "there is fuel, with a limit" or "there is fuel, with
+        # a queue" speaks for the grade: it is in neither `positives` nor
+        # `negatives`, and this band used to read a lone such row as «СКОРЕЕ
+        # НЕТ» explained by a signal against that did not exist (18 Sep 2026:
+        # 28 станций-марок публиковали «нет» с вероятностью выше 50%).  The two
+        # bands above already tell a restricted "yes" from a plain one.
+        speaking_for = positives or restricted
+        if speaking_for and negatives:
             status = "CONFLICT"
             reason = "Источники расходятся примерно поровну — ехать наугад."
-        elif positives:
-            status = "LIKELY_AVAILABLE"
-            reason = "За наличие есть только один слабый сигнал."
+        elif speaking_for:
+            status = "LIMITED" if restricted_now else "LIKELY_AVAILABLE"
+            reason = ("За наличие есть только один слабый сигнал, и в нём сообщают об очереди или лимите."
+                      if restricted_now else "За наличие есть только один слабый сигнал.")
         else:
             status = "LIKELY_NOT"
             reason = "Против наличия есть только один слабый сигнал."
