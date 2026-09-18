@@ -32,6 +32,10 @@
     ['AI92', / (92(?!\d)|девяност[а-я]* втор|девяност[а-я]* два)/],
   ];
 
+  // «Поехали» / «проложи маршрут»: выбрать заправку и сразу вести. Проверяется
+  // раньше вопроса, потому что говорят «поехали к ближайшей с 95».
+  const ROUTE = / (поехали|поехать|погнали|проложи|маршрут|веди меня|веди в|навигатор|едем)/;
+
   // A question about where to go. These words decide even when «есть» is in
   // the phrase too: «Где есть 95?» asks, it does not report.
   const ASKING = / (где|куда|ближайш|найди|найти|поищи|ищу|покажи|подскажи|посоветуй)/;
@@ -85,7 +89,8 @@
   }
 
   // What the driver said, as the app can act on it:
-  //   kind   — 'find' (where to go), 'mark' (what is at this station), 'unknown'
+  //   kind   — 'find' (where to go), 'route' (take me there), 'mark' (what is
+  //            at this station), 'unknown'
   //   grade  — AI92…DT, or null: then the app takes the driver's own grade
   //   seen   — true / false for a mark, null when only the queue was said
   //   queue  — cars in the queue, 0 for «без очереди», null when not said
@@ -94,6 +99,7 @@
     const text = tidy(heard);
     if (!text.trim()) return { kind: 'unknown', grade: null, seen: null, queue: null, heard };
     const grade = gradeIn(text);
+    if (ROUTE.test(text)) return { kind: 'route', grade, seen: null, queue: null, heard };
     if (ASKING.test(text)) return { kind: 'find', grade, seen: null, queue: null, heard };
     const { queue, rest } = queueIn(text);
     const no = NOT_WORKING.test(rest) || SAYS_NO.test(rest);

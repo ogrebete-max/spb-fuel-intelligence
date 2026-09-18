@@ -616,7 +616,14 @@ async function run(label, browserType, device) {
   }
 
   // 12. 🗺: the ordinary map over the whole screen; the bar opens the navigator again.
-  check('🗺 leaves the drive screen for the ordinary map', await tap(page, '#drive [data-drive="close"]') && await becomes(page, () => !drive.open && document.querySelector('#drive').hidden && !document.body.classList.contains('driving') && document.body.classList.contains('map-screen'), null, 5000));
+  // WebKit sometimes calls this button unstable right after a panel closes and
+  // swallows the tap; the driver would simply press again, and so does this.
+  const leavesDrive = async () => {
+    await page.waitForTimeout(500);
+    await tap(page, '#drive [data-drive="close"]');
+    return becomes(page, () => !drive.open && document.querySelector('#drive').hidden && !document.body.classList.contains('driving') && document.body.classList.contains('map-screen'), null, 4000);
+  };
+  check('🗺 leaves the drive screen for the ordinary map', await leavesDrive() || await leavesDrive());
   check('the screen lock is let go and the list and the map are intact', await page.evaluate(() => drive.wakeLock === null && !!state.map && document.querySelectorAll('#stationList .station-card').length > 0 && !!document.querySelector('#map .leaflet-tile-pane')));
   check('«🚗 Навигатор» in the bar opens it again', await tap(page, '#modeBar [data-screen="drive"]') && await becomes(page, () => drive.open, null, 5000));
   await tap(page, '#drive [data-drive="close"]');

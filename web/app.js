@@ -5731,13 +5731,13 @@ function voiceHere() {
 
 // Banners do not fly over the navigator, so the line the panels already carry
 // for a failure is where the voice speaks too.
-function flashDrive(text, ms = VOICE_SAID_MS) {
-  drive.flash = { text, until: Date.now() + ms };
+function flashDrive(text, ms = VOICE_SAID_MS, { route = null } = {}) {
+  drive.flash = { text, until: Date.now() + ms, route };
   if (drive.open) renderDrive({ force: true });
 }
 
-function voiceAnswer(text, { aloud = true } = {}) {
-  flashDrive(text);
+function voiceAnswer(text, { aloud = true, ms = VOICE_SAID_MS, route = null } = {}) {
+  flashDrive(text, ms, { route });
   if (aloud) window.Voice?.say(text);
 }
 
@@ -5799,6 +5799,7 @@ function onVoice(said) {
   const meant = window.Voice.parse(said);
   track('voice_heard', { kind: meant.kind, grade: meant.grade || '' });
   if (meant.kind === 'find') voiceFind(meant);
+  else if (meant.kind === 'route') voiceRoute(meant);
   else if (meant.kind === 'mark') voiceMark(meant);
   else voiceAnswer(`Не понял: «${meant.heard}». ${VOICE_HINT}`);
 }
@@ -5818,33 +5819,62 @@ function voiceWaitForGrade(grade, within = 8000) {
 }
 
 async function voiceFind(meant) {
+  const chosen = await voiceTarget(meant);
+  if (!chosen) return;
+  const { item } = chosen;
+  voiceAnswer(`${voiceWhere(item)}. ${driveSays(item.station).text}.`);
+}
+
+// Как приложение называет заправку голосом: сеть, улица, сколько до неё и куда.
+function voiceWhere(item) {
+  const place = driveAddress(item.station.address);
+  const where = driveDirection(item.turn) || driveSide(item);
+  return `${displayNetwork(item.station.network)}${place ? `, ${place}` : ''} — ${driveDistance(item.metres)}${where}`;
+}
+
+// «Поехали» / «проложи маршрут»: приложение выбирает заправку — это и есть
+// самая тяжёлая часть за рулём — называет её вслух и открывает маршрут в
+// Яндексе. Браузер может не дать открыть окно без касания (так бывает на
+// iPhone), поэтому под рукой остаётся кнопка: ничего не происходит молча.
+async function voiceRoute(meant) {
+  const chosen = await voiceTarget(meant);
+  if (!chosen) return;
+  const { item } = chosen;
+  const opened = openDriveRoute(item.station.id, { fromVoice: true });
+  const said = `${voiceWhere(item)}. ${opened ? 'Веду в Яндексе.' : 'Нажмите «Поехали», чтобы открыть маршрут.'}`;
+  voiceAnswer(said, { ms: opened ? VOICE_SAID_MS : 20000, route: opened ? null : item.station.id });
+}
+
+// Куда вести: та заправка, о которой уже говорит экран, если у неё эта марка
+// есть; иначе ближайшая, где есть.
+async function voiceTarget(meant) {
   if (meant.grade && meant.grade !== state.grade) {
     flashDrive(`Смотрю ${GRADE_LABELS[meant.grade]}…`, VOICE_LISTEN_MS);
     chooseGrade(meant.grade);
     if (!await voiceWaitForGrade(meant.grade)) {
-      voiceAnswer(`Не успел загрузить ${GRADE_LABELS[meant.grade]}. Спросите ещё раз.`);
-      return;
+      voiceAnswer(`Не успел загрузить ${GRADE_LABELS[meant.grade]}. Скажите ещё раз.`);
+      return null;
     }
   }
   const phone = drivePhone();
   const label = GRADE_LABELS[state.grade];
   if (!phone) {
-    voiceAnswer('Пока не знаю, где вы. Разрешите геопозицию — и спросите снова.');
-    return;
+    voiceAnswer('Пока не знаю, где вы. Разрешите геопозицию — и скажите снова.');
+    return null;
   }
+  const serves = (station) => SERVES_NOW[station.grade?.status] === 0;
+  const shown = stepDrive(Date.now()).focus;
+  if (shown && serves(shown.station)) return { item: shown, label };
   const found = state.stations
-    .filter((station) => station.location && SERVES_NOW[station.grade?.status] === 0)
+    .filter((station) => station.location && serves(station))
     .map((station) => driveItem(phone, station, motion.heading))
     .sort((a, b) => a.metres - b.metres)[0];
   if (!found) {
     voiceAnswer(`Рядом никто не подтверждает ${label}. Лучше не ехать наугад — скажу, как только кто-то отметит.`);
-    return;
+    return null;
   }
-  // The same as a tap on its pin: the screen talks about this station now.
   tapDriveStation(found.station.id);
-  const place = driveAddress(found.station.address);
-  const where = driveDirection(found.turn) || driveSide(found);
-  voiceAnswer(`${displayNetwork(found.station.network)}${place ? `, ${place}` : ''} — ${driveDistance(found.metres)}${where}. ${driveSays(found.station).text}.`);
+  return { item: found, label };
 }
 
 // Which station a spoken mark is about: the one the screen is at, and failing
@@ -6435,7 +6465,10 @@ function paintDrivePanels(view) {
   const picked = drive.pick === 'grades' ? driveGradesPick() : drive.pick === 'theme' ? driveThemePick() : '';
   // Banners are not shown over this screen, so a failure it must tell about
   // heads whichever panel is up for a few seconds.
-  const flash = drive.flash && view.now < drive.flash.until ? `<p class="drive-flash" role="status">${escapeHtml(drive.flash.text)}</p>` : '';
+  const flash = drive.flash && view.now < drive.flash.until
+    ? `<p class="drive-flash" role="status">${escapeHtml(drive.flash.text)}${drive.flash.route
+      ? `<button type="button" class="drive-flash-go" data-drive="route" data-station="${escapeHtml(drive.flash.route)}">🧭 Поехали</button>` : ''}</p>`
+    : '';
   setDriveHtml(pick, picked);
   setDriveHtml(full, picked || !panels.full ? '' : flash + panels.full);
   setDriveHtml(sheet, picked || panels.full || !panels.sheet ? '' : flash + panels.sheet);
@@ -6636,11 +6669,14 @@ function driveDelete(stationId) {
 
 // The road itself, with its traffic, is a navigator's job: the route opens in
 // Yandex Maps, the app when it is installed and the site when not.
-function openDriveRoute(id) {
+function openDriveRoute(id, { fromVoice = false } = {}) {
   const place = state.stations.find((item) => item.id === id)?.location;
-  if (!place) return;
-  track('route_open', { station: id });
-  window.open(`https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`, '_blank', 'noopener');
+  if (!place) return false;
+  track('route_open', { station: id, reason: fromVoice ? 'voice' : 'tap' });
+  // Без касания браузер может не дать открыть окно — тогда приложение
+  // предлагает кнопку вместо того, чтобы молча ничего не сделать.
+  const window_ = window.open(`https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`, '_blank', 'noopener');
+  return !!window_;
 }
 
 // The station itself in Yandex Maps: its card with «Рассказать о ситуации»,

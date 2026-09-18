@@ -29,6 +29,19 @@ for (const [said, grade] of [
   assert.equal(said_.grade, grade, said);
 }
 
+// Asking to be taken there: the app chooses the station and opens the route.
+for (const [said, grade] of [
+  ['Поехали', null],
+  ['Поехали за 95-м', 'AI95'],
+  ['Проложи маршрут', null],
+  ['Проложи маршрут к ближайшей с дизелем', 'DT'],
+  ['Веди в навигаторе', null],
+]) {
+  const meant = parse(said);
+  assert.equal(meant.kind, 'route', said);
+  assert.equal(meant.grade, grade, said);
+}
+
 // Marking a station while standing at it.
 const marks = [
   ['95 есть', { grade: 'AI95', seen: true, queue: null }],
@@ -74,4 +87,4 @@ assert.equal(loud.kind, 'mark');
 assert.equal(loud.grade, 'DT');
 assert.equal(loud.heard, 'ДИЗЕЛЬ ЕСТЬ!');
 
-console.log(`voice: ${marks.length + 8} phrases read by rules`);
+console.log(`voice: ${marks.length + 13} phrases read by rules`);

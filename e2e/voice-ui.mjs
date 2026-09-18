@@ -238,6 +238,29 @@ async function run(label, browserType, device) {
   check(`it says it did not understand («${puzzled}»)`, puzzled.includes('Не понял'));
   check('and writes nothing down', (await stored()).length === before);
 
+  // 5a. «Поехали»: the app chooses the station, says where it is taking you and
+  // opens the route; a browser that refuses to open it leaves a button instead.
+  await page.evaluate(() => {
+    window.__opened = [];
+    window.__allowOpen = true;
+    window.open = (url) => { window.__opened.push(url); return window.__allowOpen ? {} : null; };
+  });
+  check('«Поехали» is answered', await say(page, 'Поехали'));
+  const led = await flash(page);
+  const opened = await page.evaluate(() => window.__opened.slice(-1)[0] || '');
+  check(`it names the station and says it is leading: «${led}»`, led.includes('Веду в Яндексе') && led.toLowerCase().includes(WITH_98.network.split(',')[0].toLowerCase()));
+  check(`the route opens in Yandex Maps («${opened.slice(0, 60)}»)`, opened.includes('yandex.ru/maps') && opened.includes('rtext='));
+  check('and nothing was left to press', await page.evaluate(() => !document.querySelector('#drive .drive-flash-go')));
+
+  // A browser that blocks the window: the same words, and a button under the thumb.
+  await page.evaluate(() => { window.__allowOpen = false; });
+  check('«Проложи маршрут» is answered when the window is blocked', await say(page, 'Проложи маршрут'));
+  const blocked = await flash(page);
+  check(`it asks to press instead of doing nothing: «${blocked}»`, blocked.includes('Нажмите «Поехали»'));
+  check('and the button is there', await becomes(page, () => !!document.querySelector('#drive .drive-flash-go[data-drive="route"]'), null, 4000));
+  await page.click('#drive .drive-flash-go');
+  check('pressing it opens the route', await page.evaluate(() => window.__opened.length >= 2 && window.__opened.slice(-1)[0].includes('rtext=')));
+
   // 6. Pressed a second time on purpose, the button stops listening and says
   // nothing: the driver has changed their mind, not failed to speak.
   await page.evaluate(() => { window.__voice.said = null; });
