@@ -457,11 +457,22 @@ function bindControls() {
   if (inAppBrowser) $('#installButton').textContent = 'Открыть в Safari';
   $('#installButton').addEventListener('click', async () => {
     if (installPrompt) {
-      installPrompt.prompt();
-      await installPrompt.userChoice;
-      installPrompt = null;
-      $('#installButton').hidden = true;
-      return;
+      // Yandex Browser hands out the prompt and then does nothing with it (18
+      // Sep 2026, the owner's head unit): the steps are shown instead of
+      // leaving a button that looks broken.
+      try {
+        installPrompt.prompt();
+        const choice = await installPrompt.userChoice;
+        installPrompt = null;
+        if (choice?.outcome === 'accepted') {
+          $('#installButton').hidden = true;
+          return;
+        }
+        showInstallHelp();
+        return;
+      } catch {
+        installPrompt = null;
+      }
     }
     showInstallHelp();
   });
@@ -7073,6 +7084,11 @@ function closeDrawer() {
   document.body.style.overflow = '';
 }
 
+// Яндекс Браузер зовётся так в строке браузера и ведёт себя иначе с установкой.
+function yandexBrowser() {
+  return /YaBrowser|YaSearchBrowser/i.test(navigator.userAgent);
+}
+
 function platformInfo() {
   const ua = navigator.userAgent;
   const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -7104,9 +7120,13 @@ function showInstallHelp({ why = '' } = {}) {
       ? ['Нажмите «Поделиться» — квадрат со стрелкой вверх внизу экрана.',
          'Прокрутите список и выберите <b>«На экран “Домой”»</b>.',
          'Нажмите «Добавить». Приложение появится на экране как обычная иконка.']
-      : ['Откройте меню браузера (три точки).',
-         'Выберите <b>«Установить приложение»</b> или «Добавить на главный экран».',
-         'Подтвердите установку.'];
+      : yandexBrowser()
+        ? ['Откройте меню Яндекс Браузера — три точки справа.',
+           'Выберите <b>«Добавить на экран „Домой“»</b> (в некоторых версиях — «Установить приложение»).',
+           'Подтвердите. На головном устройстве машины кнопка «Установить» в самом приложении может не срабатывать — это особенность браузера, а через меню всё ставится.']
+        : ['Откройте меню браузера (три точки).',
+           'Выберите <b>«Установить приложение»</b> или «Добавить на главный экран».',
+           'Подтвердите установку.'];
   const warning = inAppBrowser
     ? `<div class="drawer-status" style="--status-color:#d58a13"><strong>Сейчас открыто не в Safari</strong><p>Страница открыта во встроенном браузере другого приложения — например, Telegram. В нём пункта «На экран “Домой”» не существует ни у одного сайта. Нужен именно Safari.</p></div>`
     : '';
