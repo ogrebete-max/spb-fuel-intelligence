@@ -37,24 +37,34 @@ self.addEventListener('fetch', (event) => {
   // white screen on iPhone. A page load now always gets a real page: the
   // network one, else the cached shell.
   if (request.mode === 'navigate') {
-    // The page is asked of the site every time, not of the browser's cache:
-    // GitHub Pages lets a browser keep it ten minutes, and an app opened in
-    // those minutes after a new build started on the old page and had to
-    // reload itself (16 Sep 2026). An unchanged page costs a short «304».
-    event.respondWith(
-      fetch(new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' }))
-        .then((response) => {
-          if (response.redirected) {
-            return response.blob().then((body) => new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers }));
-          }
-          remember(request, response);
-          return response;
-        })
-        .catch(() => caches.match(request, { ignoreSearch: true })
-          .then((cached) => cached || caches.match('./'))
-          .then((cached) => cached || caches.match('index.html'))
-          .then((cached) => cached || Response.error()))
-    );
+    // The page is asked of the site, not of the browser's cache: GitHub Pages
+    // lets a browser keep it ten minutes, and an app opened in those minutes
+    // after a new build started on the old page (16 Sep 2026). An unchanged
+    // page costs a short «304». But the answer is waited for only a moment: on
+    // a slow phone network waiting for it is a white screen (17 Sep 2026), so
+    // the kept page goes on the glass and the newer one is taken for next time
+    // — the app itself reloads onto a new build once meta.json names it.
+    const fromSite = fetch(new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' }))
+      .then((response) => {
+        if (!response || !response.ok) return null;
+        remember(request, response);
+        if (response.redirected) {
+          // Safari refuses a page a service worker answers with a redirected
+          // response: it is passed on as a page of its own.
+          return response.blob().then((body) => new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers }));
+        }
+        return response;
+      })
+      .catch(() => null);
+    event.respondWith((async () => {
+      const kept = await caches.match(request, { ignoreSearch: true })
+        .then((cached) => cached || caches.match('./'))
+        .then((cached) => cached || caches.match('index.html'));
+      if (!kept) return (await fromSite) || Response.error();
+      const quick = await Promise.race([fromSite, new Promise((resolve) => { setTimeout(() => resolve(null), 1200); })]);
+      if (!quick) event.waitUntil(fromSite);
+      return quick || kept;
+    })());
     return;
   }
 

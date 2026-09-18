@@ -15,6 +15,7 @@ import { webkit, chromium, devices } from 'playwright';
 const SITE = fileURLToPath(new URL('../site', import.meta.url));
 const PORT = 9111;
 let build = 'build-a';
+let slowPage = 0;
 const pages = { served: 0 };
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((req, res) => {
@@ -32,7 +33,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { ...headers, 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
     if (name === '/index.html') {
       pages.served += 1;
-      res.end(data.toString('utf8').replace(/window\.SPBFI_BUILD = "[^"]*"/, `window.SPBFI_BUILD = "${build}"`));
+      const page = data.toString('utf8').replace(/window\.SPBFI_BUILD = "[^"]*"/, `window.SPBFI_BUILD = "${build}"`);
+      // A phone on a poor network: the page itself takes seconds to arrive.
+      if (slowPage) setTimeout(() => res.end(page), slowPage);
+      else res.end(page);
       return;
     }
     if (name === '/static-data/meta.json') {
@@ -61,10 +65,25 @@ async function run(label, browserType, device) {
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' });
   await page.waitForSelector('.station-card', { timeout: 30000 });
   // The first visit installs the service worker, which takes the page over.
+  let firstLoads = 0;
+  page.on('load', () => { firstLoads += 1; });
   const controlled = await becomes(page, () => !!navigator.serviceWorker?.controller, null, 15000);
   await page.waitForLoadState('load');
   await page.waitForSelector('.station-card', { timeout: 30000 });
+  await page.waitForTimeout(2500);
   console.log(`     (service worker in control: ${controlled})`);
+  // The first worker takes over a page that already runs the newest code.
+  check(`the first visit is not reloaded by the worker taking over (${firstLoads} more loads)`, firstLoads === 0);
+  check('the bar stands on the glass, and nothing clips the page at its root', await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const body = getComputedStyle(document.body);
+    const shell = getComputedStyle(document.querySelector('.app-shell'));
+    const glass = document.documentElement.style.getPropertyValue('--glass-bottom').trim();
+    const bar = document.querySelector('#modeBar');
+    // The bar is a phone's; a laptop has «Список | Карта» instead.
+    const onGlass = getComputedStyle(bar).display === 'none' || Math.abs(bar.getBoundingClientRect().bottom - innerHeight) <= 1;
+    return root.overflowX === 'visible' && body.overflowX === 'visible' && ['clip', 'hidden'].includes(shell.overflowX) && glass === '0px' && onGlass;
+  }));
 
   // 1. The window stays open; a new build comes out; one comes back to the window.
   build = 'build-b';
@@ -90,6 +109,23 @@ async function run(label, browserType, device) {
   } else {
     check(`opened again without a service worker, it still ends on the new build (${opened})`, opened === 'build-c');
   }
+  // 3. A phone on a poor network: the kept page goes on the glass at once, and
+  // the app catches up with the new build by itself.
+  build = 'build-d';
+  slowPage = 6000;
+  const slow = await context.newPage();
+  slow.on('pageerror', (error) => errors.push(error.message));
+  const started = Date.now();
+  await slow.goto(`http://localhost:${PORT}/`, { waitUntil: 'commit' });
+  const quick = await slow.waitForSelector('.station-card', { timeout: 30000 }).then(() => Date.now() - started, () => null);
+  if (controlled) {
+    check(`on a slow network the app is on the glass in ${quick} ms, not waiting the page out`, quick != null && quick < 5000);
+  } else {
+    console.log(`     (no service worker here; the slow page took ${quick} ms)`);
+  }
+  slowPage = 0;
+  check(`and it lands on the new build by itself (${await slow.evaluate(() => window.SPBFI_BUILD)})`, await becomes(slow, () => window.SPBFI_BUILD === 'build-d', null, 30000));
+
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
   await browser.close();

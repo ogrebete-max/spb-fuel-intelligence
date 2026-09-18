@@ -334,7 +334,7 @@ async function bootstrap() {
     // window after a new build, the app started on the old page and ran it until
     // the two-minute poll noticed. meta.json is fetched fresh, so the build is
     // compared as soon as it is in, and the page reloads onto the new one.
-    if (state.meta?.build && window.SPBFI_BUILD && state.meta.build !== window.SPBFI_BUILD && !document.hidden && reloadOnce()) return;
+    if (state.meta?.build && window.SPBFI_BUILD && state.meta.build !== window.SPBFI_BUILD && !document.hidden) reloadForNewBuild();
     renderMeta();
     // One small file with every grade for every station; the card shows all six
     // marks without downloading six full bundles.
@@ -6955,6 +6955,22 @@ const SNAPSHOT_POLL_MS = 60000;
 // and a new service worker) and on an iPhone home-screen app a page served
 // from cache can keep asking for "newer" — without a cap that is a reload
 // loop the user sees as a white screen.
+// The page kept for opening fast is fetched anew before a reload, or the
+// reload lands on the same old page and the app waits out its minute before
+// trying again (17 Sep 2026). Meanwhile the app goes on working on the build it
+// has: on a slow phone network waiting for the new page is a blank screen.
+let takingNewPage = false;
+function reloadForNewBuild() {
+  if (takingNewPage) return;
+  takingNewPage = true;
+  fetch(location.href.split('#')[0], { cache: 'reload', credentials: 'same-origin' })
+    .catch(() => null)
+    .then(() => {
+      takingNewPage = false;
+      if (!document.hidden) reloadOnce();
+    });
+}
+
 function reloadOnce() {
   try {
     const last = Number(sessionStorage.getItem('spbfi-auto-reload-at') || 0);
@@ -6974,9 +6990,7 @@ async function pollForNewSnapshot() {
     const meta = await api('/api/meta');
     // A newer build is live: reload rather than run old code against new data.
     // Only when the tab is visible, so a phone in a pocket does not flicker.
-    if (meta.build && window.SPBFI_BUILD && meta.build !== window.SPBFI_BUILD && !document.hidden) {
-      if (reloadOnce()) return;
-    }
+    if (meta.build && window.SPBFI_BUILD && meta.build !== window.SPBFI_BUILD && !document.hidden) reloadForNewBuild();
     if (meta.snapshot_at && meta.snapshot_at !== state.meta?.snapshot_at) {
       staticCache.clear();
       state.meta = meta;
@@ -7001,8 +7015,25 @@ setInterval(() => {
   loadStations({ silent: true });
 }, 60000);
 pollGroupMarks();
+// What the browser hides at the bottom of the screen right now: its own bar, a
+// keyboard, or the page being zoomed. A fixed bar is placed against the page,
+// which on an iPhone is taller than what one sees, and the bottom bar slid up
+// into the middle of the list while scrolling (17 Sep 2026).
+function keepOnGlass() {
+  const view = window.visualViewport;
+  const hidden = view ? Math.max(0, Math.round(window.innerHeight - (view.height + view.offsetTop))) : 0;
+  document.documentElement.style.setProperty('--glass-bottom', `${hidden}px`);
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', keepOnGlass);
+  window.visualViewport.addEventListener('scroll', keepOnGlass);
+}
+window.addEventListener('orientationchange', () => setTimeout(keepOnGlass, 250));
+keepOnGlass();
+
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) { pollForNewSnapshot(); pollGroupMarks(); }
+  if (!document.hidden) { pollForNewSnapshot(); pollGroupMarks(); keepOnGlass(); }
 });
 
 // A computer's window that stays on screen gets no visibilitychange when one
@@ -7025,7 +7056,10 @@ window.addEventListener('pageshow', (event) => {
 if ('serviceWorker' in navigator) {
   // The worker calls skipWaiting, so a new one takes control immediately — but
   // the page keeps running the code it already parsed until it is reloaded.
-  let reloading = false;
+  // Only for a worker that replaces another: the very first one takes over a
+  // page that already runs the newest code, and reloading it a second after it
+  // opened is how an iPhone was left with a white screen (17 Sep 2026).
+  let reloading = !navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloading) return;
     reloading = true;

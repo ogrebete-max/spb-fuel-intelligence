@@ -490,7 +490,12 @@ body { touch-action: pan-y; -webkit-text-size-adjust: 100%; }
    `overscroll-behavior: none` swallowed every swipe, so the list never moved
    and only stretched. An older iPhone without `clip` keeps `hidden`, which
    Safari never minded. */
-html, body { max-width: 100%; overflow-x: hidden; overflow-x: clip; }
+html, body { max-width: 100%; }
+/* Clipped inside the page, not at its root (17 Sep 2026): with `overflow-x` on
+   `html`/`body` an iPhone stopped holding the bottom bar to the glass and left
+   it in the middle of the page while scrolling. Nothing that stands on the
+   glass — the bar, the navigator, the drawer, toasts — lives inside .app-shell. */
+.app-shell { overflow-x: hidden; overflow-x: clip; }
 .app-shell, main, footer, .hero, .control-panel, .results-head, .content-grid { max-width: 100%; min-width: 0; }
 .drawer { max-width: 100vw; }
 
@@ -1040,7 +1045,10 @@ body.driving .toast-stack { display: none; }
    the navigator, the ordinary map over the whole screen and the list. */
 .mode-bar, .map-top { display: none; }
 @media (max-width: 850px) {
-  .mode-bar { position: fixed; z-index: 850; left: 0; right: 0; bottom: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); background: #0d3328; box-shadow: 0 -8px 24px rgba(5, 25, 18, .22); }
+  /* `--glass-bottom` is what the browser's own bars or a keyboard hide at the
+     bottom right now (see keepOnGlass): an iPhone otherwise leaves the bar
+     where the page was, not where the screen ends. */
+  .mode-bar { position: fixed; z-index: 850; left: 0; right: 0; bottom: var(--glass-bottom, 0px); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); background: #0d3328; box-shadow: 0 -8px 24px rgba(5, 25, 18, .22); }
   .mode-bar button { min-height: 50px; display: grid; place-items: center; gap: 1px; border: 0; border-radius: 14px; background: transparent; color: #cfe3d8; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
   .mode-bar button span { font-size: 19px; line-height: 1; }
   .mode-bar button[aria-pressed="true"] { background: #c9f06b; color: #0d3328; }
