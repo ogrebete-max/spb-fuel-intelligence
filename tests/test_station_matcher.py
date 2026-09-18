@@ -125,15 +125,54 @@ class TwinCardTests(unittest.TestCase):
         ]
         self.assertEqual(len(merge_stations(rows)), 1)
 
-    def test_a_row_that_names_no_network_does_not_open_a_card_to_every_network(self):
+    def test_rows_on_one_forecourt_make_one_card_however_they_name_it(self):
+        """Two forecourts cannot stand fifteen metres apart (18 Sep 2026).
+
+        The owner opened such a card in Yandex and read «Больше не работает»
+        while ours said «скорее есть»: the crowd feeds kept a dead brand alive
+        beside the live one. A card that close joins the best known of them —
+        here the one Sber, ГдеБЕНЗ and the chain itself all describe.
+        """
         rows = [
             station("sber", "70000001000009001", "Газпромнефть, АЗС", "Санкт-Петербург, Витебский проспект, 9 к2", 59.87517, 30.35112),
-            station("tofuel", "6a4a0000vervex", "Vervex", "Витебский, 9, 2А", 59.87509, 30.35112),
+            station("tofuel", "6a4a0000linos", "Линос", "Витебский, 9, 2А", 59.87509, 30.35112),
             station("gde-benzin", "52001", "other", "Витебский проспект", 59.87512, 30.35110),
             station("gazpromneft", "400000999", "Газпромнефть", "Санкт-Петербург, Витебский, 9, 2А", 59.87509, 30.35112),
         ]
         cards = {card["network"]: {ref["source"] for ref in card["source_refs"]} for card in merge_stations(rows)}
-        self.assertEqual(cards, {"Газпромнефть, АЗС": {"sber", "gde-benzin", "gazpromneft"}, "Vervex": {"tofuel"}})
+        self.assertEqual(cards, {"Газпромнефть, АЗС": {"sber", "gde-benzin", "gazpromneft", "tofuel"}})
+
+    def test_a_little_further_apart_the_house_number_decides(self):
+        """«Газпром» and «Газпромнефть», one house, twenty-two metres apart."""
+        rows = [
+            station("azsmap", "obuhov-303", "Газпром", "пр-кт Обуховской Обороны, 303", 59.86680, 30.46320),
+            station("gdebenzin24", "obuhov", "Газпром", "пр-кт Обуховской Обороны, 303", 59.86681, 30.46320),
+            station("sber", "70000001000000303", "Газпромнефть, АЗС", "Санкт-Петербург, Санкт-Петербург, проспект Обуховской Обороны, 303", 59.86700, 30.46320),
+            station("gazpromneft", "1303", "Газпромнефть, АЗС", "Санкт-Петербург, проспект Обуховской Обороны, 303", 59.86700, 30.46320),
+        ]
+        # The card the chain itself and Sber describe takes the pair.
+        self.assertEqual([card["network"] for card in merge_stations(rows)], ["Газпромнефть, АЗС"])
+
+    def test_two_house_numbers_that_differ_keep_their_own_cards(self):
+        """«Благодатная, 2» and «Благодатная, 2а» are two, and stay two."""
+        rows = [
+            station("gazpromneft", "otradnoe-2", "Газпромнефть", "Отрадное, Благодатная, 2", 59.77800, 30.81000),
+            station("sber", "70000001000000002", "Опти, АЗС", "Отрадное, Благодатная улица, 2а", 59.77817, 30.81000),
+        ]
+        self.assertEqual(sorted(card["network"] for card in merge_stations(rows)), ["Газпромнефть", "Опти, АЗС"])
+
+    def test_a_row_that_names_no_network_does_not_open_a_card_to_every_network(self):
+        # The same rows, but the other brand stands sixty metres up the road —
+        # too far to be one forecourt, and a row naming nobody must not glue it
+        # to the chain's card.
+        rows = [
+            station("sber", "70000001000009001", "Газпромнефть, АЗС", "Санкт-Петербург, Витебский проспект, 9 к2", 59.87517, 30.35112),
+            station("tofuel", "6a4a0000linos", "Линос", "Витебский, 11", 59.87563, 30.35112),
+            station("gde-benzin", "52001", "other", "Витебский проспект", 59.87512, 30.35110),
+            station("gazpromneft", "400000999", "Газпромнефть", "Санкт-Петербург, Витебский, 9, 2А", 59.87509, 30.35112),
+        ]
+        cards = {card["network"]: {ref["source"] for ref in card["source_refs"]} for card in merge_stations(rows)}
+        self.assertEqual(cards, {"Газпромнефть, АЗС": {"sber", "gde-benzin", "gazpromneft"}, "Линос": {"tofuel"}})
 
     def test_gde_benzin_files_gazprom_methane_pumps_under_the_same_id(self):
         # Joined to the pump's card, such a row leaves the map with it.

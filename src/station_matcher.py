@@ -309,6 +309,127 @@ def _canonical_id(station: dict[str, Any]) -> str:
     return "spbfi-" + hashlib.sha1(material.encode("utf-8")).hexdigest()[:12]
 
 
+# Two forecourts cannot stand fifteen metres apart: cards that close are one
+# station written down under two names — a brand and its operator («Deko» and
+# «ТД Смарт-Технологии»), a spelling («Газпром» and «Газпромнефть», «С-зтк» and
+# «СЗТК»), or the brand it used to carry («Nord Point» where «Ойлпласт» now
+# stands). On 18 Sep 2026 the owner opened such a card in Yandex and read
+# «Больше не работает» while ours said «скорее есть»: 100 pairs of cards stood
+# within fifteen metres of each other, and the crowd feeds kept the dead name
+# alive. Yandex telling the two apart by its own organisation ids is the one
+# thing that holds them apart.
+ONE_FORECOURT_METRES = 15
+# A little further apart the house number decides: «проспект Обуховской Обороны,
+# 303» written twice, twenty-two metres apart, is one forecourt; «Благодатная, 2»
+# and «Благодатная, 2а» are left alone.
+SAME_HOUSE_METRES = 30
+HOUSE_NUMBER = re.compile(r"(?<![\w-])(\d{1,4})\s*([а-яa-z])?(?![\w])", re.IGNORECASE)
+
+
+def _house_numbers(address: Any) -> set[str]:
+    """The house numbers an address names: «38 к3» → {«38»}, index dropped."""
+    return {
+        (digits + (letter or "")).lower()
+        for digits, letter in HOUSE_NUMBER.findall(str(address or ""))
+    }
+
+
+def _yandex_ids(station: dict[str, Any]) -> set[str]:
+    return {
+        str(ref.get("station_id"))
+        for ref in station.get("source_refs", [])
+        if ref.get("source") == "yandex-maps" and ref.get("station_id")
+    }
+
+
+def _fold_one_forecourt(canonical: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fold cards standing on one forecourt into the best known of them."""
+    buckets: dict[tuple[int, int], list[int]] = {}
+    for index, station in enumerate(canonical):
+        location = station["location"]
+        cell = (int(location["lat"] * 2000), int(location["lon"] * 1000))
+        buckets.setdefault(cell, []).append(index)
+    folded: dict[int, int] = {}
+
+    def home(index: int) -> int:
+        while folded.get(index, index) != index:
+            index = folded[index]
+        return index
+
+    for cell, indexes in buckets.items():
+        near = [
+            index
+            for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+            for index in buckets.get((cell[0] + dy, cell[1] + dx), [])
+        ]
+        for left in indexes:
+            for right in near:
+                if left >= right:
+                    continue
+                one, two = home(left), home(right)
+                if one == two:
+                    continue
+                first, second = canonical[one], canonical[two]
+                metres = haversine_km(first["location"], second["location"]) * 1000
+                if metres > SAME_HOUSE_METRES:
+                    continue
+                if metres > ONE_FORECOURT_METRES and not (
+                    _house_numbers(first.get("address")) & _house_numbers(second.get("address"))
+                ):
+                    continue
+                # A gas pump and a petrol forecourt share many a lot, and the
+                # gas filter drops the gas card later: folding the two would
+                # take a working petrol station off the map with it.
+                if gas_named(first) != gas_named(second):
+                    continue
+                if gas_pump_named(first) != gas_pump_named(second):
+                    continue
+                # Yandex knows two organisations here: they are two stations.
+                ids_first, ids_second = _yandex_ids(first), _yandex_ids(second)
+                if ids_first and ids_second and not (ids_first & ids_second):
+                    continue
+                keep, gone = (one, two) if _forecourt_rank(first) >= _forecourt_rank(second) else (two, one)
+                _absorb(canonical[keep], canonical[gone])
+                folded[gone] = keep
+    return [station for index, station in enumerate(canonical) if home(index) == index]
+
+
+# Who keeps a forecourt's name current: Yandex, Sber and 2GIS send people to
+# look, and a chain's own feed knows its own stations. The crowd feeds copy each
+# other and carry a brand for years after it is painted over, so a card they
+# alone describe joins one of these rather than the other way round.
+NAME_KEEPERS = {"yandex-maps", "sber", "2gis-benzin"}
+
+
+def _forecourt_rank(station: dict[str, Any]) -> tuple[int, ...]:
+    """Which card of one forecourt the others join: the best known one."""
+    sources = {ref.get("source") for ref in station.get("source_refs", [])}
+    official = any(item.get("kind") == "official_stock" for item in station.get("evidence", []))
+    return (
+        1 if _yandex_ids(station) else 0,
+        1 if official else 0,
+        len(sources & NAME_KEEPERS),
+        len(station.get("source_refs", [])),
+        len(station.get("evidence", [])),
+        1 if _named(station.get("network")) else 0,
+    )
+
+
+def _absorb(keeper: dict[str, Any], gone: dict[str, Any]) -> None:
+    for ref in gone.get("source_refs", []):
+        if ref not in keeper["source_refs"]:
+            keeper["source_refs"].append(ref)
+    keeper["evidence"].extend(gone.get("evidence", []))
+    keeper["match_rules"].append("one_forecourt")
+    for name in gone.get("_networks", []):
+        if name not in keeper.get("_networks", []):
+            keeper.setdefault("_networks", []).append(name)
+    if len(str(gone.get("address") or "")) > len(str(keeper.get("address") or "")):
+        keeper["address"] = gone.get("address")
+    if not _named(keeper.get("network")) and _named(gone.get("network")):
+        keeper["network"] = gone.get("network")
+
+
 def merge_stations(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     canonical: list[dict[str, Any]] = []
     # Small spatial buckets keep matching near-linear for several thousand rows.
@@ -366,6 +487,7 @@ def merge_stations(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if not _named(station.get("network")) and _named(row.get("network")) and "�" not in str(row.get("network")):
                 station["network"] = row.get("network")
 
+    canonical = _fold_one_forecourt(canonical)
     for station in canonical:
         unique: dict[tuple[Any, ...], dict[str, Any]] = {}
         for item in station["evidence"]:
