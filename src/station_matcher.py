@@ -334,6 +334,23 @@ def _house_numbers(address: Any) -> set[str]:
     }
 
 
+# A chain's own list of its stations: it knows where its own forecourts stand,
+# even when it says nothing about the fuel in them.
+CHAIN_FEEDS = {"gazpromneft", "lukoil", "teboil", "rosneft-ptk", "tatneft", "kirishiavtoservis"}
+
+
+def _crowd_only(station: dict[str, Any]) -> bool:
+    """Nobody keeps this card's name but the crowd feeds copying each other.
+
+    Such a card standing thirty metres from one that Yandex, Sber, 2GIS or a
+    chain itself describes is that same forecourt under a name painted over
+    years ago — «Nord Point» beside Газпромнефть on Выборгская набережная.
+    """
+    sources = {ref.get("source") for ref in station.get("source_refs", [])}
+    official = any(item.get("kind") == "official_stock" for item in station.get("evidence", []))
+    return not official and not (sources & (NAME_KEEPERS | CHAIN_FEEDS))
+
+
 def _yandex_ids(station: dict[str, Any]) -> set[str]:
     return {
         str(ref.get("station_id"))
@@ -375,6 +392,7 @@ def _fold_one_forecourt(canonical: list[dict[str, Any]]) -> list[dict[str, Any]]
                     continue
                 if metres > ONE_FORECOURT_METRES and not (
                     _house_numbers(first.get("address")) & _house_numbers(second.get("address"))
+                    or _crowd_only(first) != _crowd_only(second)
                 ):
                     continue
                 # A gas pump and a petrol forecourt share many a lot, and the
@@ -404,7 +422,7 @@ NAME_KEEPERS = {"yandex-maps", "sber", "2gis-benzin"}
 def _forecourt_rank(station: dict[str, Any]) -> tuple[int, ...]:
     """Which card of one forecourt the others join: the best known one."""
     sources = {ref.get("source") for ref in station.get("source_refs", [])}
-    official = any(item.get("kind") == "official_stock" for item in station.get("evidence", []))
+    official = any(item.get("kind") == "official_stock" for item in station.get("evidence", [])) or bool(sources & CHAIN_FEEDS)
     return (
         1 if _yandex_ids(station) else 0,
         1 if official else 0,

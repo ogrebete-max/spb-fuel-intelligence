@@ -153,6 +153,36 @@ class TwinCardTests(unittest.TestCase):
         # The card the chain itself and Sber describe takes the pair.
         self.assertEqual([card["network"] for card in merge_stations(rows)], ["Газпромнефть, АЗС"])
 
+    def test_a_card_only_the_crowd_feeds_know_joins_the_one_beside_it(self):
+        """«Nord Point» twenty metres from Газпромнефть, 18 Sep 2026.
+
+        Neither Yandex, nor Sber, nor 2GIS, nor the chain itself knows a
+        station of that name there; the crowd feeds copy each other and keep a
+        brand that was painted over. It is the same forecourt.
+        """
+        rows = [
+            station("azsmap", "np-vyb", "Nord Point", "Санкт-Петербург, Выборгская набережная", 59.97180, 30.33500),
+            station("azsradar-rf", "np-vyb-2", "Nord Point", "Санкт-Петербург, Выборгская набережная", 59.97180, 30.33500),
+            station("sber", "70000001000000057", "Газпромнефть, АЗС", "Санкт-Петербург, Выборгская набережная, 57 к1", 59.97200, 30.33500),
+        ]
+        cards = {card["network"]: {ref["source"] for ref in card["source_refs"]} for card in merge_stations(rows)}
+        self.assertEqual(cards, {"Газпромнефть, АЗС": {"sber", "azsmap", "azsradar-rf"}})
+
+    def test_a_chain_naming_its_own_station_is_not_a_stale_name(self):
+        """Both sides known to someone who keeps names: two cards, two stations.
+
+        Газпромнефть's own feed puts a station at «Благодатная, 2» and the
+        directories put «Опти» at «Благодатная, 2а», nineteen metres away. A
+        chain knows where its own forecourts are, so neither name is stale.
+        """
+        rows = [
+            station("gazpromneft", "otradnoe", "Газпромнефть", "Отрадное, Благодатная, 2", 59.77800, 30.81000),
+            station("sber", "70000001000000021", "Опти, АЗС", "Отрадное, Благодатная улица, 2а", 59.77817, 30.81000),
+            station("2gis-benzin", "opti-2a", "Опти, АЗС", "Отрадное, Благодатная улица, 2а", 59.77817, 30.81000),
+        ]
+        cards = sorted(card["network"] for card in merge_stations(rows))
+        self.assertEqual(cards, ["Газпромнефть", "Опти, АЗС"])
+
     def test_two_house_numbers_that_differ_keep_their_own_cards(self):
         """«Благодатная, 2» and «Благодатная, 2а» are two, and stay two."""
         rows = [
