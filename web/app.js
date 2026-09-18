@@ -5718,7 +5718,7 @@ function toggleVoice() {
       paintVoice();
       if (reason === 'denied') voiceAnswer('Микрофон запрещён в настройках браузера. Разрешите доступ — и скажите снова.', { aloud: false });
       else if (!voice.heard && reason === 'silent') flashDrive(`Ничего не услышал. ${VOICE_HINT}`);
-      else if (!voice.heard) flashDrive('Не получилось послушать. Попробуйте ещё раз.');
+      else if (!voice.heard) flashDrive('Не получилось послушать. Попробуйте ещё раз или откройте приложение в Safari.');
     },
   });
 }

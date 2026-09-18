@@ -45,7 +45,8 @@ def main() -> int:
     output = args.output.resolve()
     if output.exists():
         shutil.rmtree(output)
-    shutil.copytree(ROOT / "web", output)
+    # The checks that live beside the app (web/voice.test.mjs) are not published.
+    shutil.copytree(ROOT / "web", output, ignore=shutil.ignore_patterns("*.test.mjs"))
     index_path = output / "index.html"
     index_html = index_path.read_text(encoding="utf-8")
     static_marker = '<meta name="spbfi-static-site" content="false">'
