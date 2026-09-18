@@ -5664,7 +5664,7 @@ const VOICE_LISTEN_MS = 15000;
 // A spoken mark is about the station the driver is at — the same distance at
 // which the card stops listing others and answers about this one.
 const VOICE_MARK_METRES = AT_STATION_METRES;
-const voice = { listening: false, stop: null, heard: false };
+const voice = { listening: false, stop: null, heard: false, stopped: false };
 
 function voiceHere() {
   return !!window.Voice?.supported();
@@ -5695,7 +5695,11 @@ function paintVoice() {
 
 function toggleVoice() {
   if (voice.listening) {
+    // Pressed again on purpose: nothing was said, and nothing needs saying.
+    voice.stopped = true;
+    drive.flash = null;
     voice.stop?.();
+    renderDrive({ force: true });
     return;
   }
   if (!voiceHere()) {
@@ -5704,6 +5708,7 @@ function toggleVoice() {
   }
   voice.listening = true;
   voice.heard = false;
+  voice.stopped = false;
   paintVoice();
   flashDrive(`🎤 Слушаю. ${VOICE_HINT}`, VOICE_LISTEN_MS);
   track('voice_listen');
@@ -5716,6 +5721,7 @@ function toggleVoice() {
       voice.listening = false;
       voice.stop = null;
       paintVoice();
+      if (voice.stopped) return;
       if (reason === 'denied') voiceAnswer('Микрофон запрещён в настройках браузера. Разрешите доступ — и скажите снова.', { aloud: false });
       else if (!voice.heard && reason === 'silent') flashDrive(`Ничего не услышал. ${VOICE_HINT}`);
       else if (!voice.heard) flashDrive('Не получилось послушать. Попробуйте ещё раз или откройте приложение в Safari.');

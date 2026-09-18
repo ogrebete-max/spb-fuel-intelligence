@@ -67,12 +67,15 @@ class TestRecognition {
     window.__voice.starts += 1;
     setTimeout(() => {
       const said = window.__voice.said;
-      if (said && this.onresult) this.onresult({ results: [[{ transcript: said, confidence: 0.9 }]] });
+      // With nothing to say it keeps listening, as a real one does until it is
+      // stopped: that is how the second press can be tried at all.
+      if (!said) return;
+      if (this.onresult) this.onresult({ results: [[{ transcript: said, confidence: 0.9 }]] });
       if (this.onend) this.onend();
     }, 20);
   }
-  abort() {}
-  stop() {}
+  abort() { if (this.onend) this.onend(); }
+  stop() { if (this.onend) this.onend(); }
 }
 // Both names: Chromium has a recogniser of its own under each of them, and it
 // would be asked instead of this one.
@@ -234,6 +237,18 @@ async function run(label, browserType, device) {
   const puzzled = await flash(page);
   check(`it says it did not understand («${puzzled}»)`, puzzled.includes('Не понял'));
   check('and writes nothing down', (await stored()).length === before);
+
+  // 6. Pressed a second time on purpose, the button stops listening and says
+  // nothing: the driver has changed their mind, not failed to speak.
+  await page.evaluate(() => { window.__voice.said = null; });
+  await page.click('#drive [data-drive="voice"]');
+  await becomes(page, () => voice.listening === true, null, 4000);
+  await page.click('#drive [data-drive="voice"]');
+  const quiet = await becomes(page, () => {
+    const line = document.querySelector('#drive .drive-flash')?.textContent || '';
+    return voice.listening === false && !line.includes('Слушаю') && !line.includes('Ничего не услышал');
+  }, null, 6000);
+  check(`a second press stops listening quietly («${await flash(page)}»)`, quiet);
 
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
