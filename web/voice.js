@@ -127,6 +127,7 @@
   const PATIENCE_MS = 12000;
   // Распознаватель создаётся один раз и живёт, пока открыто приложение.
   let kept = null;
+  let running = false;
 
   // One phrase, then it stops by itself. `onHeard` gets the text, `onDone` the
   // reason it ended — 'ok', 'silent', 'denied', 'broken' — so the app can say
@@ -149,7 +150,12 @@
       }
     }
     const ears = kept;
-    try { ears.abort(); } catch (error) { /* не был запущен */ }
+    // Прерывать перед стартом нельзя: на iPhone это гасит и только что начатую
+    // сессию. Останавливаем только то, что и правда слушает.
+    if (running) {
+      try { ears.abort(); } catch (error) { /* уже остановлен */ }
+    }
+    running = true;
     ears.lang = 'ru-RU';
     ears.interimResults = false;
     ears.maxAlternatives = 3;
@@ -165,6 +171,7 @@
     const done = (reason) => {
       if (ended) return;
       ended = true;
+      running = false;
       clearTimeout(patience);
       onDone?.(reason);
     };

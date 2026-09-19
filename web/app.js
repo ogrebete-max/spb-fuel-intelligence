@@ -5750,6 +5750,12 @@ function voiceHere() {
   return !!window.Voice?.supported();
 }
 
+// iPhone, открытый с экрана «Домой»: распознавание там есть только на бумаге.
+function voiceLocked() {
+  const { iOS, installed } = platformInfo();
+  return iOS && installed;
+}
+
 // Banners do not fly over the navigator, so the line the panels already carry
 // for a failure is where the voice speaks too.
 function flashDrive(text, ms = VOICE_SAID_MS, { route = null } = {}) {
@@ -5807,9 +5813,12 @@ function toggleVoice() {
       paintVoice();
       if (voice.stopped || reason === 'stopped') return;
       if (reason === 'denied') voiceAnswer('Микрофон запрещён в настройках браузера. Разрешите доступ — и скажите снова.', { aloud: false });
-      // An iPhone sometimes leaves the recogniser hanging without a word: the
-      // button used to stay lit with «Слушаю…» until the app was restarted.
-      else if (!voice.heard && reason === 'stuck') flashDrive('Микрофон не ответил. Нажмите «🎤 Голос» ещё раз.');
+      // Голос на iPhone: в Safari работает, а в приложении с экрана «Домой»
+      // Apple разрешение спрашивает и ответа не присылает (19.09.2026, владелец;
+      // известная особенность WebKit). Говорим прямо, что делать.
+      else if (!voice.heard && reason === 'stuck') flashDrive(voiceLocked()
+        ? 'На iPhone голос не работает в приложении с экрана «Домой» — так сделано у Apple. Откройте сайт в Safari, там он работает.'
+        : 'Микрофон не ответил. Нажмите «🎤 Голос» ещё раз.', 14000);
       else if (!voice.heard && reason === 'silent') flashDrive(`Ничего не услышал. ${VOICE_HINT}`);
       else if (!voice.heard) flashDrive('Не получилось послушать. Попробуйте ещё раз или откройте приложение в Safari.');
     },
