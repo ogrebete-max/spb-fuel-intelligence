@@ -49,14 +49,26 @@ async function run(label, browserType, device) {
   const errors = [];
   let loads = 0;
   page.on('pageerror', (error) => errors.push(error.message));
-  page.on('load', () => { loads += 1; });
+  const timeline = [];
+  const started = Date.now();
+  page.on('load', () => {
+    loads += 1;
+    timeline.push(`${loads}: +${Date.now() - started} мс`);
+  });
   await page.goto(`http://localhost:${SITE_PORT}/`, { waitUntil: 'load' });
   // The app never reloads itself in its first seconds — that is how an iPhone
   // was left with a white screen (18 Sep 2026) — so it walks onto the new
   // build a moment after it is on screen, not instantly.
   const arrived = await page.waitForFunction((build) => window.SPBFI_BUILD === build, BUILD, { timeout: 30000 }).then(() => true, () => false);
   check(`the old page reloads itself onto the new build (${await page.evaluate(() => window.SPBFI_BUILD)})`, arrived);
-  check(`once, not in a loop (${loads} loads)`, loads === 2);
+  // Смысл проверки — что приложение не крутится в цикле: перезагрузка на новую
+  // сборку одна, и после неё ничего больше не происходит. Точное число загрузок
+  // проверять нельзя — браузер иногда успевает перезагрузиться раньше, чем
+  // объявит о первой загрузке, и её не видно.
+  await page.waitForTimeout(6000);
+  console.log(`   загрузки: ${timeline.join(', ') || 'ни одной не замечено'} | сборка сейчас: ${await page.evaluate(() => window.SPBFI_BUILD)}`);
+  check(`once, not in a loop (${loads} loads)`, loads <= 2
+    && await page.evaluate((build) => window.SPBFI_BUILD === build, BUILD));
   check('and the list is there', await page.waitForSelector('.station-card', { timeout: 30000 }).then(() => true, () => false));
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
