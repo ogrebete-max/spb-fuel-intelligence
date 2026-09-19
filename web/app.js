@@ -5735,7 +5735,10 @@ function driveOwnSeen(stationId) {
 // phone's own recogniser turns the phrase into text, `web/voice.js` reads it,
 // and the answer is said aloud and left on the screen, because at the wheel it
 // may not be read at once. Nothing is sent anywhere for it.
-const VOICE_HINT = 'Скажите: «Где заправиться 95-м» или «95 есть».';
+// Сначала то, ради чего голос и нужен: отметить на ходу и поехать. Вопрос «где
+// заправиться» полезен, только когда марка другая, — он и стоит последним
+// (19.09.2026, владелец: «где ближайший 95 и так показывается»).
+const VOICE_HINT = 'Скажите: «95 есть», «Поехали» или «Где заправиться 98-м».';
 const VOICE_SAID_MS = 9000;
 const VOICE_LISTEN_MS = 15000;
 // A spoken mark is about the station the driver is at — the same distance at
