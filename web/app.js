@@ -335,6 +335,10 @@ async function bootstrap() {
     // the two-minute poll noticed. meta.json is fetched fresh, so the build is
     // compared as soon as it is in, and the page reloads onto the new one.
     if (state.meta?.build && window.SPBFI_BUILD && state.meta.build !== window.SPBFI_BUILD && !document.hidden) reloadForNewBuild();
+    // Приложение ожило — снимаем таймер белого экрана из index.html.
+    clearTimeout(window.SPBFI_STALLED);
+    document.getElementById('stalledNote')?.remove();
+    keepOwnCode();
     renderMeta();
     // One small file with every grade for every station; the card shows all six
     // marks without downloading six full bundles.
@@ -365,6 +369,20 @@ async function bootstrap() {
   } catch (error) {
     $('#stationList').innerHTML = `<div class="empty-state"><strong>Не удалось загрузить приложение</strong><br>${escapeHtml(error.message)}</div>`;
   }
+}
+
+// Просим работника сохранить код этой сборки. Без этого первый запуск после
+// установки на медленной сети остаётся белым: код ещё нигде не лежит.
+function keepOwnCode() {
+  if (!navigator.serviceWorker?.ready) return;
+  const keep = [
+    document.querySelector('script[src*="app.js"]')?.src,
+    document.querySelector('link[rel="stylesheet"][href*="styles.css"]')?.href,
+    document.querySelector('script[src*="voice.js"]')?.src,
+  ].filter(Boolean);
+  // Через `ready`, а не через `controller`: при самой первой установке страница
+  // работником ещё не управляется — а сохранить код нужно именно тогда.
+  if (keep.length) navigator.serviceWorker.ready.then((registration) => registration.active?.postMessage({ keep })).catch(() => {});
 }
 
 function renderMeta() {

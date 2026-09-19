@@ -125,6 +125,8 @@
   // the button stayed lit with «Слушаю…» until the app was closed and opened
   // again (18 Sep 2026, the owner). After this it is stopped and said so.
   const PATIENCE_MS = 12000;
+  // Распознаватель создаётся один раз и живёт, пока открыто приложение.
+  let kept = null;
 
   // One phrase, then it stops by itself. `onHeard` gets the text, `onDone` the
   // reason it ended — 'ok', 'silent', 'denied', 'broken' — so the app can say
@@ -135,13 +137,19 @@
       onDone?.('broken');
       return () => {};
     }
-    let ears = null;
-    try {
-      ears = new Engine();
-    } catch (error) {
-      onDone?.('broken');
-      return () => {};
+    // Один и тот же распознаватель на всё время работы приложения: iPhone
+    // спрашивает разрешение на микрофон у каждого нового (19.09.2026, владелец
+    // — «каждый раз просит разрешение»).
+    if (!kept) {
+      try {
+        kept = new Engine();
+      } catch (error) {
+        onDone?.('broken');
+        return () => {};
+      }
     }
+    const ears = kept;
+    try { ears.abort(); } catch (error) { /* не был запущен */ }
     ears.lang = 'ru-RU';
     ears.interimResults = false;
     ears.maxAlternatives = 3;

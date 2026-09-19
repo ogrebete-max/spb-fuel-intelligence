@@ -16,6 +16,27 @@
   <!-- Safari ignores SVG here; the home-screen icon must be a PNG. -->
   <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
   <title>Топливо СПб — закрытый клуб своих</title>
+  <!-- Перед стилями: ожидающая таблица стилей задерживает выполнение скриптов,
+       и на висящей сети таймер не запускался бы вовсе. -->
+  <!-- Белый экран, который висит, пока приложение не закроешь (19.09.2026): если
+       код не догрузился, человек не должен смотреть в пустоту. Через семь секунд
+       после открытия появляется кнопка. Приложение, ожив, снимает этот таймер. -->
+  <script>
+    // Панель собирается здесь же, своими стилями: если не дошла таблица стилей,
+    // не дойдёт и оформление, а выход с белого экрана нужен в любом случае.
+    window.SPBFI_STALLED = setTimeout(function () {
+      if (document.getElementById('stalledNote')) return;
+      var box = document.createElement('div');
+      box.id = 'stalledNote';
+      box.setAttribute('role', 'status');
+      box.style.cssText = 'position:fixed;z-index:3000;left:16px;right:16px;bottom:24px;padding:16px;border-radius:18px;background:#0d3328;color:#eaf3ec;font:16px/1.35 -apple-system,system-ui,sans-serif;box-shadow:0 12px 30px rgba(5,25,18,.35)';
+      box.innerHTML = '<strong style="display:block;font-size:17px">Приложение не загрузилось</strong>'
+        + '<p style="margin:6px 0 10px;color:#c9dbd2">Похоже, связь пропала на середине. Нажмите, чтобы открыть заново.</p>'
+        + '<button type="button" style="width:100%;min-height:46px;border:0;border-radius:12px;background:#c9f06b;color:#0d3328;font:800 16px -apple-system,system-ui,sans-serif">Обновить</button>';
+      box.querySelector('button').addEventListener('click', function () { location.reload(); });
+      (document.body || document.documentElement).appendChild(box);
+    }, 7000);
+  </script>
   <link rel="stylesheet" href="vendor/leaflet.css">
   <link rel="stylesheet" href="styles.css">
 </head>

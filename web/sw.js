@@ -1,4 +1,4 @@
-const CACHE = 'spb-fuel-intelligence-v14';
+const CACHE = 'spb-fuel-intelligence-v15';
 // app.js and styles.css carry a build tag in their URL, so they are not
 // precached here; the network-first handler stores whichever build index.html
 // actually asks for.
@@ -24,6 +24,16 @@ function remember(request, response) {
   const copy = response.clone();
   caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
 }
+
+// Страница просит сохранить свой код: адреса с меткой сборки знает только она,
+// а без сохранённой копии первый же запуск на висящей сети остаётся белым.
+self.addEventListener('message', (event) => {
+  const keep = event.data?.keep;
+  if (!Array.isArray(keep) || !keep.length) return;
+  event.waitUntil(caches.open(CACHE).then((cache) => Promise.all(
+    keep.slice(0, 8).map((url) => cache.match(url).then((had) => (had ? null : cache.add(url).catch(() => null)))),
+  )));
+});
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -81,8 +91,22 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request).then((response) => { remember(request, response); return response; }).catch(() => caches.match(request).then((cached) => cached || new Response(JSON.stringify({ error: 'Нет подключения и сохранённого снимка.' }), { status: 503, headers: { 'Content-Type': 'application/json' } }))));
     return;
   }
-  // Code and styles must update immediately; offline cache is a fallback only.
-  event.respondWith(fetch(request).then((response) => { remember(request, response); return response; }).catch(() => caches.match(request).then((cached) => cached || Response.error())));
+  // Code and styles carry the build in their URL, so a kept copy is never the
+  // wrong one. The network is still asked first — but only for two seconds: a
+  // phone whose connection hangs rather than fails (an iPhone waking up on a
+  // weak network) held the page with no code at all, and that is the white
+  // screen that stays until the app is closed (19 Sep 2026).
+  event.respondWith((async () => {
+    const fresh = fetch(request).then((response) => { remember(request, response); return response; }).catch(() => null);
+    const quick = await Promise.race([fresh, new Promise((resolve) => { setTimeout(() => resolve(null), 2000); })]);
+    if (quick) return quick;
+    const kept = await caches.match(request);
+    if (kept) {
+      event.waitUntil(fresh);
+      return kept;
+    }
+    return (await fresh) || Response.error();
+  })());
 });
 
 // A report from the group arrives as a push; the phone shows it even with the

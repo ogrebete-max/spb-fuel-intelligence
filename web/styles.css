@@ -912,6 +912,9 @@ body.driving .toast-stack { display: none; }
 .drive .look-delete { justify-self: start; min-height: 48px; border: 0; border-radius: 14px; padding: 10px 16px; background: var(--badbg); color: var(--badink); font-size: 16px; font-weight: 800; }
 .drive-go { position: absolute; top: 8px; right: calc(14px + env(safe-area-inset-right, 0px)); min-height: 40px; border: 0; border-radius: 999px; padding: 0 14px; background: var(--plate); color: var(--plateink); font-size: 15px; font-weight: 800; box-shadow: 0 2px 8px var(--shade); }
 .drive-sheet:has(.drive-go) .drive-where { padding-right: 220px; }
+/* «🧭 Маршрут в Яндексе» лежит в правом верхнем углу панели и накрывал собой
+   строку, которой приложение отвечает голосу (19.09.2026, снимок из машины). */
+.drive-sheet:has(.drive-go) .drive-flash { padding-right: 220px; }
 
 .drive-edge { position: absolute; z-index: 4; display: flex; align-items: center; gap: 5px; translate: -50% -50%; padding: 7px 12px; border-radius: 14px; background: var(--pin-CAN_REFUEL); color: var(--pin-ink); font-size: 17px; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 14px var(--shade); pointer-events: none; }
 .drive-edge small { font-size: 12px; font-weight: 700; }
