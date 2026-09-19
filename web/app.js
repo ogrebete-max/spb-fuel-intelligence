@@ -378,7 +378,6 @@ function keepOwnCode() {
   const keep = [
     document.querySelector('script[src*="app.js"]')?.src,
     document.querySelector('link[rel="stylesheet"][href*="styles.css"]')?.href,
-    document.querySelector('script[src*="voice.js"]')?.src,
   ].filter(Boolean);
   // Через `ready`, а не через `controller`: при самой первой установке страница
   // работником ещё не управляется — а сохранить код нужно именно тогда.
@@ -5727,222 +5726,6 @@ function driveOwnSeen(stationId) {
   return !!mark && mark.seen && !((mark.down || 0) > (mark.up || 0));
 }
 
-// ——— Голос за рулём (18.09.2026) ———
-//
-// The owner asked for two things by voice: «Где мне сейчас заправиться рядом?»
-// and a mark made while passing a station, and asked that rules do the work
-// wherever they can — «если где-то можно обойтись без ЛЛМ, делать без». The
-// phone's own recogniser turns the phrase into text, `web/voice.js` reads it,
-// and the answer is said aloud and left on the screen, because at the wheel it
-// may not be read at once. Nothing is sent anywhere for it.
-// Сначала то, ради чего голос и нужен: отметить на ходу и поехать. Вопрос «где
-// заправиться» полезен, только когда марка другая, — он и стоит последним
-// (19.09.2026, владелец: «где ближайший 95 и так показывается»).
-const VOICE_HINT = 'Скажите: «95 есть», «Поехали» или «Где заправиться 98-м».';
-const VOICE_SAID_MS = 9000;
-const VOICE_LISTEN_MS = 15000;
-// A spoken mark is about the station the driver is at — the same distance at
-// which the card stops listing others and answers about this one.
-const VOICE_MARK_METRES = AT_STATION_METRES;
-const voice = { listening: false, stop: null, heard: false, stopped: false };
-
-function voiceHere() {
-  return !!window.Voice?.supported();
-}
-
-// iPhone, открытый с экрана «Домой»: распознавание там есть только на бумаге.
-function voiceLocked() {
-  const { iOS, installed } = platformInfo();
-  return iOS && installed;
-}
-
-// Banners do not fly over the navigator, so the line the panels already carry
-// for a failure is where the voice speaks too.
-function flashDrive(text, ms = VOICE_SAID_MS, { route = null } = {}) {
-  drive.flash = { text, until: Date.now() + ms, route };
-  if (drive.open) renderDrive({ force: true });
-}
-
-function voiceAnswer(text, { aloud = true, ms = VOICE_SAID_MS, route = null } = {}) {
-  flashDrive(text, ms, { route });
-  if (aloud) window.Voice?.say(text);
-}
-
-function paintVoice() {
-  const button = $('#drive [data-drive="voice"]');
-  if (!button) return;
-  const here = voiceHere();
-  if (button.hidden !== !here) button.hidden = !here;
-  const words = voice.listening ? '🎤 Слушаю…' : '🎤 Голос';
-  if (button.textContent !== words) button.textContent = words;
-  button.classList.toggle('hearing', voice.listening);
-  if (button.getAttribute('aria-pressed') !== String(voice.listening)) button.setAttribute('aria-pressed', String(voice.listening));
-}
-
-function toggleVoice() {
-  if (voice.listening) {
-    // Pressed again on purpose: nothing was said, and nothing needs saying.
-    voice.stopped = true;
-    drive.flash = null;
-    voice.stop?.();
-    // Whatever the recogniser does with that, the button is free again.
-    voice.listening = false;
-    voice.stop = null;
-    paintVoice();
-    renderDrive({ force: true });
-    return;
-  }
-  if (!voiceHere()) {
-    flashDrive('Этот браузер не умеет слушать. На iPhone — Safari, на Android — Chrome.');
-    return;
-  }
-  voice.listening = true;
-  voice.heard = false;
-  voice.stopped = false;
-  paintVoice();
-  flashDrive(`🎤 Слушаю. ${VOICE_HINT}`, VOICE_LISTEN_MS);
-  track('voice_listen');
-  voice.stop = window.Voice.listen({
-    onHeard: (said) => {
-      voice.heard = true;
-      onVoice(said);
-    },
-    onDone: (reason) => {
-      voice.listening = false;
-      voice.stop = null;
-      paintVoice();
-      if (voice.stopped || reason === 'stopped') return;
-      if (reason === 'denied') voiceAnswer('Микрофон запрещён в настройках браузера. Разрешите доступ — и скажите снова.', { aloud: false });
-      // Голос на iPhone: в Safari работает, а в приложении с экрана «Домой»
-      // Apple разрешение спрашивает и ответа не присылает (19.09.2026, владелец;
-      // известная особенность WebKit). Говорим прямо, что делать.
-      else if (!voice.heard && reason === 'stuck') flashDrive(voiceLocked()
-        ? 'На iPhone голос не работает в приложении с экрана «Домой» — так сделано у Apple. Откройте сайт в Safari, там он работает.'
-        : 'Микрофон не ответил. Нажмите «🎤 Голос» ещё раз.', 14000);
-      else if (!voice.heard && reason === 'silent') flashDrive(`Ничего не услышал. ${VOICE_HINT}`);
-      else if (!voice.heard) flashDrive('Не получилось послушать. Попробуйте ещё раз или откройте приложение в Safari.');
-    },
-  });
-}
-
-function onVoice(said) {
-  const meant = window.Voice.parse(said);
-  track('voice_heard', { kind: meant.kind, grade: meant.grade || '' });
-  if (meant.kind === 'find') voiceFind(meant);
-  else if (meant.kind === 'route') voiceRoute(meant);
-  else if (meant.kind === 'mark') voiceMark(meant);
-  else voiceAnswer(`Не понял: «${meant.heard}». ${VOICE_HINT}`);
-}
-
-// The list is loaded for one grade at a time, so a question about another one
-// waits for it before it can be answered.
-function voiceWaitForGrade(grade, within = 8000) {
-  const until = Date.now() + within;
-  return new Promise((resolve) => {
-    const look = () => {
-      if (state.stations[0]?.grade?.grade === grade) resolve(true);
-      else if (Date.now() > until) resolve(false);
-      else setTimeout(look, 200);
-    };
-    look();
-  });
-}
-
-async function voiceFind(meant) {
-  const chosen = await voiceTarget(meant);
-  if (!chosen) return;
-  const { item } = chosen;
-  voiceAnswer(`${voiceWhere(item)}. ${driveSays(item.station).text}.`);
-}
-
-// Как приложение называет заправку голосом: сеть, улица, сколько до неё и куда.
-function voiceWhere(item) {
-  const place = driveAddress(item.station.address);
-  const where = driveDirection(item.turn) || driveSide(item);
-  return `${displayNetwork(item.station.network)}${place ? `, ${place}` : ''} — ${driveDistance(item.metres)}${where}`;
-}
-
-// «Поехали» / «проложи маршрут»: приложение выбирает заправку — это и есть
-// самая тяжёлая часть за рулём — называет её вслух и открывает маршрут в
-// Яндексе. Браузер может не дать открыть окно без касания (так бывает на
-// iPhone), поэтому под рукой остаётся кнопка: ничего не происходит молча.
-async function voiceRoute(meant) {
-  const chosen = await voiceTarget(meant);
-  if (!chosen) return;
-  const { item } = chosen;
-  const opened = openDriveRoute(item.station.id, { fromVoice: true });
-  const said = `${voiceWhere(item)}. ${opened ? 'Веду в Яндексе.' : 'Нажмите «Поехали», чтобы открыть маршрут.'}`;
-  voiceAnswer(said, { ms: opened ? VOICE_SAID_MS : 20000, route: opened ? null : item.station.id });
-}
-
-// Куда вести: та заправка, о которой уже говорит экран, если у неё эта марка
-// есть; иначе ближайшая, где есть.
-async function voiceTarget(meant) {
-  if (meant.grade && meant.grade !== state.grade) {
-    flashDrive(`Смотрю ${GRADE_LABELS[meant.grade]}…`, VOICE_LISTEN_MS);
-    chooseGrade(meant.grade);
-    if (!await voiceWaitForGrade(meant.grade)) {
-      voiceAnswer(`Не успел загрузить ${GRADE_LABELS[meant.grade]}. Скажите ещё раз.`);
-      return null;
-    }
-  }
-  const phone = drivePhone();
-  const label = GRADE_LABELS[state.grade];
-  if (!phone) {
-    voiceAnswer('Пока не знаю, где вы. Разрешите геопозицию — и скажите снова.');
-    return null;
-  }
-  const serves = (station) => SERVES_NOW[station.grade?.status] === 0;
-  const shown = stepDrive(Date.now()).focus;
-  if (shown && serves(shown.station)) return { item: shown, label };
-  const found = state.stations
-    .filter((station) => station.location && serves(station))
-    .map((station) => driveItem(phone, station, motion.heading))
-    .sort((a, b) => a.metres - b.metres)[0];
-  if (!found) {
-    voiceAnswer(`Рядом никто не подтверждает ${label}. Лучше не ехать наугад — скажу, как только кто-то отметит.`);
-    return null;
-  }
-  tapDriveStation(found.station.id);
-  return { item: found, label };
-}
-
-// Which station a spoken mark is about: the one the screen is at, and failing
-// that the nearest one the car stands by. Never a station read about from afar
-// — a mark is about the pumps in front of the driver.
-function voiceStation() {
-  const view = stepDrive(Date.now());
-  const focused = ['at', 'near'].includes(view.kind) ? view.focus : null;
-  if (focused && focused.metres <= VOICE_MARK_METRES) return focused;
-  const phone = drivePhone();
-  if (!phone) return null;
-  const nearest = state.stations
-    .filter((station) => station.location)
-    .map((station) => driveItem(phone, station, motion.heading))
-    .sort((a, b) => a.metres - b.metres)[0];
-  return nearest && nearest.metres <= VOICE_MARK_METRES ? nearest : null;
-}
-
-// A mark may be said on the move: that is what it is for — «отмечать голосом,
-// проезжая мимо». The buttons stay locked while the car moves, because a
-// finger on a button is a finger off the wheel; a word is not.
-function voiceMark(meant) {
-  const grade = meant.grade || state.grade;
-  const label = GRADE_LABELS[grade];
-  if (meant.seen == null) {
-    voiceAnswer(`Не понял, есть ли ${label}. Скажите «${label} есть» или «${label} нет».`);
-    return;
-  }
-  const item = voiceStation();
-  if (!item) {
-    voiceAnswer('Не вижу, у какой вы заправки. Подъедьте ближе — и скажите снова.');
-    return;
-  }
-  const what = `${label} ${meant.seen ? 'есть' : 'нет'}${meant.queue != null ? `, очередь: ${queueWords(meant.queue)}` : ''}`;
-  voiceAnswer(`${displayNetwork(item.station.network)}: ${what}. Отправляю своим.`);
-  sendDriveMark(item.station.id, meant.seen, 'voice', { grade, queue: meant.queue });
-}
-
 function driveItem(phone, station, heading) {
   const metres = haversineKm(phone, station.location) * 1000;
   return { station, metres, turn: heading == null ? null : turnFrom(heading, bearingDegrees(phone, station.location)) };
@@ -6462,7 +6245,6 @@ function renderDrive({ force = false } = {}) {
   const shown = view.speed == null ? '—' : String(Math.round(view.speed));
   if (speed && speed.textContent !== shown) speed.textContent = shown;
   paintDriveOwn();
-  paintVoice();
   const routeSwitch = $('#drive [data-drive="route-toggle"]');
   if (routeSwitch && routeSwitch.getAttribute('aria-pressed') !== String(drive.routeOn)) routeSwitch.setAttribute('aria-pressed', String(drive.routeOn));
   // A finger that has just landed keeps its button where it is: a redraw
@@ -6507,10 +6289,7 @@ function paintDrivePanels(view) {
   const picked = drive.pick === 'grades' ? driveGradesPick() : drive.pick === 'theme' ? driveThemePick() : '';
   // Banners are not shown over this screen, so a failure it must tell about
   // heads whichever panel is up for a few seconds.
-  const flash = drive.flash && view.now < drive.flash.until
-    ? `<p class="drive-flash" role="status">${escapeHtml(drive.flash.text)}${drive.flash.route
-      ? `<button type="button" class="drive-flash-go" data-drive="route" data-station="${escapeHtml(drive.flash.route)}">🧭 Поехали</button>` : ''}</p>`
-    : '';
+  const flash = drive.flash && view.now < drive.flash.until ? `<p class="drive-flash" role="status">${escapeHtml(drive.flash.text)}</p>` : '';
   setDriveHtml(pick, picked);
   setDriveHtml(full, picked || !panels.full ? '' : flash + panels.full);
   setDriveHtml(sheet, picked || panels.full || !panels.sheet ? '' : flash + panels.sheet);
@@ -6719,15 +6498,14 @@ function driveDelete(stationId) {
 
 // The road itself, with its traffic, is a navigator's job: the route opens in
 // Yandex Maps, the app when it is installed and the site when not.
-function openDriveRoute(id, { fromVoice = false } = {}) {
+function openDriveRoute(id) {
   const place = state.stations.find((item) => item.id === id)?.location;
   if (!place) return false;
-  track('route_open', { station: id, reason: fromVoice ? 'voice' : 'tap' });
-  // «Поехали» должно приводить в Яндекс: наш экран — про топливо, а вести по
-  // дороге умеет он (19.09.2026, владелец: «если не переключает в Яндекс, то
-  // бесполезна»). Новое окно браузер без касания может не дать — тогда просто
-  // уходим по адресу в этой же вкладке: это разрешено всегда, а на телефоне с
-  // установленным Яндексом ссылка открывает само приложение.
+  track('route_open', { station: id });
+  // Наш экран — про топливо, а вести по дороге умеет Яндекс. Если браузер не
+  // дал новое окно, уходим по тому же адресу в этой же вкладке: это разрешено
+  // всегда, а на телефоне с установленным Яндексом ссылка открывает его
+  // приложение с готовым маршрутом (19.09.2026).
   const url = `https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`;
   const opened = window.open(url, '_blank', 'noopener');
   if (opened) return true;
@@ -6896,8 +6674,6 @@ function onDriveTap(event) {
     openDriveYandex(station);
   } else if (action === 'target') {
     tapDriveStation(station);
-  } else if (action === 'voice') {
-    toggleVoice();
   } else if (action === 'own') {
     drive.ownOnly = !drive.ownOnly;
     drive.tapped = null;
@@ -6987,17 +6763,15 @@ function onDriveTap(event) {
 
 // Through the same path as every mark: kept on the phone, sent to the club,
 // waiting for a connection when there is none, under the club's own rules.
-function sendDriveMark(stationId, seen, reason, { grade = state.grade, queue = null } = {}) {
+function sendDriveMark(stationId, seen, reason) {
   if (!stationId) return;
   const station = state.stations.find((item) => item.id === stationId);
+  const grade = state.grade;
   const draft = composeDraft(stationId);
-  // A spoken mark brings its own grade and queue and leaves the draft alone;
-  // a button takes the queue from the composer, as before.
-  const said = reason === 'voice';
-  if (!said && reason === 'at_station') queue = draft?.queue ?? null;
+  const queue = reason === 'at_station' ? draft?.queue ?? null : null;
   // Said now, the grade and the queue are no longer a draft; other grades
   // pressed on the card underneath stay pressed.
-  if (draft && !said) {
+  if (draft) {
     delete draft.chosen[grade];
     draft.queue = null;
     if (!Object.keys(draft.chosen).length) composeDrafts.delete(stationId);

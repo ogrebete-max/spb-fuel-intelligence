@@ -1,10 +1,9 @@
-// Выбор заправок в навигаторе и голос, который не отвечает (18.09.2026).
+// Выбор заправок в навигаторе (18.09.2026).
 //
 // Driving, the owner saw one station with 95 and no sign that there were
-// others: «их точно не одна в округе, должен быть выбор». The sheet now names
-// the next two that have the grade, and a tap moves the screen to one. The
-// same evening «Слушаю…» hung on his iPhone until he closed the app, so the
-// recogniser is given a watchdog — here it is told to answer nothing at all.
+// others: «их точно не одна в округе, должен быть выбор». The sheet names the
+// next two that have the grade, a tap moves the screen to one, and the top
+// line is always about a station that has it.
 //   node e2e/drive-choice-ui.mjs
 import http from 'node:http';
 import fs from 'node:fs';
@@ -46,24 +45,6 @@ const served = () => {
 };
 const SERVED = { '/static-data/stations-AI95.json': served() };
 
-// A recogniser that never answers: no result, no end, no error — as an iPhone
-// sometimes behaves.
-const DEAF = `
-window.__voice = { starts: 0 };
-class SilentRecognition {
-  start() { window.__voice.starts += 1; }
-  abort() {}
-  stop() {}
-}
-for (const name of ['SpeechRecognition', 'webkitSpeechRecognition']) {
-  try {
-    Object.defineProperty(window, name, { configurable: true, writable: true, value: SilentRecognition });
-  } catch (error) {
-    window[name] = SilentRecognition;
-  }
-}
-`;
-
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const siteServer = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -97,7 +78,6 @@ async function run(label, browserType, device) {
     ...device, serviceWorkers: 'block', permissions: ['geolocation'],
     geolocation: { ...HERE, accuracy: 12 },
   });
-  await context.addInitScript(DEAF);
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -149,22 +129,6 @@ async function run(label, browserType, device) {
   check('the headline is a station that has the grade', reading.kind !== 'line' || reading.focusServes);
   check('and a nearer one without it, if any, is named below as «мимо»',
     !reading.passing || (reading.by.startsWith('мимо:') && reading.by.includes(reading.passing.split(',')[0])));
-
-  // 3. A recogniser that never answers lets the button go all the same.
-  await page.evaluate(() => { window.Voice.patience = 900; });
-  await page.click('#drive [data-drive="voice"]');
-  check('the button says it is listening', await becomes(page, () => voice.listening === true, null, 4000));
-  const freed = await becomes(page, () => voice.listening === false
-    && (document.querySelector('#drive [data-drive="voice"]')?.textContent || '').includes('Голос'), null, 6000);
-  const said = await page.evaluate(() => document.querySelector('#drive .drive-flash')?.textContent.replace(/\s+/g, ' ').trim() || '');
-  check(`the button comes back by itself and says why: «${said}»`, freed && said.includes('Микрофон не ответил'));
-  check('the recogniser was really asked', await page.evaluate(() => window.__voice.starts >= 1));
-
-  // 4. And a second press never leaves it stuck either.
-  await page.click('#drive [data-drive="voice"]');
-  await becomes(page, () => voice.listening === true, null, 4000);
-  await page.click('#drive [data-drive="voice"]');
-  check('pressed again, it stops at once', await becomes(page, () => voice.listening === false, null, 3000));
 
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
