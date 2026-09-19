@@ -252,15 +252,6 @@ async function run(label, browserType, device) {
   check(`the route opens in Yandex Maps («${opened.slice(0, 60)}»)`, opened.includes('yandex.ru/maps') && opened.includes('rtext='));
   check('and nothing was left to press', await page.evaluate(() => !document.querySelector('#drive .drive-flash-go')));
 
-  // A browser that blocks the window: the same words, and a button under the thumb.
-  await page.evaluate(() => { window.__allowOpen = false; });
-  check('«Проложи маршрут» is answered when the window is blocked', await say(page, 'Проложи маршрут'));
-  const blocked = await flash(page);
-  check(`it asks to press instead of doing nothing: «${blocked}»`, blocked.includes('Нажмите «Поехали»'));
-  check('and the button is there', await becomes(page, () => !!document.querySelector('#drive .drive-flash-go[data-drive="route"]'), null, 4000));
-  await page.click('#drive .drive-flash-go');
-  check('pressing it opens the route', await page.evaluate(() => window.__opened.length >= 2 && window.__opened.slice(-1)[0].includes('rtext=')));
-
   // 6. Pressed a second time on purpose, the button stops listening and says
   // nothing: the driver has changed their mind, not failed to speak.
   await page.evaluate(() => { window.__voice.said = null; });
@@ -272,6 +263,17 @@ async function run(label, browserType, device) {
     return voice.listening === false && !line.includes('Слушаю') && !line.includes('Ничего не услышал');
   }, null, 6000);
   check(`a second press stops listening quietly («${await flash(page)}»)`, quiet);
+
+  // Last, because the page leaves for Yandex: a blocked new window must not
+  // mean «nothing happened» — «поехали» that does not switch is useless
+  // (19 Sep 2026, the owner), so the app goes there in this very tab.
+  const wentTo = [];
+  await page.route('**yandex.ru/**', (route) => { wentTo.push(route.request().url()); route.abort(); });
+  await page.evaluate(() => { window.__allowOpen = false; });
+  await say(page, 'Проложи маршрут');
+  for (let attempt = 0; attempt < 30 && !wentTo.length; attempt += 1) await page.waitForTimeout(150);
+  check(`a blocked window still leads to Yandex, in this tab («${(wentTo[0] || 'никуда').slice(0, 60)}»)`,
+    wentTo.length > 0 && wentTo[0].includes('rtext='));
 
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));

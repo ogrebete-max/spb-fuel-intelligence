@@ -6592,7 +6592,15 @@ function driveZoom(view) {
   const exact = Math.log2((156543.03 * Math.cos((phone.lat * Math.PI) / 180)) / needed);
   // Far enough out for a station 5 km off (15 Sep 2026: at 12 «Роснефть · 95
   // есть» 4,7 km away was off a phone's screen).
-  const fit = Math.max(10, Math.min(DRIVE_CLOSE_ZOOM, Math.floor(exact)));
+  // Как в навигаторах: на скорости карта отходит, чтобы было видно дорогу
+  // вперёд, а в городе и на подъезде — приближается (19.09.2026, владелец:
+  // «карта не увеличивается при движении»).
+  const speed = view.speed;
+  const closest = speed == null ? DRIVE_CLOSE_ZOOM
+    : speed >= 80 ? DRIVE_ZOOM - 1
+      : speed >= 40 ? DRIVE_ZOOM
+        : DRIVE_CLOSE_ZOOM;
+  const fit = Math.max(10, Math.min(closest, Math.floor(exact)));
   if (fit < drive.zoom) return fit;
   return fit > drive.zoom && exact - drive.zoom >= 1.25 ? drive.zoom + 1 : drive.zoom;
 }
@@ -6706,10 +6714,20 @@ function openDriveRoute(id, { fromVoice = false } = {}) {
   const place = state.stations.find((item) => item.id === id)?.location;
   if (!place) return false;
   track('route_open', { station: id, reason: fromVoice ? 'voice' : 'tap' });
-  // Без касания браузер может не дать открыть окно — тогда приложение
-  // предлагает кнопку вместо того, чтобы молча ничего не сделать.
-  const window_ = window.open(`https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`, '_blank', 'noopener');
-  return !!window_;
+  // «Поехали» должно приводить в Яндекс: наш экран — про топливо, а вести по
+  // дороге умеет он (19.09.2026, владелец: «если не переключает в Яндекс, то
+  // бесполезна»). Новое окно браузер без касания может не дать — тогда просто
+  // уходим по адресу в этой же вкладке: это разрешено всегда, а на телефоне с
+  // установленным Яндексом ссылка открывает само приложение.
+  const url = `https://yandex.ru/maps/?rtext=~${Number(place.lat)},${Number(place.lon)}&rtt=auto`;
+  const opened = window.open(url, '_blank', 'noopener');
+  if (opened) return true;
+  try {
+    window.location.assign(url);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 // The station itself in Yandex Maps: its card with «Рассказать о ситуации»,
