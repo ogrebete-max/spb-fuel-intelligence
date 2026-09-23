@@ -78,6 +78,8 @@ chmod 600 /etc/spbfi/env
 install -d -o root -g root -m 755 /opt/spbfi-club /opt/spbfi-club/releases
 install -d -o root -g root -m 755 /etc/caddy
 install -d -o caddy -g caddy -m 750 /var/lib/caddy
+# The Ladoga fishing map is served from here (its own deploy script fills it).
+install -d -o root -g root -m 755 /var/www /var/www/ladoga /var/www/ladoga/releases
 
 # 7. Swap and clock. A small VPS comes without swap, and there the kernel kills
 # Node instead of letting it slow down. Certificates and passes need true time.

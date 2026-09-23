@@ -27,14 +27,32 @@ https://@IP@ {
 		max_size 1MB
 	}
 	encode gzip
-	reverse_proxy 127.0.0.1:8787 {
-		# The address Caddy saw. server/http.mjs takes the last entry of this
-		# header as the visitor, so it must be Caddy's own.
-		header_up X-Forwarded-For {remote_host}
-		# The club server holds an idle connection for 35 s. Caddy lets go
-		# after 30, so it never sends a request down one being closed.
-		transport http {
-			keepalive 30s
+
+	# The Ladoga fishing map (github.com/ogrebete-max/ladoga-fishing-map): a
+	# static site under /ladoga/, uploaded by that repository's
+	# scripts/deploy_vps.sh into /var/www/ladoga/current. Tiles never change
+	# under the same name; the page, the service worker and the data must be
+	# checked on every visit.
+	redir /ladoga /ladoga/ 308
+	handle_path /ladoga/* {
+		root * /var/www/ladoga/current
+		@lasting path /tiles/* /overlays/* /vendor/* /icons/*
+		header @lasting Cache-Control "public, max-age=2592000"
+		@fresh path / /index.html /sw.js /manifest.webmanifest /data/* /*.js /*.css
+		header @fresh Cache-Control "no-cache"
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8787 {
+			# The address Caddy saw. server/http.mjs takes the last entry of this
+			# header as the visitor, so it must be Caddy's own.
+			header_up X-Forwarded-For {remote_host}
+			# The club server holds an idle connection for 35 s. Caddy lets go
+			# after 30, so it never sends a request down one being closed.
+			transport http {
+				keepalive 30s
+			}
 		}
 	}
 }
