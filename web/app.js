@@ -53,6 +53,22 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const analytics = window.SPBFIAnalytics || { track() {}, predictionFields() { return {}; }, zoneFor() { return 'unknown'; }, ageBucket() { return 'unknown'; }, enabled() { return false; }, setEnabled() {} };
 const track = (event, fields = {}) => analytics.track(event, { area: state.area, grade: state.grade, ...fields });
+// The work log (web/log.js, 25 Sep 2026): what was pressed, errors, GPS and the
+// navigator's moments, for the owner's page «Кто чем пользуется». It loads on
+// its own, and the app works the same without it; what happens before it is in
+// waits in SPBFI_LOG_EARLY with its own time (a first fix can come that soon).
+function toWorklog(kind, ...args) {
+  try {
+    if (window.SPBFILog) {
+      window.SPBFILog[kind](...args);
+      return;
+    }
+    const early = window.SPBFI_LOG_EARLY || (window.SPBFI_LOG_EARLY = []);
+    const options = args.pop() || {};
+    if (early.length < 200) early.push([kind, ...args, { ...options, t: Date.now() }]);
+  } catch { /* the log only */ }
+}
+const worklog = (name, fields = null, options = {}) => toWorklog('event', name, fields, options);
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -357,6 +373,7 @@ async function bootstrap() {
     // what to do). Everyone else starts on the ordinary screen.
     if (touchDevice && !wanted && !navigator.webdriver && driveStartsFirst() && await locationGranted()) openDrive('start');
     else if (touchDevice && !wanted && startScreen() === 'map') showScreen('map');
+    worklog('ready', { ms: Math.round(performance.now()), first: drive.open ? 'drive' : mapScreenOn() ? 'map' : 'list' });
     // The automated checks tap through screens of their own, without the phone's notification question.
     if (!navigator.webdriver) switchPushOnByDefault();
     const health = state.meta?.collectors || {};
@@ -368,6 +385,7 @@ async function bootstrap() {
     });
   } catch (error) {
     $('#stationList').innerHTML = `<div class="empty-state"><strong>Не удалось загрузить приложение</strong><br>${escapeHtml(error.message)}</div>`;
+    worklog('boot_failed', { msg: String(error?.message || error).slice(0, 200) });
   }
 }
 
@@ -378,6 +396,7 @@ function keepOwnCode() {
   const keep = [
     document.querySelector('script[src*="app.js"]')?.src,
     document.querySelector('link[rel="stylesheet"][href*="styles.css"]')?.href,
+    document.querySelector('script[src*="log.js"]')?.src,
   ].filter(Boolean);
   // Через `ready`, а не через `controller`: при самой первой установке страница
   // работником ещё не управляется — а сохранить код нужно именно тогда.
@@ -715,7 +734,9 @@ function showLocationHelp() {
       ${guide.check ? `<div class="drawer-status" style="--status-color:#0d5a43"><strong>Как понять, в чём дело</strong><p>${escapeHtml(guide.check)}</p></div>` : ''}
     </div>
     <button type="button" class="list-more" id="locationRecheck">📍 Проверить место ещё раз</button>
-    <button type="button" class="list-more" id="locationByAddress">⌕ Искать АЗС по адресу</button>`);
+    <button type="button" class="list-more" id="locationByAddress">⌕ Искать АЗС по адресу</button>
+    <button type="button" class="list-more" id="locationProblem">⚠️ Не помогло — сообщить о проблеме</button>`);
+  $('#locationProblem').addEventListener('click', showProblemReport);
   renderLocationHelpStatus();
   drawLocationHelpMap();
   $('#locationYes').addEventListener('click', () => {
@@ -1123,12 +1144,19 @@ function notePassedStations(here, accuracy) {
   }
 }
 
+// Every fix the phone gives, the ones set aside too, goes to the work log,
+// which keeps a sample of them and every oddity (web/log.js).
+function logFix(coords, stamp, skip = '') {
+  toWorklog('fix', coords, { stamp, busy: drive.open, sog: motion.speed, skip });
+}
+
 function applyFix(coords, { force = false, stamp = null } = {}) {
   const here = { lat: coords.latitude, lon: coords.longitude };
   const accuracy = Math.round(coords.accuracy || 0);
   const firstFix = !state.location;
   if (firstFix && accuracy > COARSE_METRES && Date.now() - state.fixStartedAt < COARSE_WAIT_MS) {
     state.pendingFix = coords;
+    logFix(coords, stamp, 'coarse');
     renderSearchContext({ waitingAccuracy: accuracy });
     return;
   }
@@ -1136,6 +1164,7 @@ function applyFix(coords, { force = false, stamp = null } = {}) {
   // back to hundreds of metres for the very same spot.
   if (!firstFix && accuracy > ROUGH_METRES && state.accuracy != null && state.accuracy <= 100
     && Date.now() - state.locationAt < 60000 && haversineKm(state.location, here) * 1000 < accuracy) {
+    logFix(coords, stamp, 'stale');
     return;
   }
   const previous = state.location;
@@ -1149,6 +1178,7 @@ function applyFix(coords, { force = false, stamp = null } = {}) {
   state.pendingFix = null;
   // Speed and heading first: a station passed at speed is noted with them.
   noteMotion(coords, stamp);
+  logFix(coords, stamp);
   notePassedStations(here, accuracy);
   renderMe();
   renderLocateButton();
@@ -1247,6 +1277,7 @@ function refreshLocation({ manual = false, quiet = false } = {}) {
   };
   const onError = (error) => {
     pending -= 1;
+    worklog('geo_error', { code: error?.code, from: 'refresh', manual }, { every: 60000, key: `geo_error:refresh:${error?.code}` });
     if (answered || pending > 0 || state.locateToken !== token) return;
     state.locating = false;
     renderLocateButton();
@@ -1271,6 +1302,7 @@ function startFollowing({ manual = false } = {}) {
     return;
   }
   if (manual) track('locate_start');
+  worklog('geo_start', { manual });
   state.follow = true;
   state.fixStartedAt = Date.now();
   state.pendingFix = null;
@@ -1288,6 +1320,8 @@ function startFollowing({ manual = false } = {}) {
   let refused = false;
   let silenceSaid = false;
   const onError = (error) => {
+    // A timeout comes every twenty seconds indoors: one line a minute, with the count.
+    worklog('geo_error', { code: error?.code, from: 'follow', manual }, { every: 60000, key: `geo_error:follow:${error?.code}` });
     // Only a refusal ends following. A timeout or a moment without signal is
     // ordinary on the road, and switching the mode off then left people with
     // a list for a place they had long since left.
@@ -1757,8 +1791,21 @@ function shareLook(stationId, looks, queue = null, { notify = true, summary = ''
   return reportQueue;
 }
 
-/** One report to the worker: 'sent', 'retry' (worth another go later) or 'refused'. */
+// The work log hears how each mark went, the server's answer with it; the
+// station and the place are not written.
+let reportAnswer = null;
 async function postReport(endpoint, body) {
+  reportAnswer = null;
+  const outcome = await sendReport(endpoint, body);
+  worklog(outcome === 'sent' ? 'mark_sent' : outcome === 'retry' ? 'mark_queued' : 'mark_refused', {
+    http: reportAnswer?.http, err: reportAnswer?.err, n: Array.isArray(body?.grades) ? body.grades.length : 1,
+    late: Date.now() - Number(body?.observed_at || Date.now()) > 60000 || null,
+  });
+  return outcome;
+}
+
+/** One report to the worker: 'sent', 'retry' (worth another go later) or 'refused'. */
+async function sendReport(endpoint, body) {
   let legacyKey = '';
   try { legacyKey = localStorage.getItem(GROUP_KEY) || ''; } catch { /* nothing stored */ }
   let response;
@@ -1774,6 +1821,7 @@ async function postReport(endpoint, body) {
   }
   let data = {};
   try { data = await response.json(); } catch { /* not JSON */ }
+  reportAnswer = { http: response.status, err: typeof data?.error === 'string' ? data.error.slice(0, 40) : null };
   if (response.ok) {
     if (data.rewards) celebrate(data.rewards);
     return 'sent';
@@ -1868,6 +1916,7 @@ function flushOutbox() {
     } finally {
       outboxFlushing = false;
     }
+    if (expired) worklog('mark_expired', { n: expired });
     if (sent) showToast(`✔ ${sent === 1 ? 'Отметка ушла' : `Отметки ушли (${sent})`} к своим`, 'Связь появилась — отправлено со временем, когда вы отмечали.');
     else if (expired) showToast('Отметка так и не ушла', 'Связи долго не было, и отметка устарела. На этом телефоне она сохранена.');
     if (!loadOutbox().length) outboxWarned = false;
@@ -5491,6 +5540,7 @@ function maybeOfferDrive(now = Date.now()) {
   if (!motion.fastSince || speed == null || speed <= DRIVING_KMH || now - motion.fastSince < DRIVE_OFFER_MS) return;
   drive.offered = true;
   box.hidden = false;
+  worklog('drive_offer');
 }
 
 function hideDriveOffer() {
@@ -5571,6 +5621,8 @@ function openDrive(reason = 'button') {
   drive.ticker = setInterval(tickDrive, 1000);
   renderDrive({ force: true });
   track('drive_open', { reason });
+  drive.openedAt = Date.now();
+  worklog('nav_start', { why: reason });
 }
 
 function closeDrive() {
@@ -5586,6 +5638,7 @@ function closeDrive() {
   drive.free = false;
   document.body.classList.remove('driving');
   track('drive_close');
+  worklog('nav_end', { s: drive.openedAt ? Math.round((Date.now() - drive.openedAt) / 1000) : null });
   // The ordinary map lay covered and measures itself again.
   if (state.map) setTimeout(() => state.map.invalidateSize(), 80);
 }
@@ -5595,7 +5648,7 @@ function closeDrive() {
 function tickDrive() {
   if (!drive.open) return;
   if (Date.now() - drive.themeAt > 60000) applyDriveTheme();
-  if (drive.free && !drive.pressed && Date.now() > drive.freeUntil) followDriveMap();
+  if (drive.free && !drive.pressed && Date.now() > drive.freeUntil) followDriveMap('auto');
   else renderDrive();
 }
 
@@ -5635,6 +5688,7 @@ function loosenDriveMap() {
   drive.freeUntil = Date.now() + DRIVE_FREE_MS;
   if (drive.free) return;
   drive.free = true;
+  worklog('map_free');
   $('#drive').classList.add('free');
   // The nearest whole turn: north up without a spin back the long way later.
   const straight = Math.round(drive.rotation / 360) * 360;
@@ -5676,9 +5730,11 @@ function tapDriveStation(id) {
   renderDrive({ force: true });
 }
 
-function followDriveMap() {
+// `why` is for the work log: «⌖» ('button'), a tap on the panel, or on its own.
+function followDriveMap(why = 'auto') {
   if (!drive.free) return;
   drive.free = false;
+  worklog('recenter', { why });
   drive.pressed = false;
   $('#drive').classList.remove('free');
   $('#driveCar').style.rotate = '';
@@ -6232,6 +6288,7 @@ function driveThemePick() {
     <p class="drive-meta" data-drive-theme-note>${escapeHtml(driveThemeNote(driveDaylight()))}</p>
     <span class="drive-where">Первый экран на телефоне</span><div class="drive-switch">${starts}</div>
     <p class="drive-meta">${start === 'drive' ? 'Приложение открывается сразу с навигатора.' : `Приложение открывается ${start === 'map' ? 'с обычной карты' : 'со списка'}. Навигатор — кнопка «🚗 Навигатор» внизу.`}</p>
+    <button type="button" class="drive-pick-problem" data-drive="problem">⚠️ Сообщить о проблеме</button>
     <button type="button" class="drive-pick-close" data-drive="pick-close">Готово</button>`;
 }
 
@@ -6638,7 +6695,7 @@ function onDriveTap(event) {
   // While the map is moved by hand the panel shows only its first lines: a
   // tap on it brings the car and the whole panel back.
   if (drive.free && drive.kind !== 'tapped' && event.target.closest('.drive-sheet, .drive-full') && !event.target.closest('[data-drive]')) {
-    followDriveMap();
+    followDriveMap('panel');
     return;
   }
   const removal = event.target.closest('.look-delete');
@@ -6665,7 +6722,7 @@ function onDriveTap(event) {
     // The list's «Что делать», over the navigator.
     showLocationHelp();
   } else if (action === 'recenter') {
-    followDriveMap();
+    followDriveMap('button');
   } else if (action === 'card') {
     openStation(station);
   } else if (action === 'route') {
@@ -6716,6 +6773,11 @@ function onDriveTap(event) {
   } else if (action === 'pick-close') {
     drive.pick = null;
     renderDrive({ force: true });
+  } else if (action === 'problem') {
+    // The form comes over the navigator, the way «Что делать» does.
+    drive.pick = null;
+    renderDrive({ force: true });
+    showProblemReport();
   } else if (action === 'grade') {
     drive.pick = null;
     if (button.dataset.grade !== state.grade) chooseGrade(button.dataset.grade);
@@ -7051,10 +7113,81 @@ function showAbout() {
     <div class="drawer-status" style="--status-color:#0d5a43"><strong>История «не было → появилось»</strong><p>После каждого живого обновления сохраняется статус конкретной АЗС и марки. Переход показывается отдельно от обычного давнего наличия. «Возможное пополнение» — только осторожная интерпретация подтверждённого перехода, а не заявление о бензовозе или количестве литров.</p></div>
     <div class="drawer-status about-secondary" style="--status-color:#7856c7"><strong>Evidence-first</strong><p>Учитываются возраст, тип сигнала, независимость upstream, очередь, лимит и конфликт источников.</p></div>
     <div class="drawer-status about-secondary" style="--status-color:#158257"><strong>Анонимная аналитика: ${statsOn ? 'включена' : 'выключена'}</strong><p>Считаем полезность поиска и точность прогнозов. Текст адреса, точные координаты, IP и рекламные идентификаторы не сохраняются. География — только крупная зона города.</p><button type="button" class="list-more" id="analyticsToggle">${statsOn ? 'Отключить статистику' : 'Включить статистику'}</button><p><a href="analytics.html">Панель владельца с аналитикой →</a></p></div>
+    ${workLogBlock()}
     <h3 class="section-title">Семь честных состояний</h3><div class="source-list">${Object.values(STATUS).map((item) => `<div class="source-row"><strong style="color:${item.color}">${item.short}</strong></div>`).join('')}</div>`);
   $('#analyticsToggle')?.addEventListener('click', () => {
     analytics.setEnabled(!analytics.enabled());
     showAbout();
+  });
+  $('#workLogSend')?.addEventListener('change', (event) => {
+    window.SPBFILog?.setOff(!event.target.checked);
+    showAbout();
+  });
+  const whoField = $('#workLogWho');
+  whoField?.addEventListener('input', () => window.SPBFILog?.setWho(whoField.value));
+  $('#problemOpen')?.addEventListener('click', showProblemReport);
+}
+
+// The work log's switch and the name, beside the statistics (25 Sep 2026: the
+// owner wants to see who presses what and what goes wrong on whose phone).
+function workLogBlock() {
+  const log = window.SPBFILog;
+  if (!log) return '';
+  const why = log.blocked();
+  const status = !why ? 'отправляется'
+    : why === 'off' ? 'не отправляется'
+      : why === 'stats' ? 'не отправляется — выключена статистика'
+        : why === 'dnt' ? 'не отправляется — браузер просит сайты не следить'
+          : 'не отправляется';
+  return `<div class="drawer-status about-secondary work-log" style="--status-color:#0d5a43"><strong>Журнал работы: ${status}</strong>
+    <p>Чтобы владелец видел, чем пользуются и что ломается: какие кнопки нажимали, ошибки, как телефон определял место — с точностью до километра. Текст, который вы вводите в приложении, в журнал не попадает. Имя — только если укажете его ниже.</p>
+    <label class="work-log-check"><input type="checkbox" id="workLogSend" ${log.off() ? '' : 'checked'}> Отправлять журнал работы</label>
+    <label class="work-log-field"><span>Как вас зовут <small>— необязательно</small></span><input type="text" id="workLogWho" maxlength="40" autocomplete="name" enterkeyhint="done" placeholder="Например, Ирина" value="${escapeHtml(log.who())}"></label>
+    <button type="button" class="gate-submit problem-open" id="problemOpen">⚠️ Сообщить о проблеме</button></div>`;
+}
+
+// «Сообщить о проблеме»: a person's own words for the owner, with the last
+// forty minutes of the work log unless they untick it (web/log.js, report).
+function showProblemReport() {
+  const log = window.SPBFILog;
+  openDrawer(`<h2>Сообщить о проблеме</h2>
+    <p class="drawer-address">Напишите в двух словах, что пошло не так и где. Сообщение прочитает владелец приложения.</p>
+    <form class="problem-form" id="problemForm">
+      <textarea id="problemText" rows="5" maxlength="2000" aria-label="Что случилось" placeholder="Например: навигатор показывал «стоим», а я ехал"></textarea>
+      <label class="work-log-field"><span>Как вас зовут <small>— необязательно</small></span><input type="text" id="problemWho" maxlength="40" autocomplete="name" enterkeyhint="done" placeholder="Например, Ирина" value="${escapeHtml(log?.who() || '')}"></label>
+      <label class="work-log-check"><input type="checkbox" id="problemWithLog" checked> Приложить журнал работы за последние 40 минут: что нажимали, ошибки, как телефон определял место (с точностью до километра)</label>
+      <button type="submit" class="gate-submit" id="problemSend">Отправить</button>
+      <p class="problem-status" id="problemStatus" role="status" aria-live="polite"></p>
+    </form>`);
+  $('#problemForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const status = $('#problemStatus');
+    const text = $('#problemText').value.trim();
+    if (!text) {
+      status.textContent = 'Напишите хотя бы пару слов.';
+      $('#problemText').focus();
+      return;
+    }
+    if (!log) {
+      status.textContent = 'Не получилось: приложение загрузилось не полностью. Обновите его и попробуйте ещё раз.';
+      return;
+    }
+    log.setWho($('#problemWho').value);
+    const button = $('#problemSend');
+    button.disabled = true;
+    status.textContent = 'Отправляем…';
+    const via = await log.report(text, { withLog: $('#problemWithLog').checked });
+    button.disabled = false;
+    if (via === 'server') {
+      status.textContent = '✅ Отправлено. Спасибо!';
+      $('#problemText').value = '';
+    } else if (via === 'share') {
+      status.textContent = 'Сервер сейчас не ответил — сообщение ушло через «Поделиться».';
+    } else if (via === 'file') {
+      status.textContent = 'Сервер сейчас не ответил — сообщение сохранено файлом. Перешлите его владельцу.';
+    } else {
+      status.textContent = 'Не получилось отправить. Попробуйте ещё раз, когда появится связь.';
+    }
   });
 }
 
@@ -7115,11 +7248,12 @@ function reloadForNewBuild() {
     .then(() => new Promise((resolve) => { setTimeout(resolve, Math.max(0, SETTLED_MS - (Date.now() - startedAt))); }))
     .then(() => {
       takingNewPage = false;
-      if (!document.hidden) reloadOnce();
+      if (!document.hidden) reloadOnce('build');
     });
 }
 
-function reloadOnce() {
+// `why` goes to the work log: a new build or a new service worker.
+function reloadOnce(why = '') {
   try {
     const last = Number(sessionStorage.getItem('spbfi-auto-reload-at') || 0);
     if (Date.now() - last < 60000) return false;
@@ -7128,6 +7262,7 @@ function reloadOnce() {
     // No session storage: better a stale page than a loop.
     return false;
   }
+  worklog('reload', { why });
   location.reload();
   return true;
 }
@@ -7218,7 +7353,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloading) return;
     reloading = true;
-    reloadOnce();
+    reloadOnce('worker');
   });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then((registration) => {

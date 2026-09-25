@@ -232,6 +232,9 @@
   </template>
 
   <script src="config.js"></script>
+  <!-- The work log (журнал работы). async: a copy that hangs on the network
+       holds nothing up, and the app works the same without it. -->
+  <script src="log.js" async></script>
   <script src="analytics.js"></script>
   <script src="vendor/leaflet.js"></script>
   <script src="app.js" defer></script>

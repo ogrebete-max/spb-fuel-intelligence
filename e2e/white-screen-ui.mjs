@@ -21,6 +21,9 @@ const PORT = 9191;
 const HERE = { latitude: 60.06, longitude: 30.42 };
 
 let stalling = false;
+// Only the work log's own file hangs (web/log.js, 25 Sep 2026): it loads on its
+// own, and the app must not wait for it.
+let stallingLog = false;
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -30,7 +33,8 @@ const server = http.createServer((req, res) => {
     return;
   }
   // A connection that hangs instead of failing: the request is simply left open.
-  if (stalling && /app\.js|styles\.css/.test(url.pathname)) return;
+  if (stalling && /app\.js|styles\.css|log\.js/.test(url.pathname)) return;
+  if (stallingLog && /log\.js/.test(url.pathname)) return;
   const file = path.join(SITE, decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname));
   fs.readFile(file, (error, data) => {
     if (error) { res.writeHead(404); res.end(); return; }
@@ -60,8 +64,8 @@ async function run(label, browserType, device) {
     for (const name of names) urls.push(...(await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname + new URL(request.url).search));
     return urls;
   });
-  check(`the worker keeps this build's code (${kept.filter((url) => /app\.js|styles\.css/.test(url)).join(', ') || 'nothing'})`,
-    kept.some((url) => url.includes('app.js?v=')) && kept.some((url) => url.includes('styles.css?v=')));
+  check(`the worker keeps this build's code (${kept.filter((url) => /app\.js|styles\.css|log\.js/.test(url)).join(', ') || 'nothing'})`,
+    kept.some((url) => url.includes('app.js?v=')) && kept.some((url) => url.includes('styles.css?v=')) && kept.some((url) => url.includes('log.js?v=')));
 
   // Opened again on a connection that hangs: the app must come up all the same.
   stalling = true;
@@ -80,6 +84,19 @@ async function run(label, browserType, device) {
   const words = await first.evaluate(() => document.getElementById('stalledNote')?.textContent.replace(/\s+/g, ' ').trim() || '').catch(() => '');
   check(`with no code at all it offers a way out: «${words.slice(0, 60)}»`, words.includes('не загрузилось') && words.includes('Обновить'));
   await bare.close();
+  stalling = false;
+
+  // The first launch, where only the work log hangs: the app comes up without it.
+  stallingLog = true;
+  const noLog = await browser.newContext({ ...device, serviceWorkers: 'block' });
+  const opened = await noLog.newPage();
+  await opened.goto(`http://localhost:${PORT}/`, { waitUntil: 'commit', timeout: 60000 }).catch(() => {});
+  const upWithoutLog = await opened.waitForFunction(() => !!document.querySelector('#stationList .station-card'), null, { timeout: 30000 }).then(() => true, () => false);
+  await opened.waitForTimeout(1000);
+  check('a work log that hangs holds nothing up: the app opens without it', upWithoutLog
+    && await opened.evaluate(() => !window.SPBFILog && !document.getElementById('stalledNote')));
+  await noLog.close();
+  stallingLog = false;
 
   await browser.close();
 }

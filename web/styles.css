@@ -1082,3 +1082,18 @@ body.driving .toast-stack { display: none; }
   .map-round { width: 48px; height: 48px; flex: 0 0 auto; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .95); color: #0d3328; font-size: 24px; line-height: 1; box-shadow: 0 4px 16px rgba(5, 25, 18, .22); cursor: pointer; }
   body.map-screen .map-area-button, body.map-screen .drive-button { display: none !important; }
 }
+
+/* The work log and «Сообщить о проблеме» (25 Sep 2026): the switch and the name
+   under «i», the form in a drawer over any screen, the navigator included.
+   16px in the fields, or an iPhone zooms the page in on a tap. */
+.work-log-check { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 0; font-size: 14px; line-height: 1.4; cursor: pointer; }
+.work-log-check input { width: 22px; height: 22px; margin: 0; flex: 0 0 auto; accent-color: var(--brand); }
+.work-log-field { display: grid; gap: 6px; margin: 12px 0 0; font-size: 14px; font-weight: 700; }
+.work-log-field small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.work-log-field input, .problem-form textarea { width: 100%; min-width: 0; min-height: 48px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; }
+.problem-form { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.problem-form textarea { min-height: 130px; resize: vertical; line-height: 1.4; }
+.problem-form .work-log-check, .problem-form .work-log-field { margin: 0; }
+.problem-status { min-height: 1.4em; margin: 0; color: var(--brand); font-size: 15px; font-weight: 700; }
+.problem-open { width: 100%; margin-top: 14px; padding: 0 14px; }
+.drive-pick-problem { min-height: 48px; border: 0; border-radius: 14px; background: var(--chipbg); color: var(--ink); font-size: 16px; font-weight: 700; }

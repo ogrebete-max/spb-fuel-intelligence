@@ -7,3 +7,7 @@ window.SPBFI_REPORT_ENDPOINT = 'https://195.133.61.136';
 // First-party, aggregate product and forecast-quality analytics. The same
 // Worker accepts events; no advertising SDK or third-party tracker is loaded.
 window.SPBFI_ANALYTICS_ENDPOINT = window.SPBFI_REPORT_ENDPOINT;
+// The work log (web/log.js) and «Сообщить о проблеме»: the club's server
+// passes /applog/* to the owner's log receiver (server/Caddyfile). What is
+// recorded and how to switch it off: docs/work-log.md
+window.SPBFI_LOG_ENDPOINT = window.SPBFI_REPORT_ENDPOINT;
