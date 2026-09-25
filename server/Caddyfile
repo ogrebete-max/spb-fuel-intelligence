@@ -34,6 +34,14 @@ https://@IP@ {
 	# under the same name; the page, the service worker and the data must be
 	# checked on every visit.
 	redir /ladoga /ladoga/ 308
+	# Work log of the owner's apps (ladoga-logs.service, scripts/logs in ladoga-fishing-map):
+	# the Ladoga map, and under /applog/<app>/ any other app (СПб Топливо: /applog/fuel/log).
+	handle /ladoga/api/* {
+		reverse_proxy 127.0.0.1:8791
+	}
+	handle /applog/* {
+		reverse_proxy 127.0.0.1:8791
+	}
 	handle_path /ladoga/* {
 		root * /var/www/ladoga/current
 		@lasting path /tiles/* /overlays/* /vendor/* /icons/*
