@@ -934,6 +934,21 @@ body.driving .toast-stack { display: none; }
 .drive-chip.bad { background: var(--badbg); color: var(--badink); }
 .drive-chip.lim { background: var(--limbg); color: var(--limink); }
 .drive-chip.mine { box-shadow: 0 0 0 2px var(--mine); }
+/* Where a mark may be made the chips are the buttons (28 Sep 2026): five in a
+   row, big enough for a thumb, the grade over what is known of it — and, once
+   touched, over «есть» or «нет» in the buttons' own solid colours. */
+.drive-chips.toggles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.drive-chip.toggle { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 54px; padding: 4px 2px; border: 0; border-radius: 14px; font: inherit; cursor: pointer; touch-action: manipulation; }
+.drive-chip.toggle b { font-size: 20px; font-weight: 900; line-height: 1.05; }
+.drive-chip.toggle small { font-size: 13px; font-weight: 800; line-height: 1.1; }
+.drive-chip.toggle.said.yes { background: var(--btn-yes); color: var(--btn-ink); }
+.drive-chip.toggle.said.no { background: var(--btn-no); color: var(--btn-ink); }
+/* Said a moment ago and gone to the club: the answer, outlined in its colour. */
+.drive-chip.toggle.sent.yes { background: var(--okbg); color: var(--okink); outline: 2px solid var(--btn-yes); outline-offset: -2px; }
+.drive-chip.toggle.sent.no { background: var(--badbg); color: var(--badink); outline: 2px solid var(--btn-no); outline-offset: -2px; }
+.drive-howto { margin: 0; }
+.drive-pending { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font-size: 15px; font-weight: 800; color: var(--yes); }
+.drive-pending button { border: 0; padding: 0; background: none; color: var(--sub); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .drive-witness { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.35; }
 .drive-witness.yes { color: var(--yes); }
 .drive-witness.no { color: var(--no); }

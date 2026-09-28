@@ -5423,6 +5423,13 @@ const DRIVE_ASK_WITHIN_METRES = 3000;
 const DRIVE_NEIGHBOUR_METRES = 250;
 const DRIVE_OFFER_MS = 30000;
 const DRIVE_UNDO_MS = 5000;
+// «Одним движением» (the owner, 28 Sep 2026): a grade touched on the sheet goes
+// to the club by itself this long after the last touch, as one look.
+const DRIVE_AUTO_SEND_MS = 3000;
+// A passenger's sheet stays on the station just gone past for this long, while
+// it is this near: at speed it is behind before a finger gets there.
+const DRIVE_PASSED_KEEP_MS = 20000;
+const DRIVE_PASSED_KEEP_METRES = 500;
 // A map moved by hand comes back to the car this long after the last touch.
 const DRIVE_FREE_MS = 8000;
 // A station tapped on the map is what the panel talks about this long.
@@ -5478,6 +5485,7 @@ const drive = {
   free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null, routeOn: true, passenger: false,
   ticker: null, heldTimer: null, wakeLock: null, theme: 'auto', themeAt: 0, pick: null, pinnedId: null,
   question: null, asked: new Set(), sent: null, touchAt: 0, kind: '', offered: false, offerOff: false,
+  autoSend: null, autoTimer: null, lastNear: null,
   // Stations where a 👍 confirmed someone's mark: that was the look at the pumps.
   confirmed: new Map(),
 };
@@ -5675,7 +5683,8 @@ function bindDrive() {
 function openDrive(reason = 'button') {
   const root = $('#drive');
   if (drive.open || !root) return;
-  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null, routeOn: loadDriveRouteOn(), passenger: false });
+  clearTimeout(drive.autoTimer);
+  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null, routeOn: loadDriveRouteOn(), passenger: false, autoSend: null, autoTimer: null, lastNear: null });
   hideDriveOffer();
   closeDrawer();
   document.body.classList.add('driving');
@@ -5696,6 +5705,8 @@ function openDrive(reason = 'button') {
 function closeDrive() {
   const root = $('#drive');
   if (!drive.open || !root) return;
+  // Grades touched a moment ago go now rather than be lost with the screen.
+  flushDriveAutoSend();
   drive.open = false;
   forgetDriveOpen();
   clearInterval(drive.ticker);
@@ -5866,7 +5877,9 @@ function stepDrive(now = Date.now()) {
   const view = { now, phone, heading, speed: currentSpeed(now), around: [], ahead: [], pins: [], focus: null, neighbour: null, beside: false, kind: 'wait' };
   const moving = movingNow(now);
   if (moving) drive.pinnedId = null;
-  if (drive.sent && !drive.sent.undoing && (moving || now - drive.sent.madeAt > DRIVE_UNDO_MS)) drive.sent = null;
+  // A driver moving off leaves the panel behind; a passenger marks on the move
+  // and keeps the seconds to undo.
+  if (drive.sent && !drive.sent.undoing && ((moving && !drive.passenger) || now - drive.sent.madeAt > DRIVE_UNDO_MS)) drive.sent = null;
   if (!phone) return view;
   // Right after the grade changes the list is still the old grade's, and its
   // answers would be read out under the new grade's number.
@@ -5967,13 +5980,29 @@ function stepDrive(now = Date.now()) {
     view.kind = 'near';
     view.focus = beside;
     view.beside = true;
+    drive.lastNear = { id: beside.station.id, at: now };
     return view;
   }
   const serves = (station) => (drive.ownOnly ? driveOwnSeen(station.id) : SERVES_NOW[station.grade?.status] === 0);
   const choices = view.ahead.filter((item) => serves(item.station));
   const target = view.ahead[0];
   const otherThan = (item) => choices.filter((choice) => choice !== item).slice(0, DRIVE_OPTIONS);
+  // A passenger marks the station the car is going past, and at speed it is
+  // behind before a finger gets there (28 Sep 2026: «если проезжаешь мимо,
+  // даже ты пассажир, хочешь отметить — очень неудобно»). For a moment after
+  // the sheet was on it, it stays the sheet's station.
+  const last = drive.lastNear;
+  if (drive.passenger && moving && last && now - last.at <= DRIVE_PASSED_KEEP_MS && last.id !== target?.station.id) {
+    const kept = view.around.find((item) => item.station.id === last.id && item.metres <= DRIVE_PASSED_KEEP_METRES);
+    if (kept) {
+      view.kind = 'near';
+      view.focus = kept;
+      view.behind = true;
+      return view;
+    }
+  }
   if (target && target.metres <= NEARBY_REPORT_METRES) {
+    drive.lastNear = { id: target.station.id, at: now };
     view.kind = 'near';
     view.focus = target;
     // Подъезжая к заправке, водитель и решает — сюда или дальше. Если у этой
@@ -6123,16 +6152,65 @@ function driveInitial(stationId) {
   return name ? name.charAt(0).toLocaleUpperCase('ru-RU') : '👁';
 }
 
-function driveChips(station) {
+// Every grade with what is known of it. Where a mark may be made, the same row
+// is the way to make it (28 Sep 2026: «это должно делаться буквально одним
+// движением» — five of the eight marks in the work log that week went through
+// the station's card, grade by grade). A grade touched once is «есть», twice
+// «нет», a third time taken back; whatever is touched goes to the club by
+// itself DRIVE_AUTO_SEND_MS after the last touch, as one look.
+function driveChips(station, { toggles = false } = {}) {
   const brief = briefFor(station.id);
+  const said = toggles ? composeDraft(station.id)?.chosen || {} : {};
   return Object.keys(GRADE_LABELS).map((grade) => {
     const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
     const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
     const tone = { yes: ' ok', likely: ' ok', limited: ' lim', no: ' bad' }[mark.tone] || '';
     const limit = grade === state.grade && station.grade.limit_liters != null ? ` ${Math.round(station.grade.limit_liters)} л` : '';
     const hint = `${GRADE_LABELS[grade]}: ${STATUS[status]?.short || ''}`;
-    return `<span class="drive-chip${tone}${grade === state.grade ? ' mine' : ''}" title="${escapeHtml(hint)}">${escapeHtml(driveGradeLabel(grade))} ${mark.sign}${escapeHtml(limit)}</span>`;
+    const mine = grade === state.grade ? ' mine' : '';
+    if (!toggles) return `<span class="drive-chip${tone}${mine}" title="${escapeHtml(hint)}">${escapeHtml(driveGradeLabel(grade))} ${mark.sign}${escapeHtml(limit)}</span>`;
+    const seen = said[grade];
+    // A grade marked from here a moment ago says what was said: next to «Вы
+    // отметили: 95 есть» a «95 ✕» from the feeds read as a touch that did not take.
+    const own = seen === undefined ? markFor(station.id, grade) : null;
+    const sent = own && Date.now() - own.at < 15 * 60 * 1000 ? own : null;
+    const look = seen === true ? ' said yes' : seen === false ? ' said no' : sent ? ` sent ${sent.seen ? 'yes' : 'no'}` : tone;
+    const word = seen === true ? 'есть' : seen === false ? 'нет' : sent ? `вы: ${sent.seen ? 'есть' : 'нет'}` : `${mark.sign}${limit}`;
+    return `<button type="button" class="drive-chip toggle${look}${mine}" data-drive="toggle" data-station="${escapeHtml(station.id)}" data-grade="${grade}" aria-pressed="${seen !== undefined}" title="${escapeHtml(hint)}"><b>${escapeHtml(driveGradeLabel(grade))}</b> <small>${escapeHtml(word)}</small></button>`;
   }).join('');
+}
+
+// Under the row: what goes and when, or how the row works.
+function driveToggleNote(stationId) {
+  const chosen = composeDraft(stationId)?.chosen || {};
+  const grades = Object.keys(GRADE_LABELS).filter((grade) => grade in chosen);
+  if (!grades.length || drive.autoSend?.stationId !== stationId) {
+    return '<p class="drive-meta drive-howto">Нажмите марку: раз — есть, два — нет</p>';
+  }
+  const words = grades.map((grade) => `${driveGradeLabel(grade)} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
+  return `<p class="drive-pending">Уйдёт своим через ${DRIVE_AUTO_SEND_MS / 1000} с: ${escapeHtml(words)}
+    <button type="button" data-drive="toggle-cancel" data-station="${escapeHtml(stationId)}">не отправлять</button></p>`;
+}
+
+// Each touch starts the seconds again; with nothing touched, nothing goes.
+function armDriveAutoSend(stationId, reason) {
+  clearTimeout(drive.autoTimer);
+  drive.autoTimer = null;
+  const chosen = composeDraft(stationId)?.chosen || {};
+  if (!Object.keys(chosen).length) {
+    drive.autoSend = null;
+    return;
+  }
+  drive.autoSend = { stationId, reason };
+  drive.autoTimer = setTimeout(flushDriveAutoSend, DRIVE_AUTO_SEND_MS);
+}
+
+function flushDriveAutoSend() {
+  clearTimeout(drive.autoTimer);
+  drive.autoTimer = null;
+  const pending = drive.autoSend;
+  drive.autoSend = null;
+  if (pending) sendDriveLook(pending.stationId, pending.reason);
 }
 
 // At the pumps a sign often names several grades: «92 нет, 95 нет, ДТ есть».
@@ -6159,8 +6237,9 @@ function driveSendButton(stationId) {
   const grades = Object.keys(GRADE_LABELS).filter((grade) => grade in chosen);
   const words = grades.map((grade) => `${driveGradeLabel(grade)} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
   return grades.length
-    ? `<button type="button" class="drive-btn huge send" data-drive="send-look" data-station="${escapeHtml(stationId)}">Отправить: ${escapeHtml(words)}</button>`
-    : '<button type="button" class="drive-btn huge send" data-drive="send-look" disabled>Отметьте марки — и отправить</button>';
+    ? `<button type="button" class="drive-btn huge send" data-drive="send-look" data-station="${escapeHtml(stationId)}">Отправить сейчас: ${escapeHtml(words)}</button>
+      <p class="drive-meta drive-howto">или уйдёт само через ${DRIVE_AUTO_SEND_MS / 1000} с</p>`
+    : '<button type="button" class="drive-btn huge send" data-drive="send-look" disabled>Нажмите марки — уйдут сами</button>';
 }
 
 // «Дальше»: следующие заправки с той же маркой, нажатием — переключиться.
@@ -6169,16 +6248,6 @@ function driveOptions(view) {
   if (!options.length) return '';
   const chips = options.map((item) => `<button type="button" class="drive-next" data-drive="target" data-station="${escapeHtml(item.station.id)}">${escapeHtml(shortNetwork(item.station.network))} · ${escapeHtml(driveDistance(item.metres))}${escapeHtml(driveSide(item))}</button>`).join('');
   return `<div class="drive-more"><span>Дальше:</span>${chips}</div>`;
-}
-
-function driveMarkButtons(stationId, { huge = false } = {}) {
-  const label = escapeHtml(driveGradeLabel());
-  const id = escapeHtml(stationId);
-  const size = huge ? ' huge' : '';
-  return `<div class="drive-row${size}">
-      <button type="button" class="drive-btn yes${size}" data-drive="mark" data-station="${id}" data-seen="1">${label} есть</button>
-      <button type="button" class="drive-btn no${size}" data-drive="mark" data-station="${id}" data-seen="0">${label} нет</button>
-    </div>`;
 }
 
 // The sheet over the map and the panel that covers it at the pumps and after
@@ -6224,15 +6293,20 @@ function drivePanels(view) {
   if (view.kind === 'near') {
     const witness = eyewitnessLine(station.grade, station.id, { brief: true });
     const mine = markedRecently(station.id) ? markLine(station.id, state.grade) : null;
-    const actions = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>${driveDelete(station.id)}`
-      : movingNow(view.now) && !drive.passenger ? '<button type="button" class="drive-lock" data-drive="passenger">🔒 Отметить — на остановке · <u>я пассажир</u></button>'
-        : driveMarkButtons(station.id);
+    // Moving, the driver's hands stay on the wheel; «я пассажир» lifts that.
+    const locked = movingNow(view.now) && !drive.passenger;
+    const done = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>${driveDelete(station.id)}` : '';
+    const actions = locked
+      ? done || '<button type="button" class="drive-lock" data-drive="passenger">🔒 Отметить — на остановке · <u>я пассажир</u></button>'
+      : `${done}${driveToggleNote(station.id)}`;
     // Already there, the way to it is no news.
-    const road = still && !view.beside;
-    const whereText = view.beside ? `Вы у АЗС · ${driveDistance(focus.metres)}` : `Через ${driveDistance(focus.metres)}${driveSide(focus)}`;
+    const road = still && !view.beside && !view.behind;
+    const whereText = view.beside ? `Вы у АЗС · ${driveDistance(focus.metres)}`
+      : view.behind ? `Проехали · ${driveDistance(focus.metres)}`
+        : `Через ${driveDistance(focus.metres)}${driveSide(focus)}`;
     return { sheet: `${where(whereText)}${road ? driveGo(station) : ''}
       <p class="drive-line drive-name">${title}</p>
-      <div class="drive-chips">${driveChips(station)}</div>
+      <div class="drive-chips${locked ? '' : ' toggles'}">${driveChips(station, { toggles: !locked })}</div>
       ${meta(driveMeta(station, { witness: false }))}
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
       ${road ? meta(driveRouteNote(station.id)) : ''}
@@ -6854,8 +6928,22 @@ function onDriveTap(event) {
     renderDrive({ force: true });
   } else if (action === 'theme-mode') {
     setDriveTheme(button.dataset.mode);
-  } else if (action === 'mark') {
-    sendDriveMark(station, button.dataset.seen === '1', button.closest('#driveFull') ? 'at_station' : 'near');
+  } else if (action === 'toggle') {
+    // есть → нет → taken back.
+    const draft = composeDraft(station, { touch: true });
+    const { grade } = button.dataset;
+    if (!(grade in draft.chosen)) draft.chosen[grade] = true;
+    else if (draft.chosen[grade]) draft.chosen[grade] = false;
+    else delete draft.chosen[grade];
+    armDriveAutoSend(station, movingNow() ? 'passenger' : 'near');
+    paintComposers(station);
+    renderDrive({ force: true });
+  } else if (action === 'toggle-cancel') {
+    const draft = composeDraft(station);
+    if (draft) draft.chosen = {};
+    armDriveAutoSend(station, 'near');
+    paintComposers(station);
+    renderDrive({ force: true });
   } else if (action === 'pick') {
     // Pressed again, a grade is taken back out of the look.
     const draft = composeDraft(station, { touch: true });
@@ -6863,9 +6951,13 @@ function onDriveTap(event) {
     const seen = button.dataset.seen === '1';
     if (draft.chosen[grade] === seen) delete draft.chosen[grade];
     else draft.chosen[grade] = seen;
+    armDriveAutoSend(station, 'at_station');
     paintComposers(station);
     renderDrive({ force: true });
   } else if (action === 'send-look') {
+    clearTimeout(drive.autoTimer);
+    drive.autoTimer = null;
+    drive.autoSend = null;
     sendDriveLook(station, 'at_station');
   } else if (action === 'answer' && drive.question) {
     const { id } = drive.question;
@@ -6880,6 +6972,8 @@ function onDriveTap(event) {
     const draft = composeDraft(station, { touch: true });
     const cars = Number(button.dataset.cars);
     draft.queue = draft.queue === cars ? null : cars;
+    // A queue alone is no look; with grades pressed it starts their seconds again.
+    armDriveAutoSend(station, 'at_station');
     paintComposers(station);
     renderDrive({ force: true });
   } else if (action === 'not') {
