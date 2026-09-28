@@ -69,7 +69,7 @@ const helpSays = (page, title) => becomes(page, (want) => document.querySelector
   && document.querySelector('#drawerContent h2')?.textContent === want, title);
 const toasts = (page) => page.evaluate(() => [...document.querySelectorAll('#toastStack .toast')].map((toast) => toast.textContent).join(' | '));
 
-async function open(browserType, device, { standalone, userAgent, granted = false, silent = false, asks = false } = {}) {
+async function open(browserType, device, { standalone, userAgent, granted = false, silent = false, asks = false, apiSaysDenied = false } = {}) {
   env = { REPORTS: new MemoryKV(), DB: new FakeD1(), ORIGIN: `http://localhost:${SITE_PORT}` };
   const browser = await browserType.launch();
   const context = await browser.newContext({
@@ -90,6 +90,20 @@ async function open(browserType, device, { standalone, userAgent, granted = fals
         configurable: true,
         value: { getCurrentPosition: (ok, fail) => late(fail), watchPosition: (ok, fail) => { late(fail); return 1; }, clearWatch() {} },
       });
+    });
+  }
+  // An iPhone's Permissions API: «denied» for geolocation, whatever the phone
+  // then does with a request. The owner's iPhone answered so on seven launches
+  // out of nine in the work log (28 Sep 2026) and handed out a place each time.
+  if (apiSaysDenied) {
+    await context.addInitScript(() => {
+      const answer = { state: 'denied', onchange: null, addEventListener() {}, removeEventListener() {} };
+      const asked = navigator.permissions?.query?.bind(navigator.permissions);
+      const query = (descriptor) => (descriptor?.name === 'geolocation'
+        ? Promise.resolve(answer)
+        : asked ? asked(descriptor) : Promise.reject(new TypeError('unsupported')));
+      if (navigator.permissions) navigator.permissions.query = query;
+      else Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query } });
     });
   }
   // The phone's notification question is counted, not answered.
@@ -245,6 +259,41 @@ async function granted() {
   await browser.close();
 }
 
+// The navigator is meant to open by itself on a phone that has let the app know
+// where it is. An iPhone whose Permissions API says «denied» to every asking —
+// and then gives a place anyway — kept landing on the ordinary map instead
+// («включаешь навигацию, он сбрасывает на карту», 28 Sep 2026). What the app
+// itself has been told decides: a place given, and no refusal since.
+async function apiDenied() {
+  console.log('\n=== iphone-api-says-denied');
+  const { browser, page, errors } = await open(webkit, devices['iPhone 13'], { granted: true, apiSaysDenied: true, standalone: true });
+  check('the browser answers «denied» and the phone is located all the same', await becomes(page, async () => (await navigator.permissions.query({ name: 'geolocation' })).state === 'denied'
+    && !!state.location && !!localStorage.getItem('spbfi-located-v1'), null, 30000));
+  check('the navigator opens although the browser says «denied»', await becomes(page, () => drive.open && !!state.location, null, 30000));
+  // Every launch, not only the one in which the phone first answered: this is
+  // what a new build does to a phone that has the app open.
+  await page.reload({ waitUntil: 'load' });
+  check('and again on the launch after it', await becomes(page, () => drive.open && !!state.location, null, 30000));
+  await page.screenshot({ path: path.join(OUT, 'denied-iphone-api-denied-drive.png') });
+  // And a real refusal is still a refusal: this phone now says no to everything.
+  await page.context().addInitScript(() => {
+    const no = (fail) => setTimeout(() => fail?.({ code: 1, message: 'User denied Geolocation' }), 60);
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { getCurrentPosition: (ok, fail) => no(fail), watchPosition: (ok, fail) => { no(fail); return 1; }, clearWatch() {} },
+    });
+  });
+  await page.reload({ waitUntil: 'load' });
+  check('a refusal takes the navigator away and is remembered', await becomes(page, () => !drive.open && !!localStorage.getItem('spbfi-refused-v1'), null, 30000));
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForSelector('#stationList .station-card', { timeout: 30000 });
+  await page.waitForTimeout(2500);
+  check('and the launch after the refusal stays on the ordinary screen', await page.evaluate(() => !drive.open));
+  check(`no page errors (${errors.length})`, errors.length === 0);
+  if (errors.length) console.log(errors.slice(0, 5).join('\n'));
+  await browser.close();
+}
+
 try {
   await refused('iphone-telegram', webkit, devices['iPhone 13'], {}, {
     title: 'Откройте в Safari', words: ['Telegram', '«⋯»', 'Открыть в Safari'], banner: 'Открыто внутри мессенджера', safari: true, copy: true,
@@ -260,6 +309,7 @@ try {
   });
   await silent();
   await granted();
+  await apiDenied();
 } finally {
   siteServer.close();
   workerServer.close();

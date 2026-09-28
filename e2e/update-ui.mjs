@@ -75,9 +75,54 @@ async function run(label, browserType, device) {
   await browser.close();
 }
 
+// A new build published while someone drives must not take the screen away: the
+// reload blanks it for a second, leaves the ordinary map in its place and on an
+// iPhone asks for the place again («этот сброс раздражает», 28 Sep 2026). It
+// waits until the navigator is closed, and then happens.
+async function driving(label, browserType, device) {
+  console.log(`\n=== ${label}-driving`);
+  // The page served is the new build itself; the app is then told it is old.
+  pagesServed = 1;
+  const browser = await browserType.launch();
+  // The navigator stays open only for a phone that says where it is; a refused
+  // location closes it by itself.
+  const context = await browser.newContext({ ...device, serviceWorkers: 'block', permissions: ['geolocation'], geolocation: { latitude: 59.9343, longitude: 30.3351, accuracy: 12 } });
+  const page = await context.newPage();
+  const errors = [];
+  let loads = 0;
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('load', () => { loads += 1; });
+  await page.goto(`http://localhost:${SITE_PORT}/`, { waitUntil: 'load' });
+  await page.waitForSelector('.station-card', { timeout: 30000 });
+  // Past the seconds in which the app never reloads itself, so only the
+  // navigator can hold the reload back.
+  await page.waitForTimeout(9000);
+  const opened = await page.evaluate(() => { openDrive('button'); window.SPBFI_BUILD = 'old-build'; return drive.open; });
+  const before = loads;
+  await page.evaluate(() => pollForNewSnapshot());
+  await page.waitForTimeout(4000);
+  check('a new build leaves the navigator alone while it is open', opened && loads === before
+    && await page.evaluate(() => drive.open && window.SPBFI_BUILD === 'old-build'));
+  await page.evaluate(() => closeDrive());
+  await page.evaluate(() => pollForNewSnapshot());
+  // Counted here rather than asked of the page: the reload lands in the middle
+  // of the asking and the answer is lost with the page that was asked.
+  const end = Date.now() + 30000;
+  while (loads === before && Date.now() < end) await page.waitForTimeout(250);
+  await page.waitForLoadState('load');
+  const build = await page.evaluate(() => window.SPBFI_BUILD).catch(() => null);
+  check(`the new build is taken as soon as the navigator is closed (${loads - before} load, build ${build})`, loads > before && build === BUILD);
+  check('and the list is there', await page.waitForSelector('.station-card', { timeout: 30000 }).then(() => true, () => false));
+  check(`no page errors (${errors.length})`, errors.length === 0);
+  if (errors.length) console.log(errors.slice(0, 5).join('\n'));
+  await browser.close();
+}
+
 try {
   await run('iphone', webkit, devices['iPhone 13']);
   await run('android', chromium, devices['Pixel 7']);
+  await driving('iphone', webkit, devices['iPhone 13']);
+  await driving('android', chromium, devices['Pixel 7']);
 } finally {
   siteServer.close();
 }

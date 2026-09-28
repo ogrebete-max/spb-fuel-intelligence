@@ -1278,6 +1278,7 @@ function refreshLocation({ manual = false, quiet = false } = {}) {
   const onError = (error) => {
     pending -= 1;
     worklog('geo_error', { code: error?.code, from: 'refresh', manual }, { every: 60000, key: `geo_error:refresh:${error?.code}` });
+    if (error.code === 1) rememberRefused();
     if (answered || pending > 0 || state.locateToken !== token) return;
     state.locating = false;
     renderLocateButton();
@@ -1338,6 +1339,7 @@ function startFollowing({ manual = false } = {}) {
     // The one-off request and the watch both refuse; one answer is enough.
     if (refused) return;
     refused = true;
+    rememberRefused();
     state.follow = false;
     document.body.classList.remove('following');
     renderLocateButton();
@@ -2255,8 +2257,14 @@ function standalone() {
 
 // Whether the navigator may open by itself. Safari forgets an «allow» after a
 // day and asks again, so a phone that has given this app a place before counts
-// too, unless the browser has already said no; a newcomer from a link starts
-// on the ordinary screen.
+// too, unless it has refused since; a newcomer from a link starts on the
+// ordinary screen.
+// The browser's own answer counts only when it says «granted». Safari says
+// «denied» where the phone is about to hand out a place anyway: in the owner's
+// work log his iPhone answered «denied» on seven launches out of nine and gave
+// a fix a second later every time (28 Sep 2026), and the navigator stepped
+// aside for the map at every launch — «включаешь навигацию, он сбрасывает на
+// карту». A refusal is what the app itself has been told: error code 1.
 async function locationGranted() {
   let status = null;
   try {
@@ -2265,17 +2273,36 @@ async function locationGranted() {
     // Not every browser answers; the past decides.
   }
   if (status === 'granted') return true;
-  if (status === 'denied' || !state.follow) return false;
-  return locatedBefore();
+  if (!state.follow) return false;
+  return locatedBefore() && !refusedSinceLocated();
 }
 
 const LOCATED_KEY = 'spbfi-located-v1';
+const REFUSED_KEY = 'spbfi-refused-v1';
 
 function rememberLocated() {
   try {
     localStorage.setItem(LOCATED_KEY, String(Date.now()));
   } catch {
     // Only whether the navigator opens by itself depends on it.
+  }
+}
+
+// A browser that has said no keeps the navigator from opening by itself until
+// the phone gives a place again.
+function rememberRefused() {
+  try {
+    localStorage.setItem(REFUSED_KEY, String(Date.now()));
+  } catch {
+    // Only whether the navigator opens by itself depends on it.
+  }
+}
+
+function refusedSinceLocated() {
+  try {
+    return Number(localStorage.getItem(REFUSED_KEY) || 0) > Number(localStorage.getItem(LOCATED_KEY) || 0);
+  } catch {
+    return false;
   }
 }
 
@@ -7241,7 +7268,7 @@ const SETTLED_MS = 8000;
 const startedAt = Date.now();
 let takingNewPage = false;
 function reloadForNewBuild() {
-  if (takingNewPage) return;
+  if (takingNewPage || drive.open) return;
   takingNewPage = true;
   fetch(location.href.split('#')[0], { cache: 'reload', credentials: 'same-origin' })
     .catch(() => null)
@@ -7253,7 +7280,15 @@ function reloadForNewBuild() {
 }
 
 // `why` goes to the work log: a new build or a new service worker.
+// Never while the navigator is open: that screen is what a driver is looking
+// at, and a reload blanks it for a second, leaves the ordinary map in its place
+// and on an iPhone asks for the place again. The new build waits until the
+// navigator is closed — the check comes round every minute.
 function reloadOnce(why = '') {
+  if (drive.open) {
+    worklog('reload_held', { why }, { every: 60000, key: `reload_held:${why}` });
+    return false;
+  }
   try {
     const last = Number(sessionStorage.getItem('spbfi-auto-reload-at') || 0);
     if (Date.now() - last < 60000) return false;
