@@ -160,6 +160,17 @@ def fetch_one(name: str, url: str | tuple[str, ...], referer: str) -> dict[str, 
                    size=target.stat().st_size if target.exists() else 0, error="; ".join(failures))
 
 
+# Feeds that refuse GitHub's servers on purpose. The attempt is kept, so an
+# unblock would be noticed, but there the refusal is the expected answer and
+# must not read as a source that broke. Nothing is done to get past it.
+REFUSED_ON_ACTIONS = {
+    # From 19 Sep 2026: 403 Forbidden to GitHub's address ranges, 200 from a
+    # home connection in Russia. Its robots.txt closes /api/ to robots.
+    "gdebenzi": "gdebenzi.ru с 19.09 отвечает серверам GitHub «403: доступ запрещён», "
+                "а его robots.txt закрывает /api/ для роботов; обходить запрет не будем",
+}
+
+
 def run_collector(name: str) -> dict[str, Any]:
     started = datetime.now(timezone.utc)
     target = OUT_DIR / f"{name}.json"
@@ -173,6 +184,10 @@ def run_collector(name: str) -> dict[str, Any]:
         # must not sit in the health banner looking like a broken source.
         if "no reports endpoint configured" in str(exc):
             return _result(name, started, ok=True, status="off", size=0, error=None) | {"disabled": True}
+        if name in REFUSED_ON_ACTIONS and getattr(exc, "code", None) == 403 and os.environ.get("GITHUB_ACTIONS"):
+            return _result(name, started, ok=True, status="off", size=0, error=None) | {
+                "disabled": True, "note": REFUSED_ON_ACTIONS[name],
+            }
         return _result(name, started, ok=False, status=0,
                        size=target.stat().st_size if target.exists() else 0, error=f"{type(exc).__name__}: {exc}")
 

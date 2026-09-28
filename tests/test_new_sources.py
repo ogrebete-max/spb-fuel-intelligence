@@ -162,15 +162,18 @@ class CollectorTests(unittest.TestCase):
         pem = collectors.RUSSIAN_TRUSTED_ROOT.read_text(encoding="ascii")
         self.assertEqual(pem.count("BEGIN CERTIFICATE"), 1)
         self.assertEqual(hashlib.sha256(ssl.PEM_cert_to_DER_cert(pem)).hexdigest().upper(), STATE_ROOT_SHA256)
-        context = collectors.alfa_tls_context()
+        context = collectors.state_root_context()
         self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
         self.assertTrue(context.check_hostname)
         self.assertTrue(any("Russian Trusted Root CA" in str(item.get("subject")) for item in context.get_ca_certs()))
 
-    def test_the_state_root_is_trusted_for_that_one_request_only(self):
-        # Its definition and its single use, in the Alfa-Bank collector.
-        self.assertEqual(inspect.getsource(collectors).count("alfa_tls_context()"), 2)
-        self.assertIn("context=alfa_tls_context()", inspect.getsource(collectors.collect_alfa))
+    def test_the_state_root_is_trusted_for_the_two_banks_only(self):
+        # Its definition and its two uses: Alfa-Bank, and T-Bank since its
+        # certificate moved to the state root on 24 Sep 2026.
+        self.assertEqual(inspect.getsource(collectors).count("state_root_context()"), 3)
+        self.assertIn("context=state_root_context()", inspect.getsource(collectors.collect_alfa))
+        self.assertIn("context = state_root_context()", inspect.getsource(collectors.collect_tbank))
+        self.assertIn("context=context", inspect.getsource(collectors.collect_tbank))
 
     def test_alfa_is_read_every_other_run(self):
         self.assertGreaterEqual(refresh_live.MIN_INTERVAL_SECONDS["alfa-azs"], 15 * 60)
@@ -606,3 +609,39 @@ class BuildTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RefusedOnActionsTests(unittest.TestCase):
+    """A feed that refuses GitHub's servers on purpose reads as «off», with why."""
+
+    def run_refused(self, code: int, on_actions: bool) -> dict:
+        from unittest import mock
+        from urllib.error import HTTPError
+
+        def refuse():
+            raise HTTPError("https://gdebenzi.ru/api/stations.php", code, "Forbidden", {}, None)
+
+        with TemporaryDirectory() as folder, \
+                mock.patch.object(refresh_live, "OUT_DIR", Path(folder)), \
+                mock.patch.dict(refresh_live.COLLECTORS, {"gdebenzi": refuse}), \
+                mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "true"} if on_actions else {}, clear=False):
+            if not on_actions:
+                import os
+                os.environ.pop("GITHUB_ACTIONS", None)
+            return refresh_live.run_collector("gdebenzi")
+
+    def test_a_403_on_github_is_off_with_the_reason(self):
+        row = self.run_refused(403, on_actions=True)
+        self.assertTrue(row["ok"])
+        self.assertTrue(row["disabled"])
+        self.assertIn("robots.txt", row["note"])
+
+    def test_elsewhere_a_403_is_still_a_failure(self):
+        row = self.run_refused(403, on_actions=False)
+        self.assertFalse(row["ok"])
+        self.assertNotIn("disabled", row)
+
+    def test_any_other_error_on_github_is_still_a_failure(self):
+        row = self.run_refused(500, on_actions=True)
+        self.assertFalse(row["ok"])
+        self.assertNotIn("disabled", row)

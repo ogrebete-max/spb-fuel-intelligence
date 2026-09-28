@@ -360,12 +360,15 @@ def collect_gdebenzfuel() -> dict[str, Any]:
 def collect_tbank() -> dict[str, Any]:
     """Payment activity from a bank other than Sber; truncates at 300 rows."""
     merged: dict[str, dict[str, Any]] = {}
+    # Since 24 Sep 2026 toplivo.tbank.ru is certified by the state root, as
+    # alfabank.ru is (see state_root_context).
+    context = state_root_context()
     for south, west, north, east in _tiles(3, 3):
         url = (
             "https://toplivo.tbank.ru/api/v1/stations"
             f"?minLat={south:.4f}&maxLat={north:.4f}&minLon={west:.4f}&maxLon={east:.4f}"
         )
-        payload = _json(url, referer="https://toplivo.tbank.ru/")
+        payload = _json(url, referer="https://toplivo.tbank.ru/", context=context)
         for row in payload.get("payload") or []:
             merged[str(row.get("id"))] = row
     return {"captured_at": _now(), "stations": list(merged.values())}
@@ -512,15 +515,16 @@ def collect_transitcard() -> dict[str, Any]:
 # limits and stops. Benzuber runs Alfa's in-app fuel payments and its whole
 # network is in this list, so Benzuber is not read on its own.
 ALFA_STATIONS = "https://alfabank.ru/api/v1/azs-stations/public/stations"
-# alfabank.ru is certified by the Russian Trusted Root CA of the Ministry of
-# Digital Development, which the Windows, Ubuntu and certifi stores lack.
-# Verification stays on: that one public root is added to a context made for
-# this one request, and no other request ever sees it. SHA-256 of the root:
+# alfabank.ru — and since 24 Sep 2026 toplivo.tbank.ru — are certified by the
+# Russian Trusted Root CA of the Ministry of Digital Development, which the
+# Windows, Ubuntu and certifi stores lack. Verification stays on: that one
+# public root is added to a context made for these two banks' requests, and no
+# other request ever sees it. SHA-256 of the root:
 # D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B5:BD:70:3E:97:88:CA:8E:CF:31
 RUSSIAN_TRUSTED_ROOT = ROOT_CONFIG / "russian-trusted-root-ca.pem"
 
 
-def alfa_tls_context() -> ssl.SSLContext:
+def state_root_context() -> ssl.SSLContext:
     context = ssl.create_default_context()
     context.load_verify_locations(cafile=str(RUSSIAN_TRUSTED_ROOT))
     return context
@@ -529,7 +533,7 @@ def alfa_tls_context() -> ssl.SSLContext:
 def collect_alfa() -> dict[str, Any]:
     """All of Russia comes at once (3 MB compressed); the region is cut out here."""
     rows = _json(ALFA_STATIONS, referer="https://alfabank.ru/azs/", compressed=True,
-                 timeout=120, context=alfa_tls_context())
+                 timeout=120, context=state_root_context())
     if not isinstance(rows, list):
         raise RuntimeError("alfa: the station list is not a list")
     stations = []
