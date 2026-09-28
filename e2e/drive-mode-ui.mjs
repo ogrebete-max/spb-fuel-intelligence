@@ -87,25 +87,56 @@ function pickApproach() {
       });
       if (blocked || ![-1900, -1600, -1300, -1100, -1000, -460, -364, -110, -50].every((t) => way.nearestAhead(t) === item)) continue;
       const neighbours = planar.filter((other) => other !== item && way.along(other).d <= 250);
-      found.push({ station: item.station, way, neighbour: neighbours.length === 1 ? neighbours[0].station : null });
+      found.push({ station: item.station, way, point: item, neighbour: neighbours.length === 1 ? neighbours[0].station : null });
       if (neighbours.length === 1) return found.pop();
     }
   }
   return found[0] || null;
 }
 
-// Driving past a station without stopping: nobody else near the road from
-// just before it to the stops 220 and 268 m on, nothing within 120 m of the
-// stops nor ahead within 420 m, and a station selling 98 off to the side.
-function pickPass(avoid) {
+// The fixes the car is given on the second road: the first one behind the
+// station, then every STEP_METRES up to the stop, and on to the next stop.
+const PASS_FIRST = -260;
+const PASS_STOP = 220;
+const PASS_NEXT = 268;
+// A station the car goes past within this much of a fix, at speed, is one the
+// app asks about at the next stop — DRIVE_PASS_METRES in web/app.js, with a
+// little room for the sphere the test flattens.
+const PASS_SEEN_METRES = 160;
+// And it keeps asking about one for this long around a stop: DRIVE_ASK_WITHIN_METRES
+// there, plus enough to cover the stations standing beside the one driven up to.
+const PASS_ASK_METRES = 3600;
+// How far off the station that sells 98 must be: near enough to be the nearest
+// one with it, far enough that the sheet says the distance in kilometres, which
+// driveDistance in web/app.js does from 950 m up.
+const PASS_98_METRES = [1050, 4000];
+
+// Driving past a station without stopping: nobody else within PASS_SEEN_METRES
+// of any fix of that drive, so this one station alone is passed at speed and
+// one question alone is due (16 Sep 2026: on a road picked from the joined
+// snapshot a second station lay behind the first fix, and its own question —
+// a right one — came up in the middle of the 98 checks). Nothing within 120 m
+// of the stops nor ahead within 420 m, the stops far enough away that the app
+// no longer asks about the station driven up to, and a station selling 98 off
+// to the side.
+function pickPass(approach) {
+  // How far a station is from the nearest fix of the drive.
+  const offDriven = (way, other) => {
+    const q = way.along(other);
+    return Math.hypot(Math.max(0, PASS_FIRST - q.t, q.t - PASS_NEXT), q.c);
+  };
   for (const item of planar) {
-    if (item.station.id === avoid) continue;
+    if (item.station.id === approach.station.id) continue;
     for (let degrees = 0; degrees < 360; degrees += 15) {
       const way = road(item, degrees, 40);
-      if (planar.some((other) => other !== item && (() => { const q = way.along(other); return q.t >= -60 && q.t <= 320 && Math.abs(q.c) < 160; })())) continue;
-      if ([220, 268].some((t) => way.seen(t).some((o) => o.dist < 120 || (o.cos >= 0.5 && o.dist <= 420)))) continue;
-      const side = way.seen(268)
-        .filter((o) => o.item !== item && o.dist >= 900 && o.dist <= 4000 && Math.abs(o.cos) <= 0.42 && WITH_98.has(o.item.station.id))
+      if (planar.some((other) => other !== item && offDriven(way, other) < PASS_SEEN_METRES)) continue;
+      if ([PASS_STOP, PASS_NEXT].some((t) => way.seen(t).some((o) => o.dist < 120 || (o.cos >= 0.5 && o.dist <= 420)))) continue;
+      const fromStop = way.seen(PASS_NEXT);
+      // The station driven up to was passed at speed as well, and is still in
+      // mind: this road stays out of the reach of that question.
+      if (fromStop.some((o) => o.item === approach.point && o.dist <= PASS_ASK_METRES)) continue;
+      const side = fromStop
+        .filter((o) => o.item !== item && o.dist >= PASS_98_METRES[0] && o.dist <= PASS_98_METRES[1] && Math.abs(o.cos) <= 0.42 && WITH_98.has(o.item.station.id))
         .sort((a, b) => a.dist - b.dist)[0];
       if (side) return { station: item.station, way, with98: side.item.station };
     }
@@ -114,7 +145,7 @@ function pickPass(avoid) {
 }
 
 const APPROACH = pickApproach();
-const PASS = APPROACH && pickPass(APPROACH.station.id);
+const PASS = APPROACH && pickPass(APPROACH);
 if (!APPROACH || !PASS) {
   console.log('FAIL no road in site/static-data fits this test: build the site from the full data/stations.json');
   process.exit(1);
@@ -520,10 +551,10 @@ async function run(label, browserType, device) {
 
   // 8. Another road: a station passed at speed is asked about at the next stop.
   const pass = PASS.way;
-  await step(pass.at(-260));
+  await step(pass.at(PASS_FIRST));
   check('the list follows the car to the other road', await becomes(page, (id) => state.stations.some((item) => item.id === id), PASS.station.id, 20000));
-  await driveAlong(pass, -244, 220);
-  for (let i = 0; i < 6; i += 1) await step(pass.at(220));
+  await driveAlong(pass, PASS_FIRST + STEP_METRES, PASS_STOP);
+  for (let i = 0; i < 6; i += 1) await step(pass.at(PASS_STOP));
   check('stopped after passing a station: a question', await becomes(page, () => document.querySelector('#drive').dataset.kind === 'question', null, 6000));
   const question = await text(page, '#driveSheet');
   const passName = await page.evaluate((network) => ({ acc: nameAccusative(shortNetwork(network)), prep: namePrepositional(shortNetwork(network)) }), PASS.station.network);
@@ -531,16 +562,23 @@ async function run(label, browserType, device) {
   check('with «95 есть», «95 нет», «не видел»', (await page.evaluate(() => [...document.querySelectorAll('#driveSheet .drive-btn')].map((button) => button.textContent.trim()).join('|'))) === '95 есть|95 нет|не видел');
   check('the question lies on screen', await framed(page));
   await shot(page, { path: path.join(OUT, `drive-${label}-7-question.png`) });
-  await driveAlong(pass, 236, 268);
+  await driveAlong(pass, PASS_STOP + STEP_METRES, PASS_NEXT);
   check('moving again, the question is gone', (await kind(page)) !== 'question');
-  for (let i = 0; i < 6; i += 1) await step(pass.at(268));
+  for (let i = 0; i < 6; i += 1) await step(pass.at(PASS_NEXT));
   const asked = await page.evaluate((id) => ({ again: drive.question?.id === id, once: drive.asked.has(id) }), PASS.station.id);
   check('the next stop does not ask about it again', asked.once && !asked.again);
-  // Stations passed earlier on this road may be asked about now: not seen.
-  for (let i = 0; i < 4 && (await kind(page)) === 'question'; i += 1) {
-    await tap(page, '#driveSheet [data-drive="skip"]');
-    await page.waitForTimeout(300);
+  // A station passed at speed somewhere earlier — the roads are picked so that
+  // there should be none — would be asked about at this stop too, one question
+  // a tick. Each is answered «не видел» here, and the stop is left with none
+  // waiting: a question that came up later would stand in front of the 98
+  // checks below, which read the sheet.
+  const questionUp = (timeout) => becomes(page, () => drive.question !== null, null, timeout);
+  let spare = 8;
+  while (spare > 0 && await questionUp(3000)) {
+    if (!(await tap(page, '#driveSheet [data-drive="skip"]'))) break;
+    spare -= 1;
   }
+  check(`nothing else waits to be asked at this stop (${8 - spare} answered «не видел» here)`, spare > 0 && !(await questionUp(3000)) && (await kind(page)) !== 'question');
 
   // 9. 98 on nothing ahead: the nearest station that has it, and which way.
   await tap(page, '#drive [data-drive="grades"]');
