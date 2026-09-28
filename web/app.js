@@ -371,9 +371,14 @@ async function bootstrap() {
     // someone opening the link from Telegram for the first time landed on the
     // navigator with no location and a «доступ запрещён» box, and had no idea
     // what to do). Everyone else starts on the ordinary screen.
-    if (touchDevice && !wanted && !navigator.webdriver && driveStartsFirst() && await locationGranted()) openDrive('start');
+    const resume = touchDevice && !wanted && !navigator.webdriver && driveWasOpen();
+    if (touchDevice && !wanted && !navigator.webdriver && (driveStartsFirst() || resume) && await locationGranted()) openDrive(resume ? 'resume' : 'start');
     else if (touchDevice && !wanted && startScreen() === 'map') showScreen('map');
-    worklog('ready', { ms: Math.round(performance.now()), first: drive.open ? 'drive' : mapScreenOn() ? 'map' : 'list' });
+    // How this page came to be (a launch, or the phone reloading it) and the
+    // first screen chosen in the settings: both were missing on 28 Sep 2026.
+    let navType = null;
+    try { navType = performance.getEntriesByType('navigation')[0]?.type || null; } catch { /* old browsers */ }
+    worklog('ready', { ms: Math.round(performance.now()), first: drive.open ? 'drive' : mapScreenOn() ? 'map' : 'list', start: startScreen(), nav: navType });
     // The automated checks tap through screens of their own, without the phone's notification question.
     if (!navigator.webdriver) switchPushOnByDefault();
     const health = state.meta?.collectors || {};
@@ -5426,6 +5431,40 @@ const DRIVE_TAPPED_MS = 30000;
 const DRIVE_ROUTE_KEY = 'spbfi-drive-route-v1';
 // The first screen on a phone: the navigator, unless «Карта и список» was chosen.
 const DRIVE_START_KEY = 'spbfi-start-v1';
+// When the navigator was last seen open. An iPhone unloads a home-screen app it
+// has sent to the background, sometimes within seconds, and the app then starts
+// afresh on its first screen: in the owner's work log (28 Sep 2026) a page
+// opened the navigator and a new one was starting nine seconds later, on the
+// map — «с навигации на карту выкидывает». A driver whose navigator was open
+// comes back to it; closing it by hand, or the app closing it, clears the mark.
+const DRIVE_OPEN_KEY = 'spbfi-drive-open-v1';
+const DRIVE_RESUME_MS = 30 * 60 * 1000;
+
+function noteDriveOpen() {
+  drive.openNotedAt = Date.now();
+  try {
+    localStorage.setItem(DRIVE_OPEN_KEY, String(drive.openNotedAt));
+  } catch {
+    // Only the way back into the navigator depends on it.
+  }
+}
+
+function forgetDriveOpen() {
+  try {
+    localStorage.removeItem(DRIVE_OPEN_KEY);
+  } catch {
+    // Nothing to forget.
+  }
+}
+
+function driveWasOpen() {
+  try {
+    const at = Number(localStorage.getItem(DRIVE_OPEN_KEY) || 0);
+    return at > 0 && Date.now() - at < DRIVE_RESUME_MS;
+  } catch {
+    return false;
+  }
+}
 const DRIVE_ZOOM = 15;
 const DRIVE_CLOSE_ZOOM = 16;
 const DRIVE_THEME_KEY = 'spbfi-drive-theme-v1';
@@ -5623,6 +5662,7 @@ function bindDrive() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       motion.fastSince = 0;
+      if (drive.open) noteDriveOpen();
       return;
     }
     if (!drive.open) return;
@@ -5640,7 +5680,7 @@ function openDrive(reason = 'button') {
   closeDrawer();
   document.body.classList.add('driving');
   root.hidden = false;
-  followPhone({ manual: reason !== 'start' });
+  followPhone({ manual: !['start', 'resume'].includes(reason) });
   layoutDrive();
   initDriveMap();
   applyDriveTheme();
@@ -5649,6 +5689,7 @@ function openDrive(reason = 'button') {
   renderDrive({ force: true });
   track('drive_open', { reason });
   drive.openedAt = Date.now();
+  noteDriveOpen();
   worklog('nav_start', { why: reason });
 }
 
@@ -5656,6 +5697,7 @@ function closeDrive() {
   const root = $('#drive');
   if (!drive.open || !root) return;
   drive.open = false;
+  forgetDriveOpen();
   clearInterval(drive.ticker);
   clearTimeout(drive.heldTimer);
   drive.ticker = null;
@@ -5674,6 +5716,7 @@ function closeDrive() {
 // at a stop and the seconds left to undo all move on.
 function tickDrive() {
   if (!drive.open) return;
+  if (Date.now() - drive.openNotedAt > 10000) noteDriveOpen();
   if (Date.now() - drive.themeAt > 60000) applyDriveTheme();
   if (drive.free && !drive.pressed && Date.now() > drive.freeUntil) followDriveMap('auto');
   else renderDrive();

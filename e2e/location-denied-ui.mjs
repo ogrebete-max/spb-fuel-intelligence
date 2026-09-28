@@ -294,6 +294,41 @@ async function apiDenied() {
   await browser.close();
 }
 
+// An iPhone unloads a home-screen app it has sent to the background, sometimes
+// within seconds, and the app then starts afresh on its first screen: in the
+// owner's work log a page opened the navigator and a new one was starting nine
+// seconds later, on the map (28 Sep 2026). A driver whose navigator was open
+// comes back to it, whatever the first screen is; one who closed it does not.
+async function unloaded() {
+  console.log('\n=== iphone-unloaded-while-driving');
+  const { browser, page, errors } = await open(webkit, devices['iPhone 13'], { granted: true, standalone: true });
+  await becomes(page, () => document.querySelectorAll('#stationList .station-card').length > 0, null, 30000);
+  // The owner's phone: «Карта» chosen as the first screen in the navigator's settings.
+  await page.evaluate(() => { closeDrive(); localStorage.setItem('spbfi-start-v1', 'map'); });
+  await page.reload({ waitUntil: 'load' });
+  check('with «Карта» chosen the app starts on the map', await becomes(page, () => document.body.classList.contains('map-screen') && !drive.open && !!state.location, null, 30000));
+  await page.evaluate(() => document.querySelector('#modeBar [data-screen="drive"]').click());
+  check('the navigator is opened by hand', await becomes(page, () => drive.open, null, 5000));
+  // Unloaded in the background and started again.
+  await page.reload({ waitUntil: 'load' });
+  check('started afresh, the app goes back into the navigator', await becomes(page, () => drive.open, null, 30000));
+  await page.evaluate(() => document.querySelector('#drive [data-drive="close"]').click());
+  check('the navigator closed by hand', await becomes(page, () => !drive.open && !localStorage.getItem('spbfi-drive-open-v1'), null, 5000));
+  await page.reload({ waitUntil: 'load' });
+  await becomes(page, () => document.querySelectorAll('#stationList .station-card').length > 0, null, 30000);
+  await page.waitForTimeout(2500);
+  check('the start after that is the chosen first screen again', await page.evaluate(() => !drive.open && document.body.classList.contains('map-screen')));
+  // A navigator left open more than half an hour ago is not brought back.
+  await page.evaluate(() => localStorage.setItem('spbfi-drive-open-v1', String(Date.now() - 31 * 60 * 1000)));
+  await page.reload({ waitUntil: 'load' });
+  await becomes(page, () => document.querySelectorAll('#stationList .station-card').length > 0, null, 30000);
+  await page.waitForTimeout(2500);
+  check('a navigator open more than half an hour ago stays closed', await page.evaluate(() => !drive.open));
+  check(`no page errors (${errors.length})`, errors.length === 0);
+  if (errors.length) console.log(errors.slice(0, 5).join('\n'));
+  await browser.close();
+}
+
 try {
   await refused('iphone-telegram', webkit, devices['iPhone 13'], {}, {
     title: 'Откройте в Safari', words: ['Telegram', '«⋯»', 'Открыть в Safari'], banner: 'Открыто внутри мессенджера', safari: true, copy: true,
@@ -310,6 +345,7 @@ try {
   await silent();
   await granted();
   await apiDenied();
+  await unloaded();
 } finally {
   siteServer.close();
   workerServer.close();
