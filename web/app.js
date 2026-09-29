@@ -1538,6 +1538,42 @@ function votePanel(grade) {
   </div>`;
 }
 
+// The feeds by the names people know them by; the rest as the feed calls itself.
+const SOURCE_TITLES = {
+  sber: 'Сбер', 'tbank-fuel': 'Т-Банк', 'alfa-azs': 'Альфа-Банк', transitcard: 'ППР', '2gis-benzin': '2ГИС',
+  'yandex-maps': 'Яндекс', gdebenz: 'ГдеБЕНЗ', gdezapravka: 'ГдеЗаправка', benzonavt: 'Бензонавт',
+  'azsradar-rf': 'АЗС радар', 'own-eyewitness': 'свои', gazpromneft: 'Газпромнефть', lukoil: 'Лукойл',
+  'rosneft-ptk': 'Роснефть', tatneft: 'Татнефть', teboil: 'Тебойл',
+};
+
+function sourceTitle(source) {
+  return SOURCE_TITLES[source] || source || '';
+}
+
+// Who of this station's feeds answers now and who is silent (29 Sep 2026: the
+// owner saw a card of grey «устарело» rows early in the morning and read it as
+// sources taken away — «я думал, наоборот прибавится»). Silent is a feed that
+// has said something about this grade here, but nothing fresh; one that did
+// not answer the last refresh at all is named apart.
+function sourcesSummary(rows) {
+  const all = [...new Set(rows.map((row) => row.source).filter(Boolean))];
+  const answering = new Set(rows.filter((row) => row.fresh).map((row) => row.source));
+  const silent = all.filter((source) => !answering.has(source));
+  const down = new Set((state.meta?.collectors?.failed || []).map((item) => String(item.name).replace(/-full-aoi$/, '')));
+  const quiet = silent.filter((source) => !down.has(source));
+  const failed = silent.filter((source) => down.has(source));
+  // Payments and marks thin out at night, and that is when silence is most often read as loss.
+  const hour = (new Date().getUTCHours() + 3) % 24;
+  const why = hour >= 22 || hour < 7 ? ' (ночью оплат и отметок мало)' : '';
+  const head = answering.size
+    ? `Сейчас отвечают ${answering.size} из ${all.length} ${plural(all.length, 'источника', 'источников', 'источников')}`
+    : `Сейчас ни один из ${all.length} ${plural(all.length, 'источника', 'источников', 'источников')} не отвечает по этой марке`;
+  return `<div class="sources-summary">
+      <p><b>${escapeHtml(head)}.</b>${quiet.length ? ` Молчат: ${escapeHtml(quiet.map(sourceTitle).join(', '))} — свежего у них по этой АЗС нет${why}.` : ''}</p>
+      ${failed.length ? `<p class="sources-down">Не ответили при последнем обновлении: ${escapeHtml(failed.map(sourceTitle).join(', '))}.</p>` : ''}
+    </div>`;
+}
+
 function trustPanel(grade) {
   const score = Number(grade.trust_score || 0);
   const tier = grade.trust_tier || 'none';
@@ -7190,12 +7226,19 @@ async function openStation(id) {
     const transition = timeline.last_transition;
     const confidenceLabels = { high: 'высокая', medium: 'средняя', low: 'низкая' };
     const timelinePanel = ['NO_HISTORY', 'OUTDATED_HISTORY', 'FLAPPING', 'APPEARING_UNCONFIRMED'].includes(timeline.state) ? `<div class="timeline-panel neutral"><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p></div>` : `<div class="timeline-panel ${timeline.recent ? 'fresh' : ''}"><span class="timeline-kicker">История статуса</span><strong>${escapeHtml(timeline.label)}</strong><p>${escapeHtml(timeline.description)}</p><dl><div><dt>Текущий статус длится</dt><dd>${escapeHtml(formatDuration(timeline.duration_seconds))}</dd></div><div><dt>Проверок</dt><dd>${Number(timeline.confirmations || 1)}</dd></div>${transition ? `<div><dt>Уверенность перехода</dt><dd>${escapeHtml(confidenceLabels[transition.confidence] || transition.confidence)}</dd></div>` : ''}</dl></div>`;
-    const evidence = selected.evidence.length ? selected.evidence.map((row) => {
+    const evidenceRow = (row) => {
       const rowStatus = row.fresh ? (row.availability === 'AVAILABLE' || row.availability === 'LIKELY' ? '#158257' : row.availability === 'NOT_AVAILABLE' || row.availability === 'LIKELY_NOT' ? '#b8333a' : '#d58a13') : '#8a9691';
       const extras = [row.limit_liters != null ? `лимит ${row.limit_liters} л` : null, formatQueue(row.queue) ? `очередь: ${formatQueue(row.queue)}` : null].filter(Boolean).join(' · ');
       const note = localizeNote(row.note);
-      return `<div class="evidence-row" style="--evidence-color:${rowStatus}"><div class="evidence-head"><strong>${escapeHtml(AVAILABILITY_LABELS[row.availability] || row.availability)}</strong><span>${row.fresh ? (row.observed_at ? formatAge(row.age_seconds) : 'без времени') : 'устарело'}</span></div><div class="evidence-meta">${escapeHtml(row.source || 'источник не указан')} · ${escapeHtml(KIND_LABELS[row.kind] || row.kind)}${extras ? `<br>${escapeHtml(extras)}` : ''}<br>provenance: ${escapeHtml(row.effective_provenance)}${note ? `<br>${escapeHtml(note)}` : ''}</div></div>`;
-    }).join('') : '<div class="empty-state">Для этой марки нет даже устаревших station-level свидетельств.</div>';
+      return `<div class="evidence-row" style="--evidence-color:${rowStatus}"><div class="evidence-head"><strong>${escapeHtml(AVAILABILITY_LABELS[row.availability] || row.availability)}</strong><span>${row.fresh ? (row.observed_at ? formatAge(row.age_seconds) : 'без времени') : 'устарело'}</span></div><div class="evidence-meta">${escapeHtml(sourceTitle(row.source) || 'источник не указан')} · ${escapeHtml(KIND_LABELS[row.kind] || row.kind)}${extras ? `<br>${escapeHtml(extras)}` : ''}<br>provenance: ${escapeHtml(row.effective_provenance)}${note ? `<br>${escapeHtml(note)}` : ''}</div></div>`;
+    };
+    const freshRows = selected.evidence.filter((row) => row.fresh);
+    const staleRows = selected.evidence.filter((row) => !row.fresh);
+    const evidence = selected.evidence.length
+      ? `${sourcesSummary(selected.evidence)}
+        ${freshRows.length ? `<div class="evidence-list">${freshRows.map(evidenceRow).join('')}</div>` : ''}
+        ${staleRows.length ? `<details class="evidence-stale"><summary>Устаревшие ответы (${staleRows.length})</summary><div class="evidence-list">${staleRows.map(evidenceRow).join('')}</div></details>` : ''}`
+      : '<div class="empty-state">Для этой марки нет даже устаревших station-level свидетельств.</div>';
     $('#drawerContent').innerHTML = `
       <h2>${escapeHtml(displayNetwork(station.network))}</h2>
       <p class="drawer-address">${escapeHtml(station.address || 'Адрес не указан')}</p>
@@ -7220,7 +7263,7 @@ async function openStation(id) {
       ${trustPanel(selected)}
       ${timelinePanel}
       <h3 class="section-title">Почему такой результат по ${GRADE_LABELS[state.grade]}</h3>
-      <div class="evidence-list">${evidence}</div>
+      ${evidence}
       <h3 class="section-title">Связанные идентификаторы</h3>
       <div class="evidence-meta">${station.source_refs.map((ref) => `${escapeHtml(ref.source)}:${escapeHtml(ref.station_id)}`).join('<br>')}</div>`;
     bindMarkButtons($('#drawerContent'));

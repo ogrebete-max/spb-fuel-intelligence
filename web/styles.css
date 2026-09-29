@@ -183,6 +183,14 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
 .grade-cell small { color: var(--cell-color); font-size: 9px; font-weight: 800; margin-top: 4px; }
 .section-title { margin: 25px 0 11px; font-size: 14px; }
 .evidence-list { display: flex; flex-direction: column; gap: 8px; }
+/* Who answers and who is silent, above the rows; the expired rows folded. */
+.sources-summary { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--soft, rgba(0, 0, 0, .04)); font-size: 14px; line-height: 1.4; }
+.sources-summary p { margin: 0; }
+.sources-summary p + p { margin-top: 6px; }
+.sources-down { color: #b8333a; }
+.evidence-stale { margin-top: 10px; }
+.evidence-stale > summary { cursor: pointer; padding: 8px 0; font-weight: 700; color: var(--muted, #5f6b66); }
+.evidence-stale > .evidence-list { margin-top: 6px; }
 .evidence-row { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: white; }
 .evidence-head { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
 .evidence-head strong { color: var(--evidence-color); }
