@@ -934,21 +934,27 @@ body.driving .toast-stack { display: none; }
 .drive-chip.bad { background: var(--badbg); color: var(--badink); }
 .drive-chip.lim { background: var(--limbg); color: var(--limink); }
 .drive-chip.mine { box-shadow: 0 0 0 2px var(--mine); }
-/* Where a mark may be made the chips are the buttons (28 Sep 2026): five in a
-   row, big enough for a thumb, the grade over what is known of it — and, once
-   touched, over «есть» or «нет» in the buttons' own solid colours. */
-.drive-chips.toggles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-.drive-chip.toggle { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-height: 54px; padding: 4px 2px; border: 0; border-radius: 14px; font: inherit; cursor: pointer; touch-action: manipulation; }
-.drive-chip.toggle b { font-size: 20px; font-weight: 900; line-height: 1.05; }
-.drive-chip.toggle small { font-size: 13px; font-weight: 800; line-height: 1.1; }
-.drive-chip.toggle.said.yes { background: var(--btn-yes); color: var(--btn-ink); }
-.drive-chip.toggle.said.no { background: var(--btn-no); color: var(--btn-ink); }
-/* Said a moment ago and gone to the club: the answer, outlined in its colour. */
-.drive-chip.toggle.sent.yes { background: var(--okbg); color: var(--okink); outline: 2px solid var(--btn-yes); outline-offset: -2px; }
-.drive-chip.toggle.sent.no { background: var(--badbg); color: var(--badink); outline: 2px solid var(--btn-no); outline-offset: -2px; }
-.drive-howto { margin: 0; }
-.drive-pending { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font-size: 15px; font-weight: 800; color: var(--yes); }
-.drive-pending button { border: 0; padding: 0; background: none; color: var(--sub); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* Where a mark may be made, every grade has its own «есть» and «нет» (29 Sep
+   2026): my grade's pair first and larger, the others two to a row. The
+   grade's label keeps what the feeds say of it. */
+.drive-marks { display: grid; gap: 8px; }
+.drive-mark { display: grid; grid-template-columns: 2.9em minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: center; }
+.drive-mark .drive-btn { min-height: 46px; padding: 0 4px; border-radius: 12px; font-size: 16px; }
+.drive-mark.mine .drive-btn { min-height: 56px; border-radius: 16px; font-size: 20px; font-weight: 900; }
+.drive-mark-others { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+.drive-mark-grade { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 40px; border-radius: 10px; background: var(--chipbg); color: var(--chipink); line-height: 1.05; }
+.drive-mark-grade b { font-size: 17px; font-weight: 900; }
+.drive-mark.mine .drive-mark-grade b { font-size: 21px; }
+.drive-mark-grade small { font-size: 12px; font-weight: 800; }
+.drive-mark-grade.ok { background: var(--okbg); color: var(--okink); }
+.drive-mark-grade.bad { background: var(--badbg); color: var(--badink); }
+.drive-mark-grade.lim { background: var(--limbg); color: var(--limink); }
+.drive-mark.mine .drive-mark-grade { box-shadow: 0 0 0 2px var(--mine); }
+.drive-said { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font-size: 15px; font-weight: 800; }
+.drive-said.yes { color: var(--yes); }
+.drive-said.no { color: var(--no); }
+.drive-said.wait { color: var(--limink); }
+.drive-said button { border: 0; padding: 0; background: none; color: var(--sub); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .drive-witness { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.35; }
 .drive-witness.yes { color: var(--yes); }
 .drive-witness.no { color: var(--no); }

@@ -5423,9 +5423,9 @@ const DRIVE_ASK_WITHIN_METRES = 3000;
 const DRIVE_NEIGHBOUR_METRES = 250;
 const DRIVE_OFFER_MS = 30000;
 const DRIVE_UNDO_MS = 5000;
-// «Одним движением» (the owner, 28 Sep 2026): a grade touched on the sheet goes
-// to the club by itself this long after the last touch, as one look.
-const DRIVE_AUTO_SEND_MS = 3000;
+// A mark made on the sheet can be put right or taken back for this long: the
+// other button of the same grade replaces it, «Отменить» takes it back.
+const DRIVE_FIX_MS = 60000;
 // A passenger's sheet stays on the station just gone past for this long, while
 // it is this near: at speed it is behind before a finger gets there.
 const DRIVE_PASSED_KEEP_MS = 20000;
@@ -5485,7 +5485,7 @@ const drive = {
   free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null, routeOn: true, passenger: false,
   ticker: null, heldTimer: null, wakeLock: null, theme: 'auto', themeAt: 0, pick: null, pinnedId: null,
   question: null, asked: new Set(), sent: null, touchAt: 0, kind: '', offered: false, offerOff: false,
-  autoSend: null, autoTimer: null, lastNear: null,
+  said: [], lastNear: null,
   // Stations where a 👍 confirmed someone's mark: that was the look at the pumps.
   confirmed: new Map(),
 };
@@ -5683,8 +5683,7 @@ function bindDrive() {
 function openDrive(reason = 'button') {
   const root = $('#drive');
   if (drive.open || !root) return;
-  clearTimeout(drive.autoTimer);
-  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null, routeOn: loadDriveRouteOn(), passenger: false, autoSend: null, autoTimer: null, lastNear: null });
+  Object.assign(drive, { open: true, offered: true, theme: loadDriveTheme(), pick: null, pinnedId: null, question: null, sent: null, asked: new Set(), kind: '', kindAt: 0, free: false, pressed: false, flyingUntil: 0, tapped: null, routeOn: loadDriveRouteOn(), passenger: false, said: [], lastNear: null });
   hideDriveOffer();
   closeDrawer();
   document.body.classList.add('driving');
@@ -5705,8 +5704,6 @@ function openDrive(reason = 'button') {
 function closeDrive() {
   const root = $('#drive');
   if (!drive.open || !root) return;
-  // Grades touched a moment ago go now rather than be lost with the screen.
-  flushDriveAutoSend();
   drive.open = false;
   forgetDriveOpen();
   clearInterval(drive.ticker);
@@ -6152,65 +6149,127 @@ function driveInitial(stationId) {
   return name ? name.charAt(0).toLocaleUpperCase('ru-RU') : '👁';
 }
 
-// Every grade with what is known of it. Where a mark may be made, the same row
-// is the way to make it (28 Sep 2026: «это должно делаться буквально одним
-// движением» — five of the eight marks in the work log that week went through
-// the station's card, grade by grade). A grade touched once is «есть», twice
-// «нет», a third time taken back; whatever is touched goes to the club by
-// itself DRIVE_AUTO_SEND_MS after the last touch, as one look.
-function driveChips(station, { toggles = false } = {}) {
+function driveChips(station) {
   const brief = briefFor(station.id);
-  const said = toggles ? composeDraft(station.id)?.chosen || {} : {};
   return Object.keys(GRADE_LABELS).map((grade) => {
     const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
     const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
     const tone = { yes: ' ok', likely: ' ok', limited: ' lim', no: ' bad' }[mark.tone] || '';
     const limit = grade === state.grade && station.grade.limit_liters != null ? ` ${Math.round(station.grade.limit_liters)} л` : '';
     const hint = `${GRADE_LABELS[grade]}: ${STATUS[status]?.short || ''}`;
-    const mine = grade === state.grade ? ' mine' : '';
-    if (!toggles) return `<span class="drive-chip${tone}${mine}" title="${escapeHtml(hint)}">${escapeHtml(driveGradeLabel(grade))} ${mark.sign}${escapeHtml(limit)}</span>`;
-    const seen = said[grade];
-    // A grade marked from here a moment ago says what was said: next to «Вы
-    // отметили: 95 есть» a «95 ✕» from the feeds read as a touch that did not take.
-    const own = seen === undefined ? markFor(station.id, grade) : null;
-    const sent = own && Date.now() - own.at < 15 * 60 * 1000 ? own : null;
-    const look = seen === true ? ' said yes' : seen === false ? ' said no' : sent ? ` sent ${sent.seen ? 'yes' : 'no'}` : tone;
-    const word = seen === true ? 'есть' : seen === false ? 'нет' : sent ? `вы: ${sent.seen ? 'есть' : 'нет'}` : `${mark.sign}${limit}`;
-    return `<button type="button" class="drive-chip toggle${look}${mine}" data-drive="toggle" data-station="${escapeHtml(station.id)}" data-grade="${grade}" aria-pressed="${seen !== undefined}" title="${escapeHtml(hint)}"><b>${escapeHtml(driveGradeLabel(grade))}</b> <small>${escapeHtml(word)}</small></button>`;
+    return `<span class="drive-chip${tone}${grade === state.grade ? ' mine' : ''}" title="${escapeHtml(hint)}">${escapeHtml(driveGradeLabel(grade))} ${mark.sign}${escapeHtml(limit)}</span>`;
   }).join('');
 }
 
-// Under the row: what goes and when, or how the row works.
-function driveToggleNote(stationId) {
-  const chosen = composeDraft(stationId)?.chosen || {};
-  const grades = Object.keys(GRADE_LABELS).filter((grade) => grade in chosen);
-  if (!grades.length || drive.autoSend?.stationId !== stationId) {
-    return '<p class="drive-meta drive-howto">Нажмите марку: раз — есть, два — нет</p>';
-  }
-  const words = grades.map((grade) => `${driveGradeLabel(grade)} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
-  return `<p class="drive-pending">Уйдёт своим через ${DRIVE_AUTO_SEND_MS / 1000} с: ${escapeHtml(words)}
-    <button type="button" data-drive="toggle-cancel" data-station="${escapeHtml(stationId)}">не отправлять</button></p>`;
+// Every grade with its own «есть» and «нет», and each button says exactly one
+// thing and sends it at the touch (29 Sep 2026). The day before, one button a
+// grade meant «есть» at the first touch and «нет» at the second, and what was
+// touched went by itself three seconds later: in the owner's work log a 95
+// touched twice within a second — a double touch in a car — went as «95 нет»,
+// and «3 секунды и уходит неверный ответ». Now the same button again says
+// nothing new, the other one puts the mark right within DRIVE_FIX_MS, and
+// «Отменить» under the buttons takes it back. My grade's pair comes first and
+// larger; the grade's label keeps what the feeds say of it.
+function driveMarkPairs(station) {
+  const brief = briefFor(station.id);
+  const id = escapeHtml(station.id);
+  const pair = (grade) => {
+    const status = grade === state.grade ? station.grade.status : (brief[grade]?.s || 'NO_FRESH_DATA');
+    const mark = GRADE_MARK[status] || GRADE_MARK.NO_FRESH_DATA;
+    const tone = { yes: ' ok', likely: ' ok', limited: ' lim', no: ' bad' }[mark.tone] || '';
+    const own = markFor(station.id, grade);
+    const said = own && Date.now() - own.at < 15 * 60 * 1000 ? own.seen : null;
+    const button = (seen) => {
+      const on = said === seen;
+      return `<button type="button" class="drive-btn ${seen ? 'yes' : 'no'}${on ? ' on' : ''}" data-drive="say" data-station="${id}" data-grade="${grade}" data-seen="${seen ? 1 : 0}" aria-pressed="${on}">${on ? '✓ ' : ''}${seen ? 'есть' : 'нет'}</button>`;
+    };
+    const hint = `${GRADE_LABELS[grade]}: ${STATUS[status]?.short || ''}`;
+    return `<div class="drive-mark${grade === state.grade ? ' mine' : ''}"><span class="drive-mark-grade${tone}" title="${escapeHtml(hint)}"><b>${escapeHtml(driveGradeLabel(grade))}</b> <small>${mark.sign}</small></span>${button(true)}${button(false)}</div>`;
+  };
+  const others = Object.keys(GRADE_LABELS).filter((grade) => grade !== state.grade).map(pair).join('');
+  return `<div class="drive-marks">${pair(state.grade)}<div class="drive-mark-others">${others}</div></div>`;
 }
 
-// Each touch starts the seconds again; with nothing touched, nothing goes.
-function armDriveAutoSend(stationId, reason) {
-  clearTimeout(drive.autoTimer);
-  drive.autoTimer = null;
-  const chosen = composeDraft(stationId)?.chosen || {};
-  if (!Object.keys(chosen).length) {
-    drive.autoSend = null;
+// Under the buttons, while a mark can still be put right: what went, and «Отменить».
+function driveSaidLine(stationId) {
+  const now = Date.now();
+  const said = (drive.said || []).filter((item) => item.stationId === stationId && !item.undoing && now - item.madeAt < DRIVE_FIX_MS);
+  if (!said.length) return '';
+  const words = Object.keys(GRADE_LABELS).map((grade) => said.filter((item) => item.grade === grade).pop())
+    .filter(Boolean).map((item) => `${driveGradeLabel(item.grade)} ${item.seen ? 'есть' : 'нет'}`).join(', ');
+  const outcomes = said.map((item) => item.outcome);
+  const [tone, head] = outcomes.includes('refused') ? ['no', 'Не отправлено']
+    : outcomes.includes('queued') ? ['wait', 'Уйдёт, когда будет связь']
+      : outcomes.includes('kept') ? ['yes', 'Сохранено на телефоне']
+        : ['yes', 'Ушло своим'];
+  const undo = said.some((item) => item.undoable)
+    ? ` <button type="button" data-drive="said-undo" data-station="${escapeHtml(stationId)}">Отменить</button>` : '';
+  return `<p class="drive-said ${tone}">✔ ${head}: ${escapeHtml(words)}${undo}</p>`;
+}
+
+// One grade, said at a touch, through the same path as every mark.
+function sayDriveMark(stationId, grade, seen) {
+  if (!stationId || !GRADE_LABELS[grade]) return;
+  const now = Date.now();
+  drive.said = (drive.said || []).filter((item) => now - item.madeAt < DRIVE_FIX_MS);
+  const before = drive.said.filter((item) => item.stationId === stationId && item.grade === grade && !item.undoing).pop();
+  // The same button again — a double touch, a finger not sure the first took.
+  if (before && before.seen === seen) {
+    renderDrive({ force: true });
     return;
   }
-  drive.autoSend = { stationId, reason };
-  drive.autoTimer = setTimeout(flushDriveAutoSend, DRIVE_AUTO_SEND_MS);
+  // The other one a moment later: a slip, put right. The club drops the first,
+  // and on the others' phones the new notice replaces it (one tag a station).
+  if (before) undoDriveSaid(before, { quiet: true });
+  const station = state.stations.find((item) => item.id === stationId);
+  const status = grade === state.grade ? station?.grade?.status : briefFor(stationId)[grade]?.s;
+  const what = `${driveGradeLabel(grade)} ${seen ? 'есть' : 'нет'}`;
+  const madeAt = Date.now();
+  const promise = saveMark(stationId, grade, seen, null, { summary: what, blindSpot: ['NO_FRESH_DATA', 'CONFLICT'].includes(status) });
+  const item = {
+    stationId, grade, seen, what, madeAt, promise, outcome: null,
+    undoable: !!(state.club.enabled && state.club.member && state.club.features?.delete_marks),
+  };
+  drive.said.push(item);
+  promise.then((outcome) => {
+    item.outcome = outcome;
+    renderDrive({ force: true });
+  });
+  track('drive_mark', { station: stationId, seen, queue: null, reason: movingNow() ? 'passenger' : 'near' });
+  renderDrive({ force: true });
 }
 
-function flushDriveAutoSend() {
-  clearTimeout(drive.autoTimer);
-  drive.autoTimer = null;
-  const pending = drive.autoSend;
-  drive.autoSend = null;
-  if (pending) sendDriveLook(pending.stationId, pending.reason);
+// The phone's own copy of one said grade, and only that one: a mark made a
+// second later for another grade, or the one that put this right, stays.
+function forgetSaid(item) {
+  const same = (mark) => !!mark && mark.seen === item.seen && Math.abs(mark.at - item.madeAt) < OWN_COPY_SLACK_MS;
+  for (const shown of [state.groupMarks?.[item.stationId], state.dayMarks?.[item.stationId]]) {
+    if (shown && same(shown[item.grade])) delete shown[item.grade];
+  }
+  const marks = loadMarks();
+  if (same(marks[item.stationId]?.[item.grade])) {
+    delete marks[item.stationId][item.grade];
+    try {
+      localStorage.setItem(MARK_STORE, JSON.stringify(marks));
+    } catch {
+      // Private mode or a full quota: nothing was kept to forget.
+    }
+  }
+  state.marks = marks;
+}
+
+async function undoDriveSaid(item, { quiet = false } = {}) {
+  if (item.undoing) return;
+  item.undoing = true;
+  renderDrive({ force: true });
+  const { undone, failed } = item.undoable ? await retractMark(item) : { undone: false, failed: false };
+  drive.said = (drive.said || []).filter((one) => one !== item);
+  // Put right, the phone's copy already says the new answer.
+  if (undone && !quiet) forgetSaid(item);
+  if (failed && !quiet) drive.flash = { text: 'Отметку не удалось отменить. Её можно удалить в карточке АЗС: 🗑 в первый час.', until: Date.now() + 8000 };
+  if (undone) redrawMarks();
+  track('drive_undo', { station: item.stationId, success: undone });
+  renderDrive({ force: true });
 }
 
 // At the pumps a sign often names several grades: «92 нет, 95 нет, ДТ есть».
@@ -6237,9 +6296,8 @@ function driveSendButton(stationId) {
   const grades = Object.keys(GRADE_LABELS).filter((grade) => grade in chosen);
   const words = grades.map((grade) => `${driveGradeLabel(grade)} ${chosen[grade] ? 'есть' : 'нет'}`).join(', ');
   return grades.length
-    ? `<button type="button" class="drive-btn huge send" data-drive="send-look" data-station="${escapeHtml(stationId)}">Отправить сейчас: ${escapeHtml(words)}</button>
-      <p class="drive-meta drive-howto">или уйдёт само через ${DRIVE_AUTO_SEND_MS / 1000} с</p>`
-    : '<button type="button" class="drive-btn huge send" data-drive="send-look" disabled>Нажмите марки — уйдут сами</button>';
+    ? `<button type="button" class="drive-btn huge send" data-drive="send-look" data-station="${escapeHtml(stationId)}">Отправить: ${escapeHtml(words)}</button>`
+    : '<button type="button" class="drive-btn huge send" data-drive="send-look" disabled>Отметьте марки — и отправить</button>';
 }
 
 // «Дальше»: следующие заправки с той же маркой, нажатием — переключиться.
@@ -6295,10 +6353,11 @@ function drivePanels(view) {
     const mine = markedRecently(station.id) ? markLine(station.id, state.grade) : null;
     // Moving, the driver's hands stay on the wheel; «я пассажир» lifts that.
     const locked = movingNow(view.now) && !drive.passenger;
-    const done = mine ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>${driveDelete(station.id)}` : '';
+    const said = locked ? '' : driveSaidLine(station.id);
+    const done = mine && !said ? `<p class="drive-done">✔ ${escapeHtml(mine)}</p>${driveDelete(station.id)}` : '';
     const actions = locked
       ? done || '<button type="button" class="drive-lock" data-drive="passenger">🔒 Отметить — на остановке · <u>я пассажир</u></button>'
-      : `${done}${driveToggleNote(station.id)}`;
+      : done;
     // Already there, the way to it is no news.
     const road = still && !view.beside && !view.behind;
     const whereText = view.beside ? `Вы у АЗС · ${driveDistance(focus.metres)}`
@@ -6306,7 +6365,7 @@ function drivePanels(view) {
         : `Через ${driveDistance(focus.metres)}${driveSide(focus)}`;
     return { sheet: `${where(whereText)}${road ? driveGo(station) : ''}
       <p class="drive-line drive-name">${title}</p>
-      <div class="drive-chips${locked ? '' : ' toggles'}">${driveChips(station, { toggles: !locked })}</div>
+      ${locked ? `<div class="drive-chips">${driveChips(station)}</div>` : `${driveMarkPairs(station)}${said}`}
       ${meta(driveMeta(station, { witness: false }))}
       ${witness ? `<p class="drive-witness ${witness.tone}">${escapeHtml(witness.text)}</p>` : ''}
       ${road ? meta(driveRouteNote(station.id)) : ''}
@@ -6928,22 +6987,12 @@ function onDriveTap(event) {
     renderDrive({ force: true });
   } else if (action === 'theme-mode') {
     setDriveTheme(button.dataset.mode);
-  } else if (action === 'toggle') {
-    // есть → нет → taken back.
-    const draft = composeDraft(station, { touch: true });
-    const { grade } = button.dataset;
-    if (!(grade in draft.chosen)) draft.chosen[grade] = true;
-    else if (draft.chosen[grade]) draft.chosen[grade] = false;
-    else delete draft.chosen[grade];
-    armDriveAutoSend(station, movingNow() ? 'passenger' : 'near');
-    paintComposers(station);
-    renderDrive({ force: true });
-  } else if (action === 'toggle-cancel') {
-    const draft = composeDraft(station);
-    if (draft) draft.chosen = {};
-    armDriveAutoSend(station, 'near');
-    paintComposers(station);
-    renderDrive({ force: true });
+  } else if (action === 'say') {
+    sayDriveMark(station, button.dataset.grade, button.dataset.seen === '1');
+  } else if (action === 'said-undo') {
+    const now = Date.now();
+    (drive.said || []).filter((item) => item.stationId === station && now - item.madeAt < DRIVE_FIX_MS)
+      .forEach((item) => undoDriveSaid(item));
   } else if (action === 'pick') {
     // Pressed again, a grade is taken back out of the look.
     const draft = composeDraft(station, { touch: true });
@@ -6951,13 +7000,9 @@ function onDriveTap(event) {
     const seen = button.dataset.seen === '1';
     if (draft.chosen[grade] === seen) delete draft.chosen[grade];
     else draft.chosen[grade] = seen;
-    armDriveAutoSend(station, 'at_station');
     paintComposers(station);
     renderDrive({ force: true });
   } else if (action === 'send-look') {
-    clearTimeout(drive.autoTimer);
-    drive.autoTimer = null;
-    drive.autoSend = null;
     sendDriveLook(station, 'at_station');
   } else if (action === 'answer' && drive.question) {
     const { id } = drive.question;
@@ -6972,8 +7017,6 @@ function onDriveTap(event) {
     const draft = composeDraft(station, { touch: true });
     const cars = Number(button.dataset.cars);
     draft.queue = draft.queue === cars ? null : cars;
-    // A queue alone is no look; with grades pressed it starts their seconds again.
-    armDriveAutoSend(station, 'at_station');
     paintComposers(station);
     renderDrive({ force: true });
   } else if (action === 'not') {
@@ -7056,46 +7099,46 @@ function sendDriveLook(stationId, reason) {
 
 // «Отменить» takes the mark back the way 🗑 does: the club deletes it and takes
 // back its 🤝. A mark still waiting for a connection simply never leaves.
+// Takes one of my marks back: out of the outbox while it still waits there,
+// otherwise off the club, which dates a mark by its own clock and names that
+// moment in a delete. The report nearest the moment the mark was made, with
+// the same answer when there is one: a mark put right a second later is of
+// the same grade and within the same minute, and must not be the one to go.
+async function retractMark(sent) {
+  const outcome = await sent.promise;
+  if (outcome !== 'sent') {
+    trimOutbox(sent.stationId, sent.grades || [sent.grade]);
+    return { undone: true, at: sent.madeAt };
+  }
+  const read = await clubCall('/club/reports').catch(() => null);
+  if (read && handleClubRejection(read)) return { undone: false };
+  const report = (read?.data?.reports || [])
+    .filter((item) => item.who === myId() && item.station === sent.stationId && item.grade === sent.grade && Math.abs(item.at - sent.madeAt) < 60000
+      && (sent.seen === undefined || item.seen === sent.seen))
+    .sort((a, b) => Math.abs(a.at - sent.madeAt) - Math.abs(b.at - sent.madeAt))[0];
+  const result = report
+    ? await clubCall('/club/report/delete', { method: 'POST', body: { station: sent.stationId, author: myId(), at: report.at } }).catch(() => null)
+    : null;
+  if (result && handleClubRejection(result)) return { undone: false };
+  return { undone: !!result?.ok, at: report?.at, failed: !result?.ok };
+}
+
 async function undoDriveMark(button) {
   const sent = drive.sent;
   if (!sent || sent.undoing || !sent.undoable) return;
   sent.undoing = true;
   button.disabled = true;
-  const done = (undone, at = sent.madeAt) => {
-    if (drive.sent === sent) drive.sent = null;
-    if (undone) {
-      forgetLook({ station: sent.stationId, author: myId(), at });
-      // The phone's own copy is dated by the phone's clock.
-      if (at !== sent.madeAt) forgetLook({ station: sent.stationId, author: myId(), at: sent.madeAt });
-      redrawMarks();
-    }
-    track('drive_undo', { station: sent.stationId, success: undone });
-    renderDrive({ force: true });
-  };
-  const outcome = await sent.promise;
-  if (outcome !== 'sent') {
-    trimOutbox(sent.stationId, sent.grades || [sent.grade]);
-    done(true);
-    return;
+  const { undone, at = sent.madeAt, failed } = await retractMark(sent);
+  if (failed) drive.flash = { text: 'Отметку не удалось отменить. Её можно удалить в карточке АЗС: 🗑 в первый час.', until: Date.now() + 8000 };
+  if (drive.sent === sent) drive.sent = null;
+  if (undone) {
+    forgetLook({ station: sent.stationId, author: myId(), at });
+    // The phone's own copy is dated by the phone's clock.
+    if (at !== sent.madeAt) forgetLook({ station: sent.stationId, author: myId(), at: sent.madeAt });
+    redrawMarks();
   }
-  // The club dates a mark by its own clock, and a delete names that moment.
-  const read = await clubCall('/club/reports').catch(() => null);
-  if (read && handleClubRejection(read)) {
-    done(false);
-    return;
-  }
-  const report = (read?.data?.reports || [])
-    .filter((item) => item.who === myId() && item.station === sent.stationId && item.grade === sent.grade && Math.abs(item.at - sent.madeAt) < 60000)
-    .sort((a, b) => b.at - a.at)[0];
-  const result = report
-    ? await clubCall('/club/report/delete', { method: 'POST', body: { station: sent.stationId, author: myId(), at: report.at } }).catch(() => null)
-    : null;
-  if (result && handleClubRejection(result)) {
-    done(false);
-    return;
-  }
-  if (!result?.ok) drive.flash = { text: 'Отметку не удалось отменить. Её можно удалить в карточке АЗС: 🗑 в первый час.', until: Date.now() + 8000 };
-  done(!!result?.ok, report?.at);
+  track('drive_undo', { station: sent.stationId, success: undone });
+  renderDrive({ force: true });
 }
 
 async function driveVote(stationId, vote, button) {

@@ -441,11 +441,17 @@ async function run(label, browserType, device) {
   const near = await text(page, '#driveSheet');
   check(`«${near.slice(0, 90)}…»`, /Через \d+ м справа/.test(near) && near.includes(names.display));
   check('with a chip for every grade, 95 ringed', await page.evaluate(() => document.querySelectorAll('#driveSheet .drive-chip').length === 5 && document.querySelector('#driveSheet .drive-chip.mine')?.textContent.trim() === '95 ✓'));
-  check('moving: «🔒 Отметить — на остановке» and no mark buttons', near.includes('🔒 Отметить — на остановке') && !(await page.$('#drive [data-drive="toggle"]')));
+  check('moving: «🔒 Отметить — на остановке» and no mark buttons', near.includes('🔒 Отметить — на остановке') && !(await page.$('#drive [data-drive="say"]')));
+  // WebKit takes the new setting on a later frame, and on a busy machine later
+  // still (read at once it said «none» twice running, 29 Sep 2026): each state
+  // is waited for, and read as it then is.
+  const glow = () => page.evaluate(() => getComputedStyle(document.querySelector('.dpin.big.focus .dpin-body')).animationName);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  const motion = await page.evaluate(() => getComputedStyle(document.querySelector('.dpin.big.focus .dpin-body')).animationName);
+  await becomes(page, () => getComputedStyle(document.querySelector('.dpin.big.focus .dpin-body')).animationName === 'drive-glow', null, 3000);
+  const motion = await glow();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const still = await page.evaluate(() => getComputedStyle(document.querySelector('.dpin.big.focus .dpin-body')).animationName);
+  await becomes(page, () => getComputedStyle(document.querySelector('.dpin.big.focus .dpin-body')).animationName === 'none', null, 3000);
+  const still = await glow();
   check(`the target glows (${motion}) and holds still when motion is reduced (${still})`, motion === 'drive-glow' && still === 'none');
   for (const mode of ['day', 'night']) {
     const opened = await tap(page, '#drive [data-drive="theme"]') && await becomes(page, () => drive.pick === 'theme' && !document.querySelector('#drivePick').hidden, null, 3000);
@@ -469,10 +475,10 @@ async function run(label, browserType, device) {
   check('twelve seconds at the pumps: not yet «Вы на АЗС»', (await kind(page)) !== 'at');
   // Yet the station is on the sheet, not the next one up the road, and can be marked.
   const beside = await text(page, '#driveSheet');
-  // Every grade is a button there at once, not only after twenty seconds (28 Sep 2026).
-  check(`standing there, the sheet stays on the station with every grade a button: «${beside.slice(0, 60)}…»`,
+  // Every grade's «есть» and «нет» are there at once, not only after twenty seconds (28 Sep 2026).
+  check(`standing there, the sheet stays on the station with every grade's buttons: «${beside.slice(0, 60)}…»`,
     (await kind(page)) === 'near' && beside.startsWith('Вы у АЗС') && beside.includes(names.display)
-    && await page.evaluate(() => document.querySelectorAll('#driveSheet [data-drive="toggle"]').length === 5));
+    && await page.evaluate(() => document.querySelectorAll('#driveSheet [data-drive="say"]').length === 10));
   check('a card one feed lists with nothing fresh is no place to lead to', await page.evaluate(() => driveThin({ sources: ['gdebenzin24'], grade: { status: 'NO_FRESH_DATA' } })
     && !driveThin({ sources: ['gdebenzin24', 'sber'], grade: { status: 'NO_FRESH_DATA' } }) && !driveThin({ sources: ['gdebenzin'], grade: { status: 'LIKELY_AVAILABLE' } })));
   let standing = 12;
@@ -501,24 +507,23 @@ async function run(label, browserType, device) {
   }
   await shot(page, { path: path.join(OUT, `drive-${label}-4-at.png`) });
 
-  // 6. «мало», «95 есть» and «92 нет»: they go as one look by themselves three
-  // seconds after the last touch (28 Sep 2026), and «Отменить» takes it back.
-  // The page's clock stands while they are pressed and read — the look would
-  // otherwise go in the middle of the reading — and is then let go.
+  // 6. «мало», «95 есть» and «92 нет»: sent as one look, and «Отменить» takes it back.
   await tap(page, '#driveFull [data-drive="queue"][data-cars="3"]');
   check('«мало» is pressed', await page.evaluate(() => document.querySelector('#driveFull [data-cars="3"]')?.getAttribute('aria-pressed') === 'true'));
-  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 200);
   await tap(page, '#driveFull [data-drive="pick"][data-grade="AI95"][data-seen="1"]');
-  check('«95 есть» is pressed, not sent', await page.evaluate(() => document.querySelector('#driveFull [data-grade="AI95"][data-seen="1"]')?.getAttribute('aria-pressed') === 'true'
-    && !document.querySelector('#driveFull')?.textContent.includes('Отправлено своим')));
+  check('«95 есть» is pressed, not sent', await becomes(page, () => document.querySelector('#driveFull [data-grade="AI95"][data-seen="1"]')?.getAttribute('aria-pressed') === 'true'
+    && !document.querySelector('#driveFull')?.textContent.includes('Отправлено своим'), null, 3000));
   await tap(page, '#driveFull [data-drive="pick"][data-grade="AI92"][data-seen="0"]');
   await tap(page, '#driveFull [data-drive="pick"][data-grade="AI98"][data-seen="1"]');
   await tap(page, '#driveFull [data-drive="pick"][data-grade="AI98"][data-seen="1"]');
-  check('«Отправить сейчас: 92 нет, 95 есть» — 98 pressed twice is taken back out', await page.evaluate(() => document.querySelector('#driveFull [data-drive="send-look"]')?.textContent.trim() === 'Отправить сейчас: 92 нет, 95 есть'));
+  check('«Отправить: 92 нет, 95 есть» — 98 pressed twice is taken back out', await becomes(page, () => document.querySelector('#driveFull [data-drive="send-look"]')?.textContent.trim() === 'Отправить: 92 нет, 95 есть', null, 3000));
   await shot(page, { path: path.join(OUT, `drive-${label}-4b-picked.png`) });
   check('the picked panel lies on screen', await framed(page));
-  await page.clock.resume();
-  check('three seconds after the last touch the look goes by itself: «Отправлено своим» with «Отменить»', await becomes(page, () => document.querySelector('#driveFull')?.textContent.includes('Отправлено своим') && !!document.querySelector('#driveFull [data-drive="undo"]'), null, 8000));
+  // Nothing goes by itself (29 Sep 2026): a moment later it is still only pressed.
+  await page.waitForTimeout(3500);
+  check('nothing has gone by itself', !(await page.evaluate(() => document.querySelector('#driveFull')?.textContent.includes('Отправлено своим'))));
+  await tap(page, '#driveFull [data-drive="send-look"]');
+  check('«Отправлено своим» with «Отменить»', await becomes(page, () => document.querySelector('#driveFull')?.textContent.includes('Отправлено своим') && !!document.querySelector('#driveFull [data-drive="undo"]'), null, 5000));
   // Five seconds to undo. The page's clock stands still while the panel is
   // photographed and the club is asked: a WebKit screenshot alone can take them.
   await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 500);
