@@ -18,6 +18,38 @@ def row(status, *, kind="crowd_report", cluster="crowd-a", independent=True, age
     }
 
 
+def said_by(source, status, **kwargs):
+    return {**row(status, **kwargs), "source": source}
+
+
+class SourceWeightTests(unittest.TestCase):
+    """A feed's «нет» weighs how often it agreed with the independent others (29 Sep 2026)."""
+
+    YES = [row("AVAILABLE", cluster=cluster) for cluster in ("crowd-a", "crowd-b", "crowd-c")]
+
+    def test_a_doubtful_nay_no_longer_holds_a_confirmed_yes_back(self):
+        # ГдеЗаправка's «нет» agreed with the others in 19% of cases, gdebenzfuel's in 86%.
+        doubtful = evaluate_grade(self.YES + [said_by("gdezapravka", "NOT_AVAILABLE", cluster="crowd-d")], "AI95", now=NOW)
+        trusted = evaluate_grade(self.YES + [said_by("gdebenzfuel", "NOT_AVAILABLE", cluster="crowd-d")], "AI95", now=NOW)
+        self.assertGreater(doubtful["probability"], trusted["probability"])
+
+    def test_every_feeds_yes_keeps_its_weight(self):
+        plain = evaluate_grade(self.YES, "AI95", now=NOW)
+        named = evaluate_grade([{**item, "source": "gdezapravka"} for item in self.YES], "AI95", now=NOW)
+        self.assertEqual(plain["probability"], named["probability"])
+        self.assertEqual(plain["status"], named["status"])
+
+    def test_a_lone_doubtful_nay_still_says_likely_not(self):
+        # Weighed down, not silenced: alone it still leans to «нет».
+        result = evaluate_grade([said_by("gdezapravka", "NOT_AVAILABLE")], "AI95", now=NOW)
+        self.assertEqual(result["status"], "LIKELY_NOT")
+
+    def test_an_unmeasured_feeds_nay_keeps_its_weight(self):
+        unnamed = evaluate_grade(self.YES + [row("NOT_AVAILABLE", cluster="crowd-d")], "AI95", now=NOW)
+        unmeasured = evaluate_grade(self.YES + [said_by("azsradar-rf", "NOT_AVAILABLE", cluster="crowd-d")], "AI95", now=NOW)
+        self.assertEqual(unnamed["probability"], unmeasured["probability"])
+
+
 class EvidenceEngineTests(unittest.TestCase):
     def test_unknown_never_becomes_no(self):
         result = evaluate_grade([row("UNKNOWN")], "AI95", now=NOW)

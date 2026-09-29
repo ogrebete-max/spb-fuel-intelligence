@@ -139,6 +139,30 @@ KIND_VOTE_WEIGHT = {
     "payment_prediction": 0.2,
     "undated_crowd_summary": 0.2,
 }
+# How far each feed's «нет» can be trusted, measured on 28–29 Sep 2026: fifteen
+# published builds over 28 hours, 56 000 fresh statements, each set against the
+# majority of the independent others at the same station and grade — another
+# feed and another provenance cluster. Every feed's «есть» agreed 85–99% of the
+# time and keeps its weight. Their «нет» did not: ГдеЗаправка's agreed in 19% of
+# 2194 cases, ГдеБЕНЗ's in 38% of 1424 — mostly marks outliving a delivery the
+# payment feeds had already seen. A feed's «нет» now weighs its measured
+# precision: in full from 80% up, a tenth at 53% and below, straight in between;
+# a feed with fewer than 100 such statements keeps its full weight. The owner
+# saw the before and after — 137 of 2164 published answers moving, 30 of them to
+# a surer «есть» — and said «включи». Agreement is not a look at the pump: the
+# club's own marks are the real test, and the table is measured again
+# (docs/sources-scout/source-weights.py) once there are enough of them.
+NEGATIVE_WEIGHT_BY_SOURCE = {
+    "gdezapravka": 0.1,
+    "gdebenz": 0.1,
+    "benzinest": 0.47,
+    "benzonavt": 0.6,
+    "yandex-maps": 0.79,
+    "transitcard": 0.88,
+    "alfa-azs": 0.92,
+    "toplivo-ryadom": 0.94,
+}
+
 # Scales one unit of weight into log-odds.  A single official reading lands
 # around 0.85; two independent crowd confirmations around 0.8.
 VOTE_SCALE = 1.9
@@ -154,6 +178,8 @@ def _vote(item: EvaluatedRow) -> tuple[float, float]:
         return 0.0, 0.0
     kind = str(item.row.get("kind") or "")
     weight = KIND_VOTE_WEIGHT.get(kind, 0.3)
+    if direction < 0:
+        weight *= NEGATIVE_WEIGHT_BY_SOURCE.get(str(item.row.get("source") or ""), 1.0)
     ttl = TTL_SECONDS.get(kind, 2 * 60 * 60)
     spent = min(1.0, (item.age_seconds or 0) / ttl) if ttl else 1.0
     # A signal at the very edge of its TTL is worth less than a fresh one, but
