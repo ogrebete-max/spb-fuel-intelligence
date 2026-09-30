@@ -958,6 +958,10 @@ body.driving .toast-stack { display: none; }
 .drive-mark-grade.bad { background: var(--badbg); color: var(--badink); }
 .drive-mark-grade.lim { background: var(--limbg); color: var(--limink); }
 .drive-mark.mine .drive-mark-grade { box-shadow: 0 0 0 2px var(--mine); }
+/* «Отправить: 92 нет, 95 нет» once anything is chosen, «Сбросить» beside it. */
+.drive-look { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.drive-look .drive-btn.send { min-height: 56px; padding: 0 10px; font-size: 18px; font-weight: 900; }
+.drive-clear { border: 0; padding: 0 4px; background: none; color: var(--sub); font: inherit; font-size: 15px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .drive-said { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font-size: 15px; font-weight: 800; }
 .drive-said.yes { color: var(--yes); }
 .drive-said.no { color: var(--no); }

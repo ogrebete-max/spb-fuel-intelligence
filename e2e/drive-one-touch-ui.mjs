@@ -1,18 +1,19 @@
-// Отметка одним касанием в навигаторе (28–29.09.2026).
+// Отметка у колонки из навигатора (28–30.09.2026).
 //
 // The owner, 28 Sep: «надо всё-таки заходить в карточку и выбирать там, никто
-// не отмечает… Это должно делаться буквально одним движением». A first try — a
-// grade touched once «есть», twice «нет», sent by itself three seconds later —
-// sent wrong answers on the road the next morning («3 секунды и уходит неверный
-// ответ»): a 95 touched twice within a second went as «95 нет». Now every grade
-// has its own «есть» and «нет», and each button sends exactly what it says at
-// the touch. The same button again sends nothing new; the other one within a
-// minute puts the mark right, the club dropping the first; «Отменить» under the
-// buttons takes it back. Standing by a station every grade is there at once.
-// On the move the driver's sheet stays locked until «я пассажир»; a passenger's
+// не отмечает… Это должно делаться буквально одним движением». Two tries later:
+// - one button a grade, «есть» at the first touch and «нет» at the second, sent
+//   by itself three seconds later — a double touch in a car went as «95 нет»;
+// - «есть» and «нет» of their own, sent at the touch — right, but one grade at a
+//   time: «своим приходят с одной колонки по 4 отметки».
+// Now every grade has its «есть» and «нет»; a touch chooses, the same button
+// again changes nothing, the other one changes the choice, and «Отправить: 92
+// нет, 95 нет» under the buttons sends it all as one look — one mark, one
+// notice. Nothing leaves by itself. «Сбросить» lets the choice go, «Отменить»
+// takes a sent look back. Standing by a station every grade is there at once; on
+// the move the driver's sheet stays locked until «я пассажир», a passenger's
 // line with «Отменить» stays while the car moves, and the station just gone
-// past stays on the sheet for a moment.
-// WebKit (iPhone) and Chromium (Android).
+// past stays on the sheet for a moment. WebKit (iPhone) and Chromium (Android).
 //   node e2e/drive-one-touch-ui.mjs
 import http from 'node:http';
 import fs from 'node:fs';
@@ -263,43 +264,53 @@ async function run(label, browserType, device) {
   check('the sheet lies on screen', await framed(page));
   await page.screenshot({ path: path.join(OUT, `one-touch-${label}-1-pairs.png`) });
 
-  // 2. «95 есть»: gone at the touch, no seconds to wait.
-  await tap(page, say('AI95', true));
-  check('«95 есть» reaches the club at once', await eventually(async () => (await reports(STOOD.station.id)).some((item) => item.grade === 'AI95' && item.seen === true), 2500));
-  check('the button says it was said, and the line under the buttons what went', await becomes(page, () => document.querySelector('#driveSheet [data-grade="AI95"][data-seen="1"]')?.textContent.trim() === '✓ есть'
-    && document.querySelector('#driveSheet .drive-said')?.textContent.includes('Ушло своим: 95 есть')
-    && !!document.querySelector('#driveSheet [data-drive="said-undo"]'), null, 5000));
+  const send = '#driveSheet [data-drive="say-send"]';
+  const sendText = () => text(page, send);
 
-  // 3. The same button twice more, as a finger in a car does: nothing new goes.
-  await tap(page, say('AI95', true));
-  await tap(page, say('AI95', true));
-  await page.waitForTimeout(1500);
-  check('a double touch sends nothing more: one «95 есть» at the club', (await reports(STOOD.station.id)).filter((item) => item.grade === 'AI95').length === 1);
-
-  // 4. The other button: the slip put right, not a second mark beside it.
+  // 2. A touch chooses, and nothing leaves by itself.
+  check('nothing chosen, no «Отправить»', !(await page.$(send)));
   await tap(page, say('AI95', false));
-  check('«95 нет» a moment later replaces «95 есть» at the club', await eventually(async () => {
-    const got = (await reports(STOOD.station.id)).filter((item) => item.grade === 'AI95');
-    return got.length === 1 && got[0].seen === false;
-  }, 6000));
-  check(`and on the phone (${await pressed(page)})`, await becomes(page, () => document.querySelector('#driveSheet .drive-said')?.textContent.includes('Ушло своим: 95 нет')
-    && document.querySelector('#driveSheet [data-grade="AI95"][data-seen="0"]')?.getAttribute('aria-pressed') === 'true'
-    && document.querySelector('#driveSheet [data-grade="AI95"][data-seen="1"]')?.getAttribute('aria-pressed') === 'false', null, 5000));
+  check('«95 нет» chosen: pressed, and «Отправить: 95 нет» under the buttons', await becomes(page, () => document.querySelector('#driveSheet [data-grade="AI95"][data-seen="0"]')?.getAttribute('aria-pressed') === 'true'
+    && document.querySelector('#driveSheet [data-drive="say-send"]')?.textContent.trim() === 'Отправить: 95 нет', null, 5000));
+  await page.waitForTimeout(3500);
+  check('three and a half seconds later nothing has gone', (await reports(STOOD.station.id)).length === 0);
 
-  // 5. Another grade: its own mark, and the line names both.
+  // 3. The same button twice more, as a finger in a car does: still «95 нет».
+  await tap(page, say('AI95', false));
+  await tap(page, say('AI95', false));
+  check(`a double touch changes nothing (${await pressed(page)})`, await page.evaluate(() => document.querySelector('#driveSheet [data-grade="AI95"][data-seen="0"]')?.getAttribute('aria-pressed') === 'true'));
+
+  // 4. The other button changes the choice; more grades join the same look.
+  await tap(page, say('AI95', true));
   await tap(page, say('AI92', false));
-  check('«92 нет» goes too', await eventually(async () => (await reports(STOOD.station.id)).some((item) => item.grade === 'AI92' && item.seen === false), 2500));
-  const line = await text(page, '#driveSheet .drive-said');
-  check(`«${line}»`, line.includes('Ушло своим: 92 нет, 95 нет') && line.includes('Отменить'));
-  await page.screenshot({ path: path.join(OUT, `one-touch-${label}-2-said.png`) });
+  await tap(page, say('AI98', false));
+  check(`«${await sendText()}»`, (await sendText()) === 'Отправить: 92 нет, 95 есть, 98 нет' && (await pressed(page)) === 'AI92 нет, AI95 есть, AI98 нет');
+  check('the sheet lies on screen with the choice and «Отправить»', await framed(page));
+  await page.screenshot({ path: path.join(OUT, `one-touch-${label}-2-chosen.png`) });
 
-  // 6. «Отменить» takes back what went from here.
-  await tap(page, '#driveSheet [data-drive="said-undo"]');
-  check('«Отменить» takes both back at the club', await eventually(async () => (await reports(STOOD.station.id)).length === 0, 8000));
-  check('and on the phone: no line, no button pressed', await becomes(page, () => !document.querySelector('#driveSheet .drive-said')
+  // 5. «Сбросить» lets the choice go; chosen again, «Отправить» sends one look.
+  await tap(page, '#driveSheet [data-drive="say-clear"]');
+  check('«Сбросить»: nothing pressed, no «Отправить»', await becomes(page, () => !document.querySelector('#driveSheet [data-drive="say-send"]')
     && !document.querySelector('#driveSheet [data-drive="say"][aria-pressed="true"]'), null, 5000));
+  await tap(page, say('AI92', false));
+  await tap(page, say('AI95', false));
+  await tap(page, send);
+  check('«Отправить» sends «92 нет» and «95 нет» as one look', await eventually(async () => {
+    const got = await reports(STOOD.station.id);
+    const at = new Set(got.map((item) => item.at));
+    return got.length === 2 && at.size === 1 && got.every((item) => item.seen === false) && got.some((item) => item.grade === 'AI92') && got.some((item) => item.grade === 'AI95');
+  }, 5000));
+  const line = await text(page, '#driveSheet .drive-said');
+  check(`under the buttons: «${line}», and the choice is gone`, line.includes('Ушло своим: 92 нет, 95 нет') && line.includes('Отменить')
+    && !(await page.$(send)) && !(await page.$('#driveSheet [data-drive="say"][aria-pressed="true"]')));
+  await page.screenshot({ path: path.join(OUT, `one-touch-${label}-3-sent.png`) });
 
-  // 4. On the move the driver's sheet is locked; «я пассажир» lifts it.
+  // 6. «Отменить» takes the look back.
+  await tap(page, '#driveSheet [data-drive="said-undo"]');
+  check('«Отменить» takes the look back at the club', await eventually(async () => (await reports(STOOD.station.id)).length === 0, 8000));
+  check('and the line goes', await becomes(page, () => !document.querySelector('#driveSheet .drive-said'), null, 5000));
+
+  // 7. On the move the driver's sheet is locked; «я пассажир» lifts it.
   const way = PASSED.way;
   let t = -700;
   await step(way.at(t), 300);
@@ -312,12 +323,15 @@ async function run(label, browserType, device) {
   await step(way.at((t += STEP_METRES)));
   check('«я пассажир»: every grade\'s «есть» and «нет», on the move', await page.evaluate(() => drive.passenger && document.querySelectorAll('#driveSheet [data-drive="say"]').length === 10 && movingNow()));
   await tap(page, say('AI95', true));
-  check('a passenger\'s «95 есть» goes at the touch, on the move', await eventually(async () => (await reports(PASSED.station.id)).some((item) => item.grade === 'AI95' && item.seen === true), 2500));
+  check('a passenger\'s choice waits for «Отправить», on the move too', (await text(page, '#driveSheet [data-drive="say-send"]')) === 'Отправить: 95 есть'
+    && (await reports(PASSED.station.id)).length === 0);
+  await tap(page, '#driveSheet [data-drive="say-send"]');
+  check('«Отправить» sends it on the move', await eventually(async () => (await reports(PASSED.station.id)).some((item) => item.grade === 'AI95' && item.seen === true), 5000));
   await step(way.at((t += STEP_METRES)));
   check('and its line with «Отменить» stays while the car moves', await page.evaluate(() => document.querySelector('#driveSheet .drive-said')?.textContent.includes('Ушло своим: 95 есть')
     && !!document.querySelector('#driveSheet [data-drive="said-undo"]') && movingNow()));
 
-  // 5. Gone past: the station stays a passenger's sheet for a moment.
+  // 8. Gone past: the station stays a passenger's sheet for a moment.
   while (t < 180) await step(way.at((t += STEP_METRES)));
   const behind = await text(page, '#driveSheet');
   check(`gone past, the sheet stays on it: «${behind.slice(0, 40)}…»`, behind.startsWith('Проехали') && await page.evaluate((id) => stepDrive().focus?.station.id === id
