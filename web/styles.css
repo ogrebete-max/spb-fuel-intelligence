@@ -911,6 +911,9 @@ body.driving .toast-stack { display: none; }
 .drive .drive-route.road { stroke-dasharray: none; stroke-width: 5; opacity: .85; animation: none; }
 .drive button.drive-lock { width: 100%; border: 0; text-align: left; cursor: pointer; }
 .drive-lock u { text-underline-offset: 3px; }
+/* The iPhone's settings hint under the sheet, while the car stands. */
+.drive button.drive-hint { width: 100%; margin-top: 10px; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--chipbg); color: var(--ink); font: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; }
+.drive-hint u { text-underline-offset: 3px; }
 .drive .look-delete { justify-self: start; min-height: 48px; border: 0; border-radius: 14px; padding: 10px 16px; background: var(--badbg); color: var(--badink); font-size: 16px; font-weight: 800; }
 .drive-go { position: absolute; top: 8px; right: calc(14px + env(safe-area-inset-right, 0px)); min-height: 40px; border: 0; border-radius: 999px; padding: 0 14px; background: var(--plate); color: var(--plateink); font-size: 15px; font-weight: 800; box-shadow: 0 2px 8px var(--shade); }
 .drive-sheet:has(.drive-go) .drive-where { padding-right: 220px; }

@@ -69,7 +69,7 @@ const helpSays = (page, title) => becomes(page, (want) => document.querySelector
   && document.querySelector('#drawerContent h2')?.textContent === want, title);
 const toasts = (page) => page.evaluate(() => [...document.querySelectorAll('#toastStack .toast')].map((toast) => toast.textContent).join(' | '));
 
-async function open(browserType, device, { standalone, userAgent, granted = false, silent = false, asks = false, apiSaysDenied = false } = {}) {
+async function open(browserType, device, { standalone, userAgent, granted = false, silent = false, asks = false, apiSaysDenied = false, answerAfter = 0 } = {}) {
   env = { REPORTS: new MemoryKV(), DB: new FakeD1(), ORIGIN: `http://localhost:${SITE_PORT}` };
   const browser = await browserType.launch();
   const context = await browser.newContext({
@@ -105,6 +105,23 @@ async function open(browserType, device, { standalone, userAgent, granted = fals
       if (navigator.permissions) navigator.permissions.query = query;
       else Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query } });
     });
+  }
+  // An iPhone that asked for the place again: nothing comes until a person
+  // has tapped «Разрешить», this long after the page asked.
+  if (answerAfter) {
+    await context.addInitScript((ms) => {
+      const real = navigator.geolocation;
+      const started = Date.now();
+      const late = (ok) => (position) => setTimeout(() => ok(position), Math.max(0, started + ms - Date.now()));
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          getCurrentPosition: (ok, fail, options) => real.getCurrentPosition(late(ok), fail, options),
+          watchPosition: (ok, fail, options) => real.watchPosition(late(ok), fail, options),
+          clearWatch: (id) => real.clearWatch(id),
+        },
+      });
+    }, answerAfter);
   }
   // The phone's notification question is counted, not answered.
   if (asks) {
@@ -289,6 +306,54 @@ async function apiDenied() {
   await page.waitForSelector('#stationList .station-card', { timeout: 30000 });
   await page.waitForTimeout(2500);
   check('and the launch after the refusal stays on the ordinary screen', await page.evaluate(() => !drive.open));
+  check('a place that came at once on every launch was never counted as iOS asking again', await page.evaluate(() => !JSON.parse(localStorage.getItem('spbfi-ios-asked-v1') || '[]').length));
+  check(`no page errors (${errors.length})`, errors.length === 0);
+  if (errors.length) console.log(errors.slice(0, 5).join('\n'));
+  await browser.close();
+}
+
+// «На iPhone постоянно спрашивает подтвердить местоположение, каждый раз, когда
+// заходишь» (30 Sep 2026, iOS 27): iOS forgets an «Разрешить» within hours and
+// no page can stop it asking; the phone's settings can. A launch on which the
+// browser does not hold the permission, on a phone that gave the app a place
+// before, and whose first fix comes a person's answer later, is iOS asking
+// again: twice, and the app shows once how to switch the question off.
+async function asksAgain() {
+  console.log('\n=== iphone-asks-again');
+  const { browser, page, errors } = await open(webkit, devices['iPhone 13'], { granted: true, apiSaysDenied: true, standalone: true, answerAfter: 2500 });
+  const hint = () => page.evaluate(() => [...document.querySelectorAll('#toastStack .toast')].some((toast) => toast.textContent.includes('iPhone спрашивает место')));
+  const asked = () => page.evaluate(() => JSON.parse(localStorage.getItem('spbfi-ios-asked-v1') || '[]').length);
+  const launch = async () => {
+    await page.reload({ waitUntil: 'load' });
+    await becomes(page, () => !!state.location, null, 30000);
+    await page.waitForTimeout(500);
+  };
+  await becomes(page, () => !!state.location, null, 30000);
+  check('the first launch, before any place was given, is no question asked again', (await asked()) === 0 && !(await hint()));
+  await launch();
+  check('asked again once: counted, no hint yet', (await asked()) === 1 && !(await hint()));
+  await launch();
+  check('asked again twice, and counted', (await asked()) === 2);
+  // This phone starts on the navigator, where banners are not shown: there the
+  // hint is a line under the sheet, unless the car is known to be moving.
+  check('the app opened on the navigator', await page.evaluate(() => drive.open));
+  check('«📍 iPhone спрашивает место каждый раз? Как выключить» under the sheet', await becomes(page, () => document.querySelector('#driveSheet [data-drive="ios-ask"]')?.textContent.includes('iPhone спрашивает место каждый раз'), null, 8000));
+  await page.evaluate(() => document.querySelector('#driveSheet [data-drive="ios-ask"]')?.click());
+  check('it opens the two steps in the iPhone\'s settings', await becomes(page, () => {
+    const drawer = document.querySelector('#drawerContent');
+    return document.querySelector('#detailDrawer').classList.contains('open')
+      && drawer?.querySelector('h2')?.textContent === 'Чтобы iPhone не спрашивал место каждый раз'
+      && drawer.textContent.includes('Сайты Safari') && drawer.textContent.includes('При использовании приложения')
+      && drawer.textContent.includes('Геопозиция') && drawer.textContent.includes('«Разрешить»');
+  }, null, 5000));
+  await page.screenshot({ path: path.join(OUT, 'denied-iphone-asks-again.png') });
+  await page.click('#iosAskDone');
+  check('«Понятно» closes it, and the line has gone', await becomes(page, () => !document.querySelector('#detailDrawer').classList.contains('open')
+    && !document.querySelector('#driveSheet [data-drive="ios-ask"]'), null, 5000));
+  await launch();
+  await page.waitForTimeout(1500);
+  check('asked a third time: once opened, the hint does not come back within two weeks', (await asked()) === 3 && !(await hint())
+    && await page.evaluate(() => !document.querySelector('#driveSheet [data-drive="ios-ask"]')));
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
   await browser.close();
@@ -346,6 +411,7 @@ try {
   await granted();
   await apiDenied();
   await unloaded();
+  await asksAgain();
 } finally {
   siteServer.close();
   workerServer.close();

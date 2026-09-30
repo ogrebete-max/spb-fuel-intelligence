@@ -343,7 +343,10 @@ async function bootstrap() {
   // button. If permission was never granted the browser asks once; if it was
   // refused earlier this fails silently and the city list stays.
   const touchDevice = window.matchMedia('(pointer: coarse)').matches;
-  if (touchDevice && navigator.geolocation) startFollowing({ manual: false });
+  if (touchDevice && navigator.geolocation) {
+    watchLaunchAsk();
+    startFollowing({ manual: false });
+  }
   try {
     state.meta = await api('/api/meta');
     // GitHub Pages lets a phone keep the page for ten minutes. Opened in that
@@ -1319,6 +1322,7 @@ function startFollowing({ manual = false } = {}) {
   const onFix = ({ coords, timestamp }) => {
     if (!located) {
       located = true;
+      noteLaunchAnswer();
       rememberLocated();
     }
     applyFix(coords, { stamp: timestamp });
@@ -2320,6 +2324,91 @@ async function locationGranted() {
 
 const LOCATED_KEY = 'spbfi-located-v1';
 const REFUSED_KEY = 'spbfi-refused-v1';
+
+// «На iPhone постоянно спрашивает подтвердить местоположение, каждый раз, когда
+// заходишь» (the owner, 30 Sep 2026, on iOS 27). His work log: an «Разрешить»
+// held for one and a half to four hours, then the question came back at the
+// next launch; the app asks for the place the way it has since 12 Sep. iOS
+// decides whether to ask, by its settings, and no page can change them — but
+// a phone of ours can be told where they are. A launch on which the browser
+// did not hold the permission, on a phone that had given the app a place
+// before, and whose first fix took a person's answer to arrive, is iOS asking
+// again. From the second such launch within three days the app offers how to
+// switch the question off — a banner, or on the navigator, where banners are
+// not shown, a line under the sheet while the car stands — on every launch
+// that asks again, until the steps have been opened (at most five times), and
+// then not for two weeks.
+const IOS_ASK_KEY = 'spbfi-ios-asked-v1';
+const IOS_ASK_HINT_KEY = 'spbfi-ios-ask-hint-v1';
+const IOS_ASK_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const IOS_ASK_REPEAT_MS = 14 * 24 * 60 * 60 * 1000;
+const IOS_ASK_SHOWS = 5;
+// A first fix later than this came after someone tapped «Разрешить».
+const IOS_ASK_ANSWER_MS = 1500;
+const launchAsk = { since: 0, held: null, counted: false };
+
+async function watchLaunchAsk() {
+  const { iOS, inAppBrowser } = platformInfo();
+  // A newcomer's first question is not a question asked again.
+  if (!iOS || inAppBrowser || !locatedBefore()) return;
+  launchAsk.since = Date.now();
+  let status = null;
+  try {
+    status = (await navigator.permissions?.query({ name: 'geolocation' }))?.state || null;
+  } catch {
+    // Not every browser answers; then nothing is counted.
+  }
+  launchAsk.held = status === 'granted';
+}
+
+function noteLaunchAnswer() {
+  if (launchAsk.held !== false || launchAsk.counted) return;
+  launchAsk.counted = true;
+  const now = Date.now();
+  if (now - launchAsk.since < IOS_ASK_ANSWER_MS) return;
+  let times = [];
+  try {
+    times = JSON.parse(localStorage.getItem(IOS_ASK_KEY) || '[]').filter((at) => now - at < IOS_ASK_WINDOW_MS);
+    times.push(now);
+    localStorage.setItem(IOS_ASK_KEY, JSON.stringify(times));
+  } catch {
+    // Without storage nothing is counted, and nothing is shown.
+    return;
+  }
+  worklog('geo_asked_again', { n: times.length });
+  if (times.length < 2) return;
+  let hint = {};
+  try {
+    hint = JSON.parse(localStorage.getItem(IOS_ASK_HINT_KEY) || '{}') || {};
+    if (now - Number(hint.seenAt || 0) < IOS_ASK_REPEAT_MS || Number(hint.shows || 0) >= IOS_ASK_SHOWS) return;
+    localStorage.setItem(IOS_ASK_HINT_KEY, JSON.stringify({ ...hint, shows: Number(hint.shows || 0) + 1 }));
+  } catch {
+    return;
+  }
+  worklog('ios_ask_hint');
+  drive.iosAskHint = true;
+  if (drive.open) renderDrive({ force: true });
+  showToast('📍 iPhone спрашивает место при каждом запуске?', 'Это настройка iPhone, её можно выключить. Нажмите — покажу как.', null, { key: 'ios-ask', onClick: showIosAskHelp });
+}
+
+function showIosAskHelp() {
+  drive.iosAskHint = false;
+  try {
+    localStorage.setItem(IOS_ASK_HINT_KEY, JSON.stringify({ seenAt: Date.now(), shows: 0 }));
+  } catch {
+    // It may come once more; no harm.
+  }
+  worklog('ios_ask_help');
+  if (drive.open) renderDrive({ force: true });
+  openDrawer(`<h2>Чтобы iPhone не спрашивал место каждый раз</h2>
+    <p class="drawer-address">Приложение просит место при каждом запуске, а спрашивать ли вас, решает сам iPhone. Сейчас он забывает ваше «Разрешить» через несколько часов. Это меняется в настройках iPhone:</p>
+    <ol class="install-steps">
+      <li>Настройки → Конфиденциальность и безопасность → Службы геолокации → <b>Сайты Safari</b> → <b>«При использовании приложения»</b>. Там же включите <b>«Точная геопозиция»</b>.</li>
+      <li>Если всё равно спрашивает: Настройки → Приложения → Safari → <b>Геопозиция</b> → <b>«Разрешить»</b>. Тогда и другие сайты перестанут спрашивать. В iOS постарше это Настройки → Safari → Геопозиция.</li>
+    </ol>
+    <button type="button" class="list-more" id="iosAskDone">Понятно</button>`);
+  $('#iosAskDone').addEventListener('click', closeDrawer);
+}
 
 function rememberLocated() {
   try {
@@ -5521,7 +5610,7 @@ const drive = {
   free: false, freeUntil: 0, pressed: false, flyingUntil: 0, place: null, tapped: null, routeOn: true, passenger: false,
   ticker: null, heldTimer: null, wakeLock: null, theme: 'auto', themeAt: 0, pick: null, pinnedId: null,
   question: null, asked: new Set(), sent: null, touchAt: 0, kind: '', offered: false, offerOff: false,
-  said: [], lastNear: null,
+  said: [], lastNear: null, iosAskHint: false,
   // Stations where a 👍 confirmed someone's mark: that was the look at the pumps.
   confirmed: new Map(),
 };
@@ -6578,9 +6667,14 @@ function paintDrivePanels(view) {
   // Banners are not shown over this screen, so a failure it must tell about
   // heads whichever panel is up for a few seconds.
   const flash = drive.flash && view.now < drive.flash.until ? `<p class="drive-flash" role="status">${escapeHtml(drive.flash.text)}</p>` : '';
+  // The iPhone's settings hint (see noteLaunchAnswer), never while the car is
+  // known to move. Unlike a mark it is shown before the speed is known: the
+  // question comes at launch, and someone opening the app is seldom driving.
+  const hint = drive.iosAskHint && !((view.speed ?? 0) > MOVING_KMH)
+    ? '<button type="button" class="drive-hint" data-drive="ios-ask">📍 iPhone спрашивает место каждый раз? <u>Как выключить</u></button>' : '';
   setDriveHtml(pick, picked);
   setDriveHtml(full, picked || !panels.full ? '' : flash + panels.full);
-  setDriveHtml(sheet, picked || panels.full || !panels.sheet ? '' : flash + panels.sheet);
+  setDriveHtml(sheet, picked || panels.full || !panels.sheet ? '' : flash + panels.sheet + hint);
   // A panel slides in when it starts saying something else, not on every fix.
   const kind = picked ? `pick-${drive.pick}` : view.kind;
   if (kind !== drive.kind) {
@@ -7017,6 +7111,8 @@ function onDriveTap(event) {
     setDriveTheme(button.dataset.mode);
   } else if (action === 'say') {
     chooseDriveGrade(station, button.dataset.grade, button.dataset.seen === '1');
+  } else if (action === 'ios-ask') {
+    showIosAskHelp();
   } else if (action === 'say-send') {
     sendDriveLook(station, movingNow() ? 'passenger' : 'near', { inline: true });
   } else if (action === 'say-clear') {
