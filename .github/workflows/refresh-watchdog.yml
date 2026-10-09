@@ -1,0 +1,41 @@
+name: Free a stuck refresh chain
+
+# On 6 Oct 2026 a chain of refresh-and-deploy.yml stopped in a slot that sat
+# «waiting» for the github-pages environment and never ran; holding its
+# concurrency group, it kept every later run out, and nothing was published
+# for three days (scripts/refresh_watchdog.py says the rest). This looks from
+# outside that group: when the published snapshot is stale, it cancels a run
+# older than a chain can take, and starts a chain when none is left to start.
+
+on:
+  schedule:
+    # A frequent cron on a public repository runs only now and then — about
+    # once in two hours in Sep 2026 — which is soon enough to free a chain
+    # stuck for hours.
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+# Its own group: the stuck chain holds spb-fuel-refresh, and this must not
+# queue behind it.
+concurrency:
+  group: spb-fuel-watchdog
+  cancel-in-progress: true
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the watchdog
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Free a chain that has stopped publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/refresh_watchdog.py

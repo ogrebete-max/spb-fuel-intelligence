@@ -411,8 +411,16 @@ function keepOwnCode() {
   if (keep.length) navigator.serviceWorker.ready.then((registration) => registration.active?.postMessage({ keep })).catch(() => {});
 }
 
+// How old the published snapshot is, in seconds, or null when nothing says.
+function snapshotAgeSeconds() {
+  if (!state.meta) return null;
+  return state.meta.mode === 'static_github_pages' && state.meta.snapshot_at
+    ? Math.max(0, Math.round((Date.now() - new Date(state.meta.snapshot_at).getTime()) / 1000))
+    : state.meta.snapshot_age_seconds ?? null;
+}
+
 function renderMeta() {
-  const frozenAge = state.meta.mode === 'static_github_pages' && state.meta.snapshot_at ? Math.max(0, Math.round((Date.now() - new Date(state.meta.snapshot_at).getTime()) / 1000)) : state.meta.snapshot_age_seconds;
+  const frozenAge = snapshotAgeSeconds();
   const [title, subtitle, stale, late] = formatSnapshot(frozenAge, state.meta.mode);
   const stats = state.meta.stats || {};
   const baseline = Number((stats.source_rows || {}).sber || 0);
@@ -6497,6 +6505,14 @@ function drivePanels(view) {
       <p class="drive-line">Ближайшая, где свои видели ${label}, — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}${driveOptions(view)}` };
   }
   if (view.kind === 'none') {
+    // 9 Oct 2026: the refresh had stopped for three days, every answer had aged
+    // out, and this sheet said «Рядом 95 нет ни на одной заправке» — no data
+    // read as no fuel. With the snapshot past an hour, it says what is true.
+    const age = snapshotAgeSeconds();
+    if (age != null && age > 60 * 60) {
+      return { sheet: `${where('Данные устарели')}<p class="drive-line">Последнее обновление ${escapeHtml(formatAge(age))}</p>
+        ${meta(`Свежих ответов нет, поэтому заправки серые. Это не значит, что ${driveGradeLabel()} нет: источники давно не обновлялись. Обновление возобновится само.`)}` };
+    }
     if (!focus) return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}<p class="drive-line">Рядом ${label} нет ни на одной заправке</p>` };
     return { sheet: `${where(`Впереди ${driveGradeLabel()} нет`)}${still ? driveGo(station) : ''}
       <p class="drive-line">Ближайшая с ${label} — ${escapeHtml(shortNetwork(station.network))}, <span class="drive-yes">${escapeHtml(`${driveDistance(focus.metres)}${driveDirection(focus.turn)}`)}</span></p>${meta(driveMeta(station))}${still ? meta(driveRouteNote(station.id)) : ''}${driveOptions(view)}` };

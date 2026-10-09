@@ -130,6 +130,26 @@ async function run(label, browserType, device) {
   check('and a nearer one without it, if any, is named below as «мимо»',
     !reading.passing || (reading.by.startsWith('мимо:') && reading.by.includes(reading.passing.split(',')[0])));
 
+  // 9 Oct 2026: the refresh had stopped for three days, every answer had aged
+  // out to grey, and the sheet said «Рядом 95 нет ни на одной заправке». A
+  // snapshot that old is said to be old, not read as no fuel.
+  const stale = JSON.parse(SERVED['/static-data/stations-AI95.json']);
+  stale.stations.forEach((station) => { station.grade.status = 'NO_FRESH_DATA'; });
+  await page.route('**/static-data/stations-AI95.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(stale) }));
+  await page.route('**/static-data/meta.json**', async (route) => {
+    const meta = JSON.parse(fs.readFileSync(path.join(SITE, 'static-data', 'meta.json'), 'utf8'));
+    meta.snapshot_at = new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString();
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(meta) });
+  });
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForSelector('#stationList .station-card', { timeout: 30000 });
+  await page.click('#modeBar [data-screen="drive"]').catch(() => {});
+  await becomes(page, () => drive.open, null, 8000);
+  const staleSheet = await becomes(page, () => document.querySelector('#driveSheet')?.textContent.includes('Данные устарели'), null, 15000)
+    ? await page.evaluate(() => document.querySelector('#driveSheet').textContent.replace(/\s+/g, ' ').trim()) : '';
+  check(`three days without a refresh: «${staleSheet.slice(0, 120)}»`, staleSheet.startsWith('Данные устарели')
+    && staleSheet.includes('Последнее обновление') && staleSheet.includes('Это не значит, что 95 нет') && !staleSheet.includes('ни на одной заправке'));
+
   check(`no page errors (${errors.length})`, errors.length === 0);
   if (errors.length) console.log(errors.slice(0, 5).join('\n'));
   await browser.close();
