@@ -5390,20 +5390,37 @@ function pinLabel(station) {
 // With fewer stations answering than this, the map screen shows every station from afar.
 const MAP_ANSWERED_ENOUGH = 150;
 
+// The pins on the map by station, kept between redraws (10 Oct 2026, the
+// owner: «карта перестала практически скролиться»). Every move of the map used
+// to throw all its pins away and build them again: with no fresh answer
+// anywhere that is every station in town, over a second of work for a phone
+// after each touch, and the map stopped following the finger. A pin is now
+// built again only when what it shows changes, so a pan from afar touches none,
+// and a pin's open popup stays open while the map moves under it.
+const mapPins = new Map();
+// «👁 Свои» draws pins of its own into the same layer.
+let mapPinsOwn = false;
+
 function renderMarkers() {
   if (!state.map || !state.markers) return;
   renderMe();
-  state.markers.clearLayers();
   if (state.ownOnly) {
+    state.markers.clearLayers();
+    mapPins.clear();
+    mapPinsOwn = true;
     renderOwnMarkers();
     return;
+  }
+  if (mapPinsOwn) {
+    state.markers.clearLayers();
+    mapPinsOwn = false;
   }
   const labelled = state.map.getZoom() >= LABEL_ZOOM;
   const bounds = labelled ? state.map.getBounds().pad(0.3) : null;
   // The map screen has the whole city for the grade, not the list's page of it.
-  // Every pin is drawn anew on each move, so closer in the stations in sight, and
-  // from afar the stations with an answer, unless a snapshot left without update
-  // has too few of those to show the city by.
+  // The pins are worked out anew on each move, so closer in the stations in
+  // sight, and from afar the stations with an answer, unless a snapshot left
+  // without update has too few of those to show the city by.
   const whole = mapScreenOn() && state.mapStationsGrade === state.grade;
   let stations = state.stations;
   if (whole && labelled) {
@@ -5412,19 +5429,42 @@ function renderMarkers() {
     const answered = state.mapStations.filter((station) => station.grade.status !== 'NO_FRESH_DATA');
     stations = answered.length >= MAP_ANSWERED_ENOUGH ? answered : state.mapStations;
   }
+  const wanted = new Set();
+  let built = false;
   stations.forEach((station) => {
+    const { lat, lon } = station.location;
     const status = STATUS[station.grade.status];
-    const withLabel = labelled && bounds.contains([station.location.lat, station.location.lon]);
-    const icon = L.divIcon({
-      className: '',
-      html: `<div class="fuel-pin${withLabel ? ' labelled' : ''}" style="--marker:${status.color}"><span class="fuel-marker"></span>${withLabel ? pinLabel(station) : ''}</div>`,
-      iconSize: [20, 20], iconAnchor: [10, 20],
-    });
-    const marker = L.marker([station.location.lat, station.location.lon], { icon, stationId: station.id });
-    marker.bindPopup(`<div class="popup-title">${escapeHtml(station.network)}</div><div>${escapeHtml(shortAddress(station.address))}</div><div class="popup-status" style="--popup-color:${status.color}">${escapeHtml(station.grade.label)}</div><button class="popup-open" onclick="window.openFuelStation('${station.id}')">Открыть и отметить</button>`);
+    const withLabel = labelled && bounds.contains([lat, lon]);
+    const html = `<div class="fuel-pin${withLabel ? ' labelled' : ''}" style="--marker:${status.color}"><span class="fuel-marker"></span>${withLabel ? pinLabel(station) : ''}</div>`;
+    wanted.add(station.id);
+    const kept = mapPins.get(station.id);
+    if (kept && kept.html === html && kept.lat === lat && kept.lon === lon) {
+      // The popup is written when it opens, from the newest data of the station.
+      kept.station = station;
+      return;
+    }
+    if (kept) state.markers.removeLayer(kept.marker);
+    const icon = L.divIcon({ className: '', html, iconSize: [20, 20], iconAnchor: [10, 20] });
+    const marker = L.marker([lat, lon], { icon, stationId: station.id });
+    const pin = { marker, html, lat, lon, station };
+    marker.bindPopup(() => pinPopup(pin.station));
     marker.addTo(state.markers);
+    mapPins.set(station.id, pin);
+    built = true;
   });
-  paintNearby();
+  mapPins.forEach((kept, id) => {
+    if (wanted.has(id)) return;
+    state.markers.removeLayer(kept.marker);
+    mapPins.delete(id);
+  });
+  // A kept pin keeps the «рядом» it was painted with; the phone's own moves
+  // repaint them all (refreshNearby).
+  if (built) paintNearby();
+}
+
+function pinPopup(station) {
+  const status = STATUS[station.grade.status];
+  return `<div class="popup-title">${escapeHtml(station.network)}</div><div>${escapeHtml(shortAddress(station.address))}</div><div class="popup-status" style="--popup-color:${status.color}">${escapeHtml(station.grade.label)}</div><button class="popup-open" onclick="window.openFuelStation('${station.id}')">Открыть и отметить</button>`;
 }
 
 // ---------------------------------------------------------------- motion

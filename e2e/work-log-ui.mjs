@@ -227,12 +227,11 @@ async function run(label, browserType, device, narrow) {
   check('its ◐ offers «Сообщить о проблеме»', await becomes(page, () => !!document.querySelector('#drivePick:not([hidden]) [data-drive="problem"]'), null, 3000));
   await tap(page, '#drivePick [data-drive="problem"]');
   const formUp = await drawerSays(page, 'Сообщить о проблеме');
-  // The drawer slides in for a quarter of a second.
-  await page.waitForTimeout(500);
-  check('which opens the form over the navigator', formUp && await page.evaluate(() => {
+  // The drawer slides in for a quarter of a second, longer on a busy machine.
+  check('which opens the form over the navigator', formUp && await becomes(page, () => {
     const field = document.querySelector('#problemText').getBoundingClientRect();
     return document.querySelector('#detailDrawer').contains(document.elementFromPoint(field.left + field.width / 2, field.top + field.height / 2));
-  }));
+  }, null, 3000));
   await page.screenshot({ path: path.join(OUT, `worklog-${label}-1-nav-form.png`) });
   await tap(page, '#drawerClose');
   // A finger takes the map off the car; «⌖» brings it back.
