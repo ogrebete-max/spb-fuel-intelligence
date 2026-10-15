@@ -82,6 +82,20 @@ https://@IP@ {
 		}
 	}
 
+	# «Ау» — поход для близких (C:\STT\au-les\server\trip_server.py, au-trip.service): the points of a trip go to the
+	# service; /les/trip/<id> is trip.html of the live release. Never cached; the link goes no further as a Referer.
+	handle /les/api/trip/* {
+		reverse_proxy 127.0.0.1:8792
+	}
+	handle /les/trip/* {
+		root * /var/www/les/current
+		rewrite * /trip.html
+		header Cache-Control "no-store"
+		header Referrer-Policy "strict-origin"
+		header X-Robots-Tag "noindex, nofollow"
+		file_server
+	}
+
 	redir /les /les/ 308
 	handle_path /les/* {
 		root * /var/www/les/current
