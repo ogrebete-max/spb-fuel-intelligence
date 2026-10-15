@@ -51,6 +51,17 @@ https://@IP@ {
 		file_server
 	}
 
+	# «Ау» — лесной навигатор (C:\STT\au-les, scripts/deploy_vps.sh): a static site under /les/.
+	redir /les /les/ 308
+	handle_path /les/* {
+		root * /var/www/les/current
+		@lasting path /vendor/* /icons/*
+		header @lasting Cache-Control "public, max-age=2592000"
+		@fresh path / /index.html /sw.js /manifest.webmanifest /*.js
+		header @fresh Cache-Control "no-cache"
+		file_server
+	}
+
 	handle {
 		reverse_proxy 127.0.0.1:8787 {
 			# The address Caddy saw. server/http.mjs takes the last entry of this
