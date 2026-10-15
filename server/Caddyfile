@@ -52,6 +52,21 @@ https://@IP@ {
 	}
 
 	# «Ау» — лесной навигатор (C:\STT\au-les, scripts/deploy_vps.sh): a static site under /les/.
+	# Overpass for «Ау» (roads, bogs, power lines around a person): the public servers turn browsers away (an
+	# Origin header gets a 504 from Mail.ru, the others send no CORS header); asked from here, Mail.ru answers.
+	handle /les/api/overpass {
+		rewrite * /osm/tools/overpass/api/interpreter
+		reverse_proxy https://maps.mail.ru {
+			header_up Host maps.mail.ru
+			header_up -Origin
+			header_up -Referer
+			header_up -Cookie
+			transport http {
+				response_header_timeout 120s
+			}
+		}
+	}
+
 	redir /les /les/ 308
 	handle_path /les/* {
 		root * /var/www/les/current
