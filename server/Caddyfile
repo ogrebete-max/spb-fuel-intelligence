@@ -67,6 +67,21 @@ https://@IP@ {
 		}
 	}
 
+	# The second way for «Ау»: overpass-api.de, asked from here with a User-Agent of its own.
+	handle /les/api/overpass2 {
+		rewrite * /api/interpreter
+		reverse_proxy https://overpass-api.de {
+			header_up Host overpass-api.de
+			header_up User-Agent "au-les/1.0 (+https://195.133.61.136/les/)"
+			header_up -Origin
+			header_up -Referer
+			header_up -Cookie
+			transport http {
+				response_header_timeout 120s
+			}
+		}
+	}
+
 	redir /les /les/ 308
 	handle_path /les/* {
 		root * /var/www/les/current
