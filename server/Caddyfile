@@ -96,6 +96,11 @@ https://@IP@ {
 		file_server
 	}
 
+	# «Ау» — общий поход (C:\STT\au-les\server\trip_server.py, au-trip.service): the places of a group of 2–8 people.
+	handle /les/api/group/* {
+		reverse_proxy 127.0.0.1:8792
+	}
+
 	redir /les /les/ 308
 	handle_path /les/* {
 		root * /var/www/les/current
