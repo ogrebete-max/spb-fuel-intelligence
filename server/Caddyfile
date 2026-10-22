@@ -111,6 +111,12 @@ https://@IP@ {
 		file_server
 	}
 
+	# Калькулятор медосмотров «Панацея» (C:\STT\medcalc, scripts/deploy_vps.sh): medcalc.service на 127.0.0.1:8793.
+	redir /medcalc /medcalc/ 308
+	handle_path /medcalc/* {
+		reverse_proxy 127.0.0.1:8793
+	}
+
 	handle {
 		reverse_proxy 127.0.0.1:8787 {
 			# The address Caddy saw. server/http.mjs takes the last entry of this
