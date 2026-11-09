@@ -10,12 +10,16 @@ an older deployment of the same commit, so it could not see that this one never
 went live. GitHub acknowledges deployments that are accepted and never served
 (community discussion 200884); deploying again is its advice.
 
-Here every attempt gets a build version of its own, so the status read back is
-its own. After «succeed» the site is asked for a file only this build carries
-(the probes the workflow packs into the site); a new file name each time,
-because GitHub's CDN keeps a «404» for minutes too. Not served — deploy again.
-Never served after a few attempts — the step fails, so the run shows red and
-the watchdog's stale check stays the last word.
+GitHub takes only a commit of the repository as a build version («404 Not
+Found» for a name of our own, 9 Nov 2026 18:19 UTC). So a slot deploys under
+the commit it has just stored its history in (the `state` branch, a new one
+each slot), which no other deployment has had, and its status read back is its
+own; under the code's commit when that is refused, as deploy-pages did. After
+«succeed» the site is asked for a file only this build carries (the probes the
+workflow packs into the site); a new file name each time, because GitHub's CDN
+keeps a «404» for minutes too. Not served — deploy again, now under the other
+commit. Never served after a few attempts — the step fails, so the run shows
+red and the watchdog's stale check stays the last word.
 
     python scripts/deploy_pages.py <artifact id>
 """
@@ -43,9 +47,11 @@ FAILED = {"deployment_failed", "deployment_perms_error", "deployment_content_fai
           "deployment_cancelled", "deployment_lost"}
 
 
-def build_version(sha: str, run_id: str, run_attempt: str, slot: str, attempt: int) -> str:
-    """A build version no other deployment has had."""
-    return f"{sha}-{run_id}-{run_attempt}-{slot}-{attempt}"
+def build_version(sha: str, state_sha: str, attempt: int) -> str:
+    """The commit to deploy under: the slot's own history commit, which no
+    other deployment has had, and the code's commit in between, so a retry is
+    a deployment under another name."""
+    return state_sha if state_sha and attempt % 2 else sha
 
 
 def probe_name(prefix: str, index: int) -> str:
@@ -133,16 +139,14 @@ def main() -> int:
     sha = os.environ["GITHUB_SHA"]
     probe = 0
     for attempt in range(1, ATTEMPTS + 1):
-        version = build_version(sha, os.environ.get("GITHUB_RUN_ID", "0"),
-                                os.environ.get("GITHUB_RUN_ATTEMPT", "1"), os.environ.get("SLOT", "0"), attempt)
+        version = build_version(sha, os.environ.get("STATE_SHA", ""), attempt)
         try:
             result, _ = deploy_once(repo, artifact_id, version)
         except HTTPError as error:
-            # One more way out: GitHub refusing a build version that is not a
-            # bare commit (9 Nov 2026, 18:19 UTC: «404 Not Found» for every
-            # such version, in the middle of an Actions outage). The commit
-            # itself is what deploy-pages always sent, and the probes still
-            # tell whether it went live.
+            # One more way out: GitHub refusing the history commit (9 Nov 2026,
+            # 18:19 UTC: «404 Not Found» for every name that was not a commit).
+            # The code's commit is what deploy-pages always sent, and the
+            # probes still tell whether it went live.
             detail = error.read().decode(errors="replace")[:300]
             print(f"attempt {attempt}: creating the deployment failed: HTTP {error.code} {detail}", flush=True)
             if fall_back_to_commit(error.code) and version != sha:

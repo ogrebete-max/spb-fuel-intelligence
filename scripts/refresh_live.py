@@ -170,10 +170,11 @@ REFUSED_ON_ACTIONS = {
                 "а его robots.txt закрывает /api/ для роботов; обходить запрет не будем",
 }
 
-# Sources whose site has closed. Still tried, so a return would be noticed
-# (both fail before a request is even sent), but this one failure of theirs is
-# no longer news and must not sit among the sources that broke (9 Nov 2026).
-# Any other failure, a revived site with a new page say, is still reported.
+# Sources whose site has closed, or that now refuse robots. Still tried, so a
+# return would be noticed (each costs one request or none), but this one
+# failure of theirs is no longer news and must not sit among the sources that
+# broke (9 Nov 2026). Any other failure, a revived site with a new page say, is
+# still reported.
 GONE = {
     # From ~5 Oct 2026 its server refuses every port; the domain is paid up and
     # no new address is known.
@@ -185,6 +186,12 @@ GONE = {
     "gdebenzin-full-aoi": ("Hostname mismatch",
                            "гдебензин.рф с 18.10 ведёт на чужой сайт, карты АЗС там больше нет; "
                            "проверку сертификата ради него не отключаем"),
+    # From 6 Nov 2026 Yandex answers GitHub's servers with its «are you a
+    # robot» check (its fuel block had already gone from their pages on
+    # 11 Oct). The pass stops at the first such page (collectors.collect_yandex).
+    "yandex-maps": ("не робот",
+                    "Яндекс с 6.11 показывает серверам GitHub проверку «вы не робот»; это отказ роботам, "
+                    "обходить его не будем — раз в 20 минут пробуем одной страницей"),
 }
 
 

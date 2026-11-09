@@ -112,7 +112,10 @@ jobs:
           SPBFI_REPORT_READER_KEY: ${{ secrets.SPBFI_REPORT_READER_KEY }}
         run: python scripts/refresh_live.py
 
+      # Its commit is new each slot, and the deploy step publishes under it:
+      # GitHub Pages takes only a commit as a build version.
       - name: Store temporal history
+        id: state
         run: |
           work="$(mktemp -d)"
           cp data/history.json "$work/history.json"
@@ -125,6 +128,7 @@ jobs:
           git add -A
           git commit -q -m "Fuel status history $(date -u +%FT%TZ)"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" state
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Build the static public map
         run: python scripts/build_static_site.py --output site
@@ -157,19 +161,19 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
-      # Not actions/deploy-pages: it names a deployment by the commit, and a
-      # chain deploys one commit sixteen times, so on 9 Nov 2026 it read back
-      # an older deployment's «succeed» while the site went unchanged for hours
-      # (scripts/deploy_pages.py says the rest). This gives every attempt a
-      # name of its own, checks the site serves the new build, and deploys
-      # again when it does not.
+      # Not actions/deploy-pages: it names a deployment by the code's commit,
+      # and a chain deploys one commit sixteen times, so on 9 Nov 2026 it read
+      # back an older deployment's «succeed» while the site went unchanged for
+      # hours (scripts/deploy_pages.py says the rest). This deploys under the
+      # slot's history commit, checks the site serves the new build, and
+      # deploys again when it does not.
       - name: Deploy to GitHub Pages
         id: deploy
         env:
           GH_TOKEN: ${{ github.token }}
           PAGES_URL: ${{ steps.pages.outputs.base_url }}
           PROBE_PREFIX: ${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.slot }}
-          SLOT: ${{ matrix.slot }}
+          STATE_SHA: ${{ steps.state.outputs.sha }}
         run: python scripts/deploy_pages.py "${{ steps.upload.outputs.artifact-id }}"
 
       # GitHub's schedule is only a wake-up and can sit in the queue for an hour

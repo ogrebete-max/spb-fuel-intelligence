@@ -13,17 +13,18 @@ from deploy_pages import build_version, outcome, probe_name  # noqa: E402
 
 WORKFLOW = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "refresh-and-deploy.yml"
 SHA = "e55c8ee3dcbbb77d3ac07f5853ee0f6539efe28e"
+# The slot's own commit on the `state` branch.
+STATE = "0123456789abcdef0123456789abcdef01234567"
 
 
 class DeployPagesTests(unittest.TestCase):
-    def test_every_attempt_of_every_slot_has_a_build_version_of_its_own(self):
-        # One commit was deployed 2736 times under one name; the status read
-        # back was some older deployment's.
-        versions = {build_version(SHA, "42653450427", "1", str(slot), attempt)
-                    for slot in range(16) for attempt in range(1, deploy_pages.ATTEMPTS + 1)}
-        self.assertEqual(len(versions), 16 * deploy_pages.ATTEMPTS)
-        self.assertTrue(all(version.startswith(SHA) and re.fullmatch(r"[0-9a-z-]+", version) for version in versions))
-        self.assertNotEqual(build_version(SHA, "1", "1", "0", 1), build_version(SHA, "1", "2", "0", 1))
+    def test_a_slot_deploys_under_its_own_history_commit_and_retries_under_the_other(self):
+        # One code commit was deployed 2736 times under one name; the status
+        # read back was some older deployment's. GitHub takes only commits.
+        self.assertEqual([build_version(SHA, STATE, attempt) for attempt in range(1, deploy_pages.ATTEMPTS + 1)],
+                         [STATE, SHA, STATE])
+        # A chain started before the history commit was passed on.
+        self.assertEqual({build_version(SHA, "", attempt) for attempt in range(1, 4)}, {SHA})
 
     def test_only_succeed_counts_as_live(self):
         self.assertEqual(outcome("succeed"), "live")
@@ -46,7 +47,7 @@ class DeployPagesTests(unittest.TestCase):
 class DeployLoopTests(unittest.TestCase):
     """main() against a fake Pages API: what 9 Nov looked like, and the way out."""
 
-    def run_main(self, statuses, served_probes, refuse_own_versions=False):
+    def run_main(self, statuses, served_probes, refuse_own_versions=False, state_sha=STATE):
         calls = {"created": [], "probes": []}
         state = {"status": iter(statuses)}
 
@@ -68,14 +69,18 @@ class DeployLoopTests(unittest.TestCase):
 
         saved = (deploy_pages.github, deploy_pages.oidc_token, deploy_pages.served, deploy_pages.time.sleep, sys.argv)
         env = {"GITHUB_REPOSITORY": "o/r", "PAGES_URL": "https://o.github.io/r", "PROBE_PREFIX": "9-1-3",
-               "GITHUB_SHA": SHA, "GITHUB_RUN_ID": "9", "GITHUB_RUN_ATTEMPT": "1", "SLOT": "3", "GITHUB_OUTPUT": ""}
+               "GITHUB_SHA": SHA, "STATE_SHA": state_sha, "GITHUB_OUTPUT": ""}
         import os
         old_env = {key: os.environ.get(key) for key in env}
         try:
             deploy_pages.github, deploy_pages.oidc_token, deploy_pages.served = github, (lambda: "token"), served
             deploy_pages.time.sleep = lambda seconds: None
             sys.argv = ["deploy_pages.py", "123"]
-            os.environ.update({key: value for key, value in env.items() if value})
+            for key, value in env.items():
+                if value:
+                    os.environ[key] = value
+                else:
+                    os.environ.pop(key, None)
             code = deploy_pages.main()
         finally:
             deploy_pages.github, deploy_pages.oidc_token, deploy_pages.served, deploy_pages.time.sleep, sys.argv = saved
@@ -90,19 +95,23 @@ class DeployLoopTests(unittest.TestCase):
         probe = "https://o.github.io/r/deploy-probe/9-1-3-10.txt"
         code, calls = self.run_main(["syncing_files", "succeed", "succeed"], {probe})
         self.assertEqual(code, 0)
-        self.assertEqual(len(calls["created"]), 2)
-        self.assertEqual(len(set(calls["created"])), 2)
+        self.assertEqual(calls["created"], [STATE, SHA])
         # The first attempt's eight probes never served; the second attempt's
         # second probe did, each a file never asked for before.
         self.assertEqual(calls["probes"][-1], probe)
         self.assertEqual(len(set(calls["probes"])), len(calls["probes"]))
 
-    def test_a_refused_build_version_falls_back_to_the_bare_commit(self):
-        # 9 Nov 2026, 18:19 UTC: «404 Not Found» for every version of our own.
+    def test_a_refused_build_version_falls_back_to_the_code_commit(self):
+        # 9 Nov 2026, 18:19 UTC: «404 Not Found» for every name not a commit.
         probe = "https://o.github.io/r/deploy-probe/9-1-3-1.txt"
         code, calls = self.run_main(["succeed"], {probe}, refuse_own_versions=True)
         self.assertEqual(code, 0)
-        self.assertEqual(calls["created"], [build_version(SHA, "9", "1", "3", 1), SHA])
+        self.assertEqual(calls["created"], [STATE, SHA])
+
+    def test_without_a_history_commit_it_deploys_as_deploy_pages_did(self):
+        probe = "https://o.github.io/r/deploy-probe/9-1-3-1.txt"
+        code, calls = self.run_main(["succeed"], {probe}, state_sha="")
+        self.assertEqual((code, calls["created"]), (0, [SHA]))
 
     def test_a_token_without_rights_is_not_retried_under_the_commit(self):
         self.assertFalse(deploy_pages.fall_back_to_commit(403))

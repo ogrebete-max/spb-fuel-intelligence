@@ -159,6 +159,15 @@ class CollectorTests(unittest.TestCase):
             "gdebenzin-full-aoi", started, ok=False, status=0, size=0,
             error="https://xn--90addebmh2bc.xn--p1ai/api/v1/map: certificate verify failed: Hostname mismatch"))
         self.assertTrue(mismatch["disabled"])
+        # Yandex's check for robots, from 6 Nov 2026, is a refusal, not a break.
+        captcha = refresh_live.gone(refresh_live._result(
+            "yandex-maps", started, ok=False, status=0, size=0,
+            error="RuntimeError: АЗС Teboil: Яндекс просит доказать, что мы не робот (→ https://yandex.ru/showcaptcha)"))
+        self.assertTrue(captcha["disabled"])
+        self.assertIn("обходить его не будем", captcha["note"])
+        missing = refresh_live.gone(refresh_live._result(
+            "yandex-maps", started, ok=False, status=0, size=0, error="RuntimeError: АЗС Teboil: fuel block missing"))
+        self.assertFalse(missing["ok"])
         # Any other failure of theirs is news again.
         other = refresh_live.gone(refresh_live._result(
             "azsmap", started, ok=False, status=0, size=0, error="RuntimeError: STATIONS block is missing"))
