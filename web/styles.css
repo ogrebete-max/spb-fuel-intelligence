@@ -368,6 +368,9 @@ footer button { border: 0; background: transparent; color: var(--brand); cursor:
   border-radius: 14px; border: 1px solid rgba(213, 138, 19, .35);
   background: rgba(251, 238, 210, .75); color: #6b4405;
 }
+/* Nothing failed, some feeds only have nothing new: said, but not as a warning. */
+.collector-banner.calm { border-color: rgba(13, 51, 40, .14); background: rgba(255, 255, 255, .7); color: #44524b; }
+.collector-banner.calm button { color: #0d5a43; }
 .collector-banner strong { font-size: 13px; }
 .collector-banner span { font-size: 12px; line-height: 1.4; }
 .collector-banner button {

@@ -37,6 +37,15 @@ SOURCE_COUNT_KEYS = {
 }
 
 
+# A feed whose newest mark about the pumps is older than this answers without
+# saying anything: answers last 30-45 minutes, and a busy feed brings marks
+# every few minutes.
+QUIET_AFTER_SECONDS = 3 * 3600
+# The group's own marks: hours without one are an ordinary evening, not a feed
+# that died.
+NOT_A_FEED = {"own-eyewitness"}
+
+
 def yandex_org(station: dict[str, Any]) -> str | None:
     """The station's organisation id in Yandex Maps, when Yandex is one of its feeds."""
     for ref in station.get("source_refs", []):
@@ -102,7 +111,7 @@ class StationRepository:
         """
         path = self.snapshot_path.parent / "live" / "full-aoi-probe-results.json"
         if not path.exists():
-            return {"total": 0, "ok": 0, "failed": []}
+            return {"total": 0, "ok": 0, "failed": [], "quiet": self.quiet_sources(set())}
         rows = json.loads(path.read_text(encoding="utf-8"))
         failed = [
             {"name": row.get("name"), "error": (row.get("error") or "")[:300]}
@@ -119,8 +128,36 @@ class StationRepository:
             "ok": sum(1 for row in live if row.get("ok")),
             "failed": sorted(failed, key=lambda row: str(row["name"])),
             "off": sorted(off, key=lambda row: str(row["name"])),
+            "quiet": self.quiet_sources({str(row.get("name")) for row in off}),
             "checked_at": max((row.get("captured_at") or "") for row in rows) or None,
         }
+
+    def quiet_sources(self, skip: set[str]) -> list[dict[str, Any]]:
+        """Feeds that answer, but whose newest mark about the pumps is old.
+
+        Such a feed is as silent as one that fails, and harder to see: on
+        9 Nov 2026 «29 of 30 answered» while benzinradar.ru's newest mark was
+        from 15 Sep and almost all of азсрадар.рф's from September. Only marks
+        about a grade count; prices and catalogues say nothing about the pumps,
+        and a feed without dated marks (card payments «now») is left out.
+        """
+        now = parse_time(self.snapshot.get("snapshot_at")) or datetime.now(timezone.utc)
+        newest: dict[str, datetime] = {}
+        for station in self.stations:
+            for row in station.get("evidence", []):
+                kind = str(row.get("kind") or "")
+                source = str(row.get("source") or "")
+                if (not source or source in skip or source in NOT_A_FEED or kind == "price"
+                        or kind.startswith("catalog") or row.get("availability") in (None, "UNKNOWN")):
+                    continue
+                observed = parse_time(row.get("observed_at"))
+                if observed is not None and (source not in newest or observed > newest[source]):
+                    newest[source] = observed
+        quiet = [
+            {"name": source, "last_mark": seen.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")}
+            for source, seen in newest.items() if (now - seen).total_seconds() > QUIET_AFTER_SECONDS
+        ]
+        return sorted(quiet, key=lambda row: row["last_mark"])
 
     def sources(self) -> dict[str, Any]:
         self._ensure_current()

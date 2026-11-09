@@ -68,3 +68,45 @@ class RepositoryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QuietSourceTests(unittest.TestCase):
+    """A feed that answers but has no new mark is named (9 Nov 2026)."""
+
+    def repository(self, evidence):
+        temp = TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / "snapshot.json"
+        path.write_text(json.dumps({
+            "schema_version": 1, "snapshot_at": "2026-11-09T18:36:00Z", "mode": "test",
+            "stations": [{"id": "one", "network": "Test", "address": "СПб", "location": {"lat": 59.9, "lon": 30.3},
+                          "source_refs": [], "evidence": evidence}],
+        }), encoding="utf-8")
+        return StationRepository(path)
+
+    def test_names_feeds_whose_newest_mark_is_old_and_only_those(self):
+        evidence = [
+            # benzinradar.ru: newest mark 15 Sep, the rest «unknown».
+            {"source": "benzinradar-analogue", "grade": "AI92", "availability": "NOT_AVAILABLE", "kind": "stale_or_crowd_status", "observed_at": "2026-09-15T18:10:08Z"},
+            {"source": "benzinradar-analogue", "grade": "AI95", "availability": "UNKNOWN", "kind": "stale_or_crowd_status", "observed_at": None},
+            # A feed marking now.
+            {"source": "gdebenzin-net", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-11-09T18:20:00Z"},
+            # Fresh prices and catalogues say nothing about the pumps.
+            {"source": "azsradar-rf", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-11-09T15:27:00Z"},
+            {"source": "azsradar-rf", "grade": "AI95", "availability": "UNKNOWN", "kind": "price", "observed_at": "2026-11-09T18:30:00Z"},
+            {"source": "rosneft-ptk", "grade": "AI95", "availability": "AVAILABLE", "kind": "catalog_price", "observed_at": "2026-09-01T00:00:00Z"},
+            # Card payments «now» carry no time; the group's own marks are no feed.
+            {"source": "transitcard", "grade": "AI95", "availability": "AVAILABLE", "kind": "payment_projection", "observed_at": None},
+            {"source": "own-eyewitness", "grade": "AI95", "availability": "AVAILABLE", "kind": "eyewitness", "observed_at": "2026-11-08T10:00:00Z"},
+            # Switched off: already said in its own section.
+            {"source": "yandex-maps", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-11-06T20:47:00Z"},
+        ]
+        quiet = self.repository(evidence).quiet_sources({"yandex-maps"})
+        self.assertEqual(quiet, [
+            {"name": "benzinradar-analogue", "last_mark": "2026-09-15T18:10:08Z"},
+            {"name": "azsradar-rf", "last_mark": "2026-11-09T15:27:00Z"},
+        ])
+
+    def test_meta_carries_the_quiet_list(self):
+        evidence = [{"source": "2gis-benzin", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-09-18T21:52:24Z"}]
+        self.assertEqual(self.repository(evidence).collectors()["quiet"], [{"name": "2gis-benzin", "last_mark": "2026-09-18T21:52:24Z"}])

@@ -448,25 +448,46 @@ function renderCollectorHealth() {
   const banner = $('#collectorBanner');
   const health = state.meta?.collectors;
   if (!banner) return;
-  if (!health || !health.failed?.length) {
+  const quiet = health?.quiet || [];
+  if (!health || (!health.failed?.length && !quiet.length)) {
     banner.hidden = true;
     return;
   }
-  const names = health.failed.map((item) => item.name).join(', ');
   banner.hidden = false;
-  banner.innerHTML = `<strong>Не ответили источники: ${escapeHtml(String(health.failed.length))} из ${escapeHtml(String(health.total))}</strong>`
-    + `<span>${escapeHtml(names)}. Остальные ${escapeHtml(String(health.ok))} отработали — ответы построены на них.</span>`
-    + `<button type="button" id="collectorDetails">Подробнее</button>`;
+  // A feed that answers with nothing new is named too, but calmly: nothing
+  // failed, its old marks simply do not count (9 Nov 2026, «29 из 30 ответили»
+  // while benzinradar.ru's newest mark was from 15 Sep).
+  banner.classList.toggle('calm', !health.failed?.length);
+  if (health.failed?.length) {
+    const names = health.failed.map((item) => item.name).join(', ');
+    banner.innerHTML = `<strong>Не ответили источники: ${escapeHtml(String(health.failed.length))} из ${escapeHtml(String(health.total))}</strong>`
+      + `<span>${escapeHtml(names)}. Остальные ${escapeHtml(String(health.ok))} отработали — ответы построены на них.</span>`;
+  } else {
+    banner.innerHTML = `<strong>Ответили все источники · без новых отметок: ${escapeHtml(String(quiet.length))}</strong>`
+      + `<span>${escapeHtml(quiet.map((item) => sourceTitle(item.name)).join(', '))}. Их старые отметки в ответы не входят — ответы строятся на свежих отметках остальных.</span>`;
+  }
+  banner.innerHTML += `<button type="button" id="collectorDetails">Подробнее</button>`;
   $('#collectorDetails').addEventListener('click', showCollectorHealth);
+}
+
+// When a quiet feed's newest mark was made, as a driver would say it.
+function lastMarkWhen(iso) {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return 'неизвестно когда';
+  const time = at.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  if (at.toDateString() === new Date().toDateString()) return `сегодня в ${time}`;
+  return `${at.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} в ${time}`;
 }
 
 function showCollectorHealth() {
   const health = state.meta?.collectors || { failed: [], ok: 0, total: 0 };
   const rows = health.failed.map((item) => `<div class="source-row"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.error || 'нет ответа')}</small></div>`).join('');
+  const quiet = (health.quiet || []).map((item) => `<div class="source-row"><strong>${escapeHtml(sourceTitle(item.name))}</strong><small>последняя отметка водителей — ${escapeHtml(lastMarkWhen(item.last_mark))}; старые отметки в ответы не входят</small></div>`).join('');
   const off = (health.off || []).map((item) => `<div class="source-row"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.note)}</small></div>`).join('');
   openDrawer(`<h2>Состояние источников</h2>
     <p class="drawer-address">На последнем обновлении ответили ${health.ok} из ${health.total} каналов. Когда источник молчит, его голос просто не учитывается — ответы строятся на остальных, а возраст данных остаётся виден на карточке.</p>
     ${rows ? `<h3 class="section-title">Не ответили</h3><div class="source-list">${rows}</div>` : '<div class="drawer-status" style="--status-color:#158257"><strong>Все источники ответили</strong><p>На последнем обновлении ни один канал не выпал.</p></div>'}
+    ${quiet ? `<h3 class="section-title">Отвечают, но новых отметок нет больше 3 часов</h3><div class="source-list">${quiet}</div>` : ''}
     ${off ? `<h3 class="section-title">Не считаются: заведомо недоступны с сервера</h3><div class="source-list">${off}</div>` : ''}`);
 }
 
@@ -1555,7 +1576,7 @@ const SOURCE_TITLES = {
   sber: 'Сбер', 'tbank-fuel': 'Т-Банк', 'alfa-azs': 'Альфа-Банк', transitcard: 'ППР', '2gis-benzin': '2ГИС',
   'yandex-maps': 'Яндекс', gdebenz: 'ГдеБЕНЗ', gdezapravka: 'ГдеЗаправка', benzonavt: 'Бензонавт',
   'azsradar-rf': 'АЗС радар', 'own-eyewitness': 'свои', gazpromneft: 'Газпромнефть', lukoil: 'Лукойл',
-  'rosneft-ptk': 'Роснефть', tatneft: 'Татнефть', teboil: 'Тебойл',
+  'rosneft-ptk': 'Роснефть', tatneft: 'Татнефть', teboil: 'Тебойл', 'benzinradar-analogue': 'Бензинрадар',
 };
 
 function sourceTitle(source) {
