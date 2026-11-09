@@ -146,6 +146,29 @@ class CollectorTests(unittest.TestCase):
         self.assertFalse(row["ok"])
         self.assertIn("STATIONS block is missing", row["error"])
 
+    def test_a_closed_site_failing_the_way_it_closed_is_switched_off_not_broken(self):
+        # 9 Nov 2026: azsmap.com refuses connections since early October, and
+        # гдебензин.рф points to another site since 18 Oct.
+        started = refresh_live.datetime.now(refresh_live.timezone.utc)
+        refused = refresh_live.gone(refresh_live._result(
+            "azsmap", started, ok=False, status=0, size=0,
+            error="RuntimeError: lenobl: URLError: <urlopen error [Errno 111] Connection refused>"))
+        self.assertTrue(refused["ok"] and refused["disabled"])
+        self.assertIn("azsmap.com", refused["note"])
+        mismatch = refresh_live.gone(refresh_live._result(
+            "gdebenzin-full-aoi", started, ok=False, status=0, size=0,
+            error="https://xn--90addebmh2bc.xn--p1ai/api/v1/map: certificate verify failed: Hostname mismatch"))
+        self.assertTrue(mismatch["disabled"])
+        # Any other failure of theirs is news again.
+        other = refresh_live.gone(refresh_live._result(
+            "azsmap", started, ok=False, status=0, size=0, error="RuntimeError: STATIONS block is missing"))
+        self.assertFalse(other["ok"])
+        self.assertNotIn("disabled", other)
+        # And a source that is not closed is never hidden.
+        alive = refresh_live.gone(refresh_live._result(
+            "benzas-full-aoi", started, ok=False, status=0, size=0, error="Connection refused"))
+        self.assertFalse(alive["ok"])
+
     def test_no_driver_account_reaches_a_capture(self):
         row = {"station": {"id": "1"}, "userId": 7, "recent_ugc_reports": [{"user_id": "42", "available": True}]}
         self.assertEqual(

@@ -156,8 +156,8 @@ def fetch_one(name: str, url: str | tuple[str, ...], referer: str) -> dict[str, 
             temporary.unlink(missing_ok=True)
             last_status = getattr(exc, "code", 0)
             failures.append(f"{candidate}: {exc}")
-    return _result(name, started, ok=False, status=last_status,
-                   size=target.stat().st_size if target.exists() else 0, error="; ".join(failures))
+    return gone(_result(name, started, ok=False, status=last_status,
+                        size=target.stat().st_size if target.exists() else 0, error="; ".join(failures)))
 
 
 # Feeds that refuse GitHub's servers on purpose. The attempt is kept, so an
@@ -169,6 +169,31 @@ REFUSED_ON_ACTIONS = {
     "gdebenzi": "gdebenzi.ru с 19.09 отвечает серверам GitHub «403: доступ запрещён», "
                 "а его robots.txt закрывает /api/ для роботов; обходить запрет не будем",
 }
+
+# Sources whose site has closed. Still tried, so a return would be noticed
+# (both fail before a request is even sent), but this one failure of theirs is
+# no longer news and must not sit among the sources that broke (9 Nov 2026).
+# Any other failure, a revived site with a new page say, is still reported.
+GONE = {
+    # From ~5 Oct 2026 its server refuses every port; the domain is paid up and
+    # no new address is known.
+    "azsmap": ("Connection refused",
+               "azsmap.com с начала октября не отвечает: сервер сайта выключен; "
+               "если заработает снова, будет учитываться сам"),
+    # From 18 Oct 2026 the domain points to another site (RoomTry AI), whose
+    # certificate does not name it; the map of stations is gone with it.
+    "gdebenzin-full-aoi": ("Hostname mismatch",
+                           "гдебензин.рф с 18.10 ведёт на чужой сайт, карты АЗС там больше нет; "
+                           "проверку сертификата ради него не отключаем"),
+}
+
+
+def gone(result: dict[str, Any]) -> dict[str, Any]:
+    """A closed source failing the way it closed, reported as switched off."""
+    known = GONE.get(result.get("name"))
+    if result.get("ok") or not known or known[0] not in str(result.get("error") or ""):
+        return result
+    return result | {"ok": True, "http_status": "off", "error": None, "disabled": True, "note": known[1]}
 
 
 def run_collector(name: str) -> dict[str, Any]:
@@ -188,8 +213,8 @@ def run_collector(name: str) -> dict[str, Any]:
             return _result(name, started, ok=True, status="off", size=0, error=None) | {
                 "disabled": True, "note": REFUSED_ON_ACTIONS[name],
             }
-        return _result(name, started, ok=False, status=0,
-                       size=target.stat().st_size if target.exists() else 0, error=f"{type(exc).__name__}: {exc}")
+        return gone(_result(name, started, ok=False, status=0,
+                            size=target.stat().st_size if target.exists() else 0, error=f"{type(exc).__name__}: {exc}"))
 
 
 def collect_gpn() -> dict[str, Any]:

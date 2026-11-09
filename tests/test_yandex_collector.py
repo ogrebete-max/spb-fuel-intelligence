@@ -55,13 +55,13 @@ class YandexCollectorTests(unittest.TestCase):
             page(station("2", 30.40, 59.95), station("3", 30.50, 60.00), {"id": "4", "coordinates": [30.1, 59.8]}),
         ])
 
-        def fetch(url, **kwargs):
+        def fetch(url):
             answer = next(pages, page())
             if isinstance(answer, Exception):
                 raise answer
-            return answer
+            return answer.decode(), url
 
-        with mock.patch.object(collectors, "_fetch", side_effect=fetch) as fetched, \
+        with mock.patch.object(collectors, "_yandex_page", side_effect=fetch) as fetched, \
                 mock.patch.object(collectors.time, "sleep") as slept:
             captured = collectors.collect_yandex()
         self.assertEqual(fetched.call_count, len(collectors.yandex_requests()))
@@ -69,8 +69,35 @@ class YandexCollectorTests(unittest.TestCase):
         self.assertEqual(sorted(item["id"] for item in captured["stations"]), ["1", "2", "3"])
         self.assertEqual(len(captured["errors"]), 2)
         self.assertTrue(captured["errors"][0].startswith(f"{collectors.YANDEX_SEARCHES[1]}: RuntimeError"))
-        self.assertTrue(captured["errors"][1].endswith("fuel block missing"))
+        self.assertIn("fuel block missing", captured["errors"][1])
         self.assertEqual((captured["searches"], captured["views"]), (len(collectors.YANDEX_SEARCHES), len(collectors.YANDEX_VIEWS)))
+
+    def test_says_what_came_instead_of_a_search_page(self):
+        # 6-9 Nov 2026: GitHub's servers got pages without the state block, and
+        # the collector could only say «fuel block missing».
+        pages = iter([b"<html><title>Yandex Maps</title>bare</html>", b"<html><title>Yandex Maps</title></html>"])
+
+        def fetch(url):
+            return next(pages, page(station("1", 30.30, 59.90))).decode(), url
+
+        with mock.patch.object(collectors, "_yandex_page", side_effect=fetch), \
+                mock.patch.object(collectors.time, "sleep"):
+            captured = collectors.collect_yandex()
+        self.assertIn("fuel block missing (→ https://yandex.ru/maps/2/saint-petersburg/search/", captured["errors"][0])
+        self.assertIn("«Yandex Maps»", captured["errors"][0])
+        self.assertTrue(captured["errors"][1].endswith("fuel block missing"))
+
+    def test_stops_at_a_check_for_robots(self):
+        captcha = ("<html><title>Вы не робот?</title></html>", "https://yandex.ru/showcaptcha?cc=1&retpath=x")
+
+        with mock.patch.object(collectors, "_yandex_page", return_value=captcha) as fetched, \
+                mock.patch.object(collectors.time, "sleep"):
+            with self.assertRaises(RuntimeError) as raised:
+                collectors.collect_yandex()
+        self.assertEqual(fetched.call_count, 1)
+        self.assertIn("не робот", str(raised.exception))
+        self.assertIn("https://yandex.ru/showcaptcha,", str(raised.exception))
+        self.assertNotIn("retpath", str(raised.exception))
 
 
 if __name__ == "__main__":

@@ -258,6 +258,27 @@ def yandex_requests() -> list[tuple[str, str]]:
     return searches + views
 
 
+YANDEX_TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.S | re.I)
+
+
+def yandex_page_without_state(final_url: str, page: str) -> tuple[str, bool]:
+    """What Yandex served instead of a search page, and whether it is a check
+    for robots. From 6 Nov 2026 GitHub's servers get pages without the state
+    block, with HTTP 200 (9 Nov 2026: the collector could not say what they
+    were). A «are you a robot» check is a refusal: the pass stops there, and
+    nothing is done to get past it."""
+    title = " ".join(html.unescape((YANDEX_TITLE.search(page) or [None, ""])[1]).split())[:80]
+    captcha = "showcaptcha" in final_url or "captcha" in title.lower() or "робот" in title.lower()
+    return f"→ {final_url.split('?')[0]}, «{title}», {len(page)} B", captcha
+
+
+def _yandex_page(url: str) -> tuple[str, str]:
+    """A search page as text, with the address it finally came from."""
+    headers = {"Accept": "text/html", "User-Agent": BROWSER_UA, "Accept-Language": "ru,en;q=0.8"}
+    with urlopen(Request(url, headers=headers), timeout=45) as response:
+        return response.read().decode("utf-8", "replace"), response.geturl()
+
+
 def collect_yandex() -> dict[str, Any]:
     if os.environ.get("SPBFI_DISABLE_YANDEX") == "1":
         raise RuntimeError("disabled by SPBFI_DISABLE_YANDEX")
@@ -267,13 +288,18 @@ def collect_yandex() -> dict[str, Any]:
         if index:
             time.sleep(1.0)
         try:
-            page = _fetch(url, accept="text/html", timeout=45).decode("utf-8", "replace")
+            page, final_url = _yandex_page(url)
         except Exception as exc:
             errors.append(f"{label}: {type(exc).__name__}: {exc}")
             continue
         match = YANDEX_STATE.search(page)
         if not match:
-            errors.append(f"{label}: fuel block missing")
+            what, captcha = yandex_page_without_state(final_url, page)
+            if captcha:
+                errors.insert(0, f"{label}: Яндекс просит доказать, что мы не робот ({what}); сбор остановлен")
+                break
+            # The first such page is described; the rest only counted.
+            errors.append(f"{label}: fuel block missing" + ("" if any("fuel block missing" in e for e in errors) else f" ({what})"))
             continue
         try:
             state = json.loads(html.unescape(match.group(1)))
