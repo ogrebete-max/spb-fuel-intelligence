@@ -130,16 +130,25 @@ jobs:
         run: python scripts/build_static_site.py --output site
 
       - name: Configure GitHub Pages
+        id: pages
         uses: actions/configure-pages@v5
 
       # Every slot in this run uploads a Pages artifact, and deploy-pages
       # refuses to act when it finds more than one artifact named
       # "github-pages" in the same run.  Packing and uploading it directly is
       # what upload-pages-artifact does anyway, and it can overwrite.
+      # The probes are files only this build has: the deploy step asks the
+      # site for them to see the new build actually served (24 = the attempts
+      # times the probes per attempt in scripts/deploy_pages.py).
       - name: Package the site
-        run: tar --dereference --hard-dereference -cf "${RUNNER_TEMP}/artifact.tar" -C site .
+        run: |
+          probe="${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.slot }}"
+          mkdir -p site/deploy-probe
+          for i in $(seq 1 24); do echo "$probe-$i" > "site/deploy-probe/$probe-$i.txt"; done
+          tar --dereference --hard-dereference -cf "${RUNNER_TEMP}/artifact.tar" -C site .
 
       - name: Upload the site
+        id: upload
         uses: actions/upload-artifact@v4
         with:
           name: github-pages
@@ -148,9 +157,20 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
+      # Not actions/deploy-pages: it names a deployment by the commit, and a
+      # chain deploys one commit sixteen times, so on 9 Nov 2026 it read back
+      # an older deployment's «succeed» while the site went unchanged for hours
+      # (scripts/deploy_pages.py says the rest). This gives every attempt a
+      # name of its own, checks the site serves the new build, and deploys
+      # again when it does not.
       - name: Deploy to GitHub Pages
         id: deploy
-        uses: actions/deploy-pages@v4
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}
+          PROBE_PREFIX: ${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.slot }}
+          SLOT: ${{ matrix.slot }}
+        run: python scripts/deploy_pages.py "${{ steps.upload.outputs.artifact-id }}"
 
       # GitHub's schedule is only a wake-up and can sit in the queue for an hour
       # (13 Sep 2026: the chain ended at 15:24 MSK and the next scheduled run
