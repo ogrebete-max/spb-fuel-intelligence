@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .capture_sources import CAPTURE_SOURCES
 from .evidence_engine import evaluate_grade, evaluate_station, parse_time, travel_advice
 from .history import load_history, timeline_for
 from .last_seen import silence_note
@@ -44,6 +45,16 @@ QUIET_AFTER_SECONDS = 3 * 3600
 # The group's own marks: hours without one are an ordinary evening, not a feed
 # that died.
 NOT_A_FEED = {"own-eyewitness"}
+
+
+def _a_mark(row: dict[str, Any]) -> bool:
+    """Whether a piece of evidence is somebody's word about a grade. A feed's
+    own «unknown» is not; benzinradar.ru's marks older than a day are read as
+    UNKNOWN but keep what the driver said in raw_status, and still are."""
+    if row.get("availability") not in (None, "UNKNOWN"):
+        return True
+    raw = str(row.get("raw_status") if row.get("raw_status") is not None else "").strip().lower()
+    return raw not in ("", "unknown", "none", "null", "no_data", "u", "x")
 
 
 def yandex_org(station: dict[str, Any]) -> str | None:
@@ -111,7 +122,7 @@ class StationRepository:
         """
         path = self.snapshot_path.parent / "live" / "full-aoi-probe-results.json"
         if not path.exists():
-            return {"total": 0, "ok": 0, "failed": [], "quiet": self.quiet_sources(set())}
+            return {"total": 0, "ok": 0, "failed": [], "quiet": self.quiet_sources()}
         rows = json.loads(path.read_text(encoding="utf-8"))
         failed = [
             {"name": row.get("name"), "error": (row.get("error") or "")[:300]}
@@ -128,11 +139,16 @@ class StationRepository:
             "ok": sum(1 for row in live if row.get("ok")),
             "failed": sorted(failed, key=lambda row: str(row["name"])),
             "off": sorted(off, key=lambda row: str(row["name"])),
-            "quiet": self.quiet_sources({str(row.get("name")) for row in off}),
+            # Only feeds whose collector answered: one that failed or is
+            # switched off is named in its own list already.
+            "quiet": self.quiet_sources({
+                source for row in rows if row.get("ok") and not row.get("disabled")
+                for source in CAPTURE_SOURCES.get(str(row.get("name")), ())
+            }),
             "checked_at": max((row.get("captured_at") or "") for row in rows) or None,
         }
 
-    def quiet_sources(self, skip: set[str]) -> list[dict[str, Any]]:
+    def quiet_sources(self, answered: set[str] | None = None) -> list[dict[str, Any]]:
         """Feeds that answer, but whose newest mark about the pumps is old.
 
         Such a feed is as silent as one that fails, and harder to see: on
@@ -140,6 +156,8 @@ class StationRepository:
         from 15 Sep and almost all of азсрадар.рф's from September. Only marks
         about a grade count; prices and catalogues say nothing about the pumps,
         and a feed without dated marks (card payments «now») is left out.
+        `answered`: the sources whose collector answered this refresh; without
+        it, every source in the snapshot.
         """
         now = parse_time(self.snapshot.get("snapshot_at")) or datetime.now(timezone.utc)
         newest: dict[str, datetime] = {}
@@ -147,8 +165,8 @@ class StationRepository:
             for row in station.get("evidence", []):
                 kind = str(row.get("kind") or "")
                 source = str(row.get("source") or "")
-                if (not source or source in skip or source in NOT_A_FEED or kind == "price"
-                        or kind.startswith("catalog") or row.get("availability") in (None, "UNKNOWN")):
+                if (not source or source in NOT_A_FEED or (answered is not None and source not in answered)
+                        or kind == "price" or kind.startswith("catalog") or not _a_mark(row)):
                     continue
                 observed = parse_time(row.get("observed_at"))
                 if observed is not None and (source not in newest or observed > newest[source]):

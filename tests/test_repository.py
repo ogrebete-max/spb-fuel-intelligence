@@ -86,9 +86,10 @@ class QuietSourceTests(unittest.TestCase):
 
     def test_names_feeds_whose_newest_mark_is_old_and_only_those(self):
         evidence = [
-            # benzinradar.ru: newest mark 15 Sep, the rest «unknown».
-            {"source": "benzinradar-analogue", "grade": "AI92", "availability": "NOT_AVAILABLE", "kind": "stale_or_crowd_status", "observed_at": "2026-09-15T18:10:08Z"},
-            {"source": "benzinradar-analogue", "grade": "AI95", "availability": "UNKNOWN", "kind": "stale_or_crowd_status", "observed_at": None},
+            # benzinradar.ru: newest mark 15 Sep, read as UNKNOWN past a day but
+            # still a driver's «empty»; the rest its own «unknown».
+            {"source": "benzinradar-analogue", "grade": "AI92", "availability": "UNKNOWN", "kind": "stale_or_crowd_status", "observed_at": "2026-09-15T18:10:08Z", "raw_status": "empty"},
+            {"source": "benzinradar-analogue", "grade": "AI95", "availability": "UNKNOWN", "kind": "stale_or_crowd_status", "observed_at": "2026-11-09T18:30:00Z", "raw_status": "unknown"},
             # A feed marking now.
             {"source": "gdebenzin-net", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-11-09T18:20:00Z"},
             # Fresh prices and catalogues say nothing about the pumps.
@@ -98,10 +99,11 @@ class QuietSourceTests(unittest.TestCase):
             # Card payments «now» carry no time; the group's own marks are no feed.
             {"source": "transitcard", "grade": "AI95", "availability": "AVAILABLE", "kind": "payment_projection", "observed_at": None},
             {"source": "own-eyewitness", "grade": "AI95", "availability": "AVAILABLE", "kind": "eyewitness", "observed_at": "2026-11-08T10:00:00Z"},
-            # Switched off: already said in its own section.
+            # Its collector did not answer (switched off): said in its own list.
             {"source": "yandex-maps", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-11-06T20:47:00Z"},
         ]
-        quiet = self.repository(evidence).quiet_sources({"yandex-maps"})
+        answered = {"benzinradar-analogue", "gdebenzin-net", "azsradar-rf", "rosneft-ptk", "transitcard", "own-eyewitness"}
+        quiet = self.repository(evidence).quiet_sources(answered)
         self.assertEqual(quiet, [
             {"name": "benzinradar-analogue", "last_mark": "2026-09-15T18:10:08Z"},
             {"name": "azsradar-rf", "last_mark": "2026-11-09T15:27:00Z"},
@@ -110,3 +112,21 @@ class QuietSourceTests(unittest.TestCase):
     def test_meta_carries_the_quiet_list(self):
         evidence = [{"source": "2gis-benzin", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-09-18T21:52:24Z"}]
         self.assertEqual(self.repository(evidence).collectors()["quiet"], [{"name": "2gis-benzin", "last_mark": "2026-09-18T21:52:24Z"}])
+
+    def test_only_feeds_whose_collector_answered(self):
+        # 9 Nov 2026, live: «gdebenzin» and «gazpromneft» rows carried from the
+        # catalogue stood among the quiet while their collectors were off.
+        evidence = [
+            {"source": "gdebenzin", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-09-10T16:19:28Z"},
+            {"source": "gazpromneft", "grade": "AI95", "availability": "AVAILABLE", "kind": "crowd_status", "observed_at": "2026-09-10T21:00:04Z"},
+            {"source": "benzinradar-analogue", "grade": "AI95", "availability": "UNKNOWN", "kind": "stale_or_crowd_status", "observed_at": "2026-09-15T18:10:08Z", "raw_status": "available"},
+        ]
+        repository = self.repository(evidence)
+        live = repository.snapshot_path.parent / "live"
+        live.mkdir()
+        (live / "full-aoi-probe-results.json").write_text(json.dumps([
+            {"name": "gdebenzin-full-aoi", "ok": True, "disabled": True, "note": "закрылся"},
+            {"name": "gpn-official", "ok": True, "disabled": True, "note": "через tboo"},
+            {"name": "benzinradar-full-aoi", "ok": True},
+        ]), encoding="utf-8")
+        self.assertEqual(repository.collectors()["quiet"], [{"name": "benzinradar-analogue", "last_mark": "2026-09-15T18:10:08Z"}])

@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.evidence_engine import parse_time  # noqa: E402
+from src.capture_sources import CAPTURE_SOURCES  # noqa: E402
 from src.last_seen import carry_forward, load_catalogue, save_catalogue  # noqa: E402
 from src.normalizers import (  # noqa: E402
     canonical_grade,
@@ -122,46 +123,8 @@ def capture_times(raw_dir: Path, fallback: str) -> dict[str, str]:
     return Counter(result) and result or {"fallback": fallback}
 
 
-# Which station sources each capture feeds, so a collector that failed can be
-# tied to the stations it used to list. A capture that makes no stations of its
-# own is mapped to nothing: grade titles for Tatneft, and the club's marks,
-# which never make a station by themselves.
-CAPTURE_SOURCES: dict[str, tuple[str, ...]] = {
-    "sber-full-aoi": ("sber",),
-    "gdebenz-full-aoi": ("gdebenz",),
-    "benzas-full-aoi": ("benzas",),
-    "benzas-comments-full-aoi": ("benzas",),
-    "benzinest-full-aoi": ("benzinest",),
-    "tutbenz-full-aoi": ("tutbenz",),
-    "gdebenzin-full-aoi": ("gdebenzin",),
-    "benzonavt-full-aoi": ("benzonavt",),
-    "toplivo-data": ("toplivo-ryadom",),
-    "toplivo-predict": ("toplivo-ryadom",),
-    "benzinradar-full-aoi": ("benzinradar-analogue",),
-    "tatneft-azs": ("tatneft",),
-    "tatneft-fuel-types": (),
-    "rosneft-stations": ("rosneft-ptk",),
-    "lukoil-search": ("lukoil",),
-    "gdezapravka-full-aoi": ("gdezapravka",),
-    "tofuel-full-aoi": ("tofuel",),
-    "teboil-official": ("teboil",),
-    "kirishi-official": ("kirishiavtoservis",),
-    "telegram-benzinspb78": ("telegram-benzinspb78",),
-    "yandex-maps": ("yandex-maps",),
-    "gdebenzin24": ("gdebenzin24",),
-    "gde-benzin": ("gde-benzin",),
-    "gdebenzin-net": ("gdebenzin-net",),
-    "gdebenzfuel": ("gdebenzfuel",),
-    "tbank-fuel": ("tbank-fuel",),
-    "gdebenzi": ("gdebenzi",),
-    "own-reports": (),
-    "gpn-official": ("gazpromneft",),
-    "2gis-benzin": ("2gis-benzin",),
-    "transitcard": ("transitcard",),
-    "alfa-azs": ("alfa-azs",),
-    "azsradar-rf": ("azsradar-rf",),
-    "azsmap": ("azsmap",),
-}
+# CAPTURE_SOURCES (src/capture_sources.py): which station sources each capture
+# feeds, so a collector that failed can be tied to the stations it used to list.
 
 
 def failed_sources(raw_dir: Path) -> set[str]:
