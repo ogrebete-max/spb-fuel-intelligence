@@ -46,13 +46,17 @@ class DeployPagesTests(unittest.TestCase):
 class DeployLoopTests(unittest.TestCase):
     """main() against a fake Pages API: what 9 Nov looked like, and the way out."""
 
-    def run_main(self, statuses, served_probes):
+    def run_main(self, statuses, served_probes, refuse_own_versions=False):
         calls = {"created": [], "probes": []}
         state = {"status": iter(statuses)}
 
         def github(method, path, body=None):
             if method == "POST" and path.endswith("/pages/deployments"):
                 calls["created"].append(body["pages_build_version"])
+                if refuse_own_versions and body["pages_build_version"] != SHA:
+                    import io
+                    from urllib.error import HTTPError
+                    raise HTTPError(path, 404, "Not Found", {}, io.BytesIO(b'{"message":"Not Found"}'))
                 return {"status_url": f"https://api.github.com/x/pages/deployments/{body['pages_build_version']}"}
             if method == "GET":
                 return {"status": next(state["status"])}
@@ -92,6 +96,20 @@ class DeployLoopTests(unittest.TestCase):
         # second probe did, each a file never asked for before.
         self.assertEqual(calls["probes"][-1], probe)
         self.assertEqual(len(set(calls["probes"])), len(calls["probes"]))
+
+    def test_a_refused_build_version_falls_back_to_the_bare_commit(self):
+        # 9 Nov 2026, 18:19 UTC: «404 Not Found» for every version of our own.
+        probe = "https://o.github.io/r/deploy-probe/9-1-3-1.txt"
+        code, calls = self.run_main(["succeed"], {probe}, refuse_own_versions=True)
+        self.assertEqual(code, 0)
+        self.assertEqual(calls["created"], [build_version(SHA, "9", "1", "3", 1), SHA])
+
+    def test_a_token_without_rights_is_not_retried_under_the_commit(self):
+        self.assertFalse(deploy_pages.fall_back_to_commit(403))
+        self.assertFalse(deploy_pages.fall_back_to_commit(401))
+        self.assertFalse(deploy_pages.fall_back_to_commit(502))
+        self.assertTrue(deploy_pages.fall_back_to_commit(404))
+        self.assertTrue(deploy_pages.fall_back_to_commit(422))
 
     def test_a_site_that_never_updates_fails_the_step(self):
         code, calls = self.run_main(["succeed", "deployment_failed", "succeed"], set())

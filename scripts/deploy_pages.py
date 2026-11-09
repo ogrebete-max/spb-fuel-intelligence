@@ -52,6 +52,12 @@ def probe_name(prefix: str, index: int) -> str:
     return f"deploy-probe/{prefix}-{index}.txt"
 
 
+def fall_back_to_commit(code: int) -> bool:
+    """Whether a refused deployment is worth trying under the bare commit:
+    any refusal of the request itself, but not a token without rights."""
+    return 400 <= code < 500 and code not in (401, 403)
+
+
 def outcome(status: str | None) -> str:
     """«live», «failed» or «wait» for a status the Pages API reports."""
     if status == SUCCEED:
@@ -133,11 +139,14 @@ def main() -> int:
             result, _ = deploy_once(repo, artifact_id, version)
         except HTTPError as error:
             # One more way out: GitHub refusing a build version that is not a
-            # bare commit. The commit itself is what deploy-pages always sent,
-            # and the probes still tell whether it went live.
+            # bare commit (9 Nov 2026, 18:19 UTC: «404 Not Found» for every
+            # such version, in the middle of an Actions outage). The commit
+            # itself is what deploy-pages always sent, and the probes still
+            # tell whether it went live.
             detail = error.read().decode(errors="replace")[:300]
             print(f"attempt {attempt}: creating the deployment failed: HTTP {error.code} {detail}", flush=True)
-            if error.code in (400, 422) and version != sha:
+            if fall_back_to_commit(error.code) and version != sha:
+                print("  trying the bare commit as the build version", flush=True)
                 try:
                     result, _ = deploy_once(repo, artifact_id, sha)
                 except (HTTPError, URLError, OSError) as again:
